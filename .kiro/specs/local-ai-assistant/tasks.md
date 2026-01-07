@@ -194,33 +194,33 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - Test download progress reporting
     - _Requirements: 18.2, 18.5, 18.8_
 
-- [ ] 6.7. API Provider Implementation (Optional Fallback)
-  - [ ] 6.7.1 Implement APIProvider class
+- [ ]* 6.7. API Provider Implementation (Optional Fallback)
+  - [ ]* 6.7.1 Implement APIProvider class
     - Implement ModelProvider interface
     - Support OpenAI, Anthropic, and Ollama backends
     - _Requirements: 19.1_
 
-  - [ ] 6.7.2 Implement secure API key storage
+  - [ ]* 6.7.2 Implement secure API key storage
     - Store API keys in IndexedDB (not LocalStorage)
     - Provide key management UI in settings
     - _Requirements: 19.2, 19.4_
 
-  - [ ] 6.7.3 Implement streaming API calls
+  - [ ]* 6.7.3 Implement streaming API calls
     - Use fetch with streaming response
     - Parse Server-Sent Events for OpenAI/Anthropic
     - Handle Ollama streaming format
     - _Requirements: 19.5_
 
-  - [ ] 6.7.4 Add privacy warning for external APIs
+  - [ ]* 6.7.4 Add privacy warning for external APIs
     - Display warning when API provider is active
     - Exclude warning for local Ollama endpoint
     - _Requirements: 19.3, 19.6_
 
-  - [ ] 6.7.5 Write property test for API key security
+  - [ ]* 6.7.5 Write property test for API key security
     - **Property 37: API Key Security**
     - **Validates: Requirements 19.4**
 
-  - [ ] 6.7.6 Write unit tests for APIProvider
+  - [ ]* 6.7.6 Write unit tests for APIProvider
     - Test API key validation
     - Test streaming response parsing
     - Test privacy warning display
