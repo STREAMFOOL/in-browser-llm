@@ -307,7 +307,7 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - Test GPU loss recovery
   - _Requirements: 15.1, 15.2, 15.3, 15.5, 15.6_
 
-- [ ] 9. Settings and Hardware Diagnostics
+- [x] 9. Settings and Hardware Diagnostics
   - [x] 9.1 Implement HardwareDiagnostics module
     - Detect RAM, CPU cores, storage, GPU VRAM
     - Benchmark GPU performance
@@ -326,15 +326,15 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - Disable features below minimum requirements
     - _Requirements: 6.5, 6.6, 7.6_
 
-  - [ ] 9.4 Write property test for hardware-based feature gating
+  - [ ]* 9.4 Write property test for hardware-based feature gating
     - **Property 12: Hardware-Based Feature Gating**
     - **Validates: Requirements 6.5, 6.6, 7.6**
 
-  - [ ] 9.5 Write property test for settings persistence
+  - [ ]* 9.5 Write property test for settings persistence
     - **Property 25: Settings Persistence**
     - **Validates: Requirements 12.3, 12.4**
 
-  - [ ] 9.6 Write unit tests for hardware display
+  - [ ]* 9.6 Write unit tests for hardware display
     - Test RAM, CPU, storage, GPU display
     - Test feature toggles
     - Test clear data button
