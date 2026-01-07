@@ -27,6 +27,7 @@ export class ChatUI {
     private loadingIndicator: HTMLElement;
     private callbacks: ChatUICallbacks;
     private isStreaming: boolean = false;
+    private userHasScrolledUp: boolean = false;
 
     constructor(container: HTMLElement, callbacks: ChatUICallbacks) {
         this.container = container;
@@ -51,6 +52,13 @@ export class ChatUI {
         list.setAttribute('role', 'log');
         list.setAttribute('aria-live', 'polite');
         list.setAttribute('aria-label', 'Chat messages');
+
+        // Track user scroll behavior
+        list.addEventListener('scroll', () => {
+            const isNearBottom = this.isScrolledNearBottom();
+            this.userHasScrolledUp = !isNearBottom;
+        });
+
         return list;
     }
 
@@ -132,6 +140,9 @@ export class ChatUI {
         this.inputField.value = '';
         this.inputField.style.height = 'auto';
         this.inputField.focus();
+
+        // Reset scroll tracking when user sends a message
+        this.forceScrollToBottom();
     }
 
     /**
@@ -170,7 +181,7 @@ export class ChatUI {
         messageEl.appendChild(contentWrapper);
 
         this.messageList.appendChild(messageEl);
-        this.scrollToBottom();
+        this.forceScrollToBottom();
 
         return messageEl;
     }
@@ -201,7 +212,7 @@ export class ChatUI {
         this.loadingIndicator.classList.remove('hidden');
         this.isStreaming = true;
         this.sendButton.textContent = 'Cancel';
-        this.scrollToBottom();
+        this.forceScrollToBottom();
     }
 
     /**
@@ -221,9 +232,33 @@ export class ChatUI {
     }
 
     /**
-     * Scroll to bottom of message list
+     * Check if user is scrolled near the bottom (within 100px threshold)
+     */
+    private isScrolledNearBottom(): boolean {
+        const threshold = 100;
+        const scrollTop = this.messageList.scrollTop;
+        const scrollHeight = this.messageList.scrollHeight;
+        const clientHeight = this.messageList.clientHeight;
+        return scrollHeight - scrollTop - clientHeight < threshold;
+    }
+
+    /**
+     * Scroll to bottom of message list (only if user hasn't scrolled up)
      */
     private scrollToBottom(): void {
+        // Only auto-scroll if user is already near the bottom
+        if (!this.userHasScrolledUp || this.isScrolledNearBottom()) {
+            requestAnimationFrame(() => {
+                this.messageList.scrollTop = this.messageList.scrollHeight;
+            });
+        }
+    }
+
+    /**
+     * Force scroll to bottom (used when user sends a new message)
+     */
+    private forceScrollToBottom(): void {
+        this.userHasScrolledUp = false;
         requestAnimationFrame(() => {
             this.messageList.scrollTop = this.messageList.scrollHeight;
         });

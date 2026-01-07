@@ -1905,8 +1905,8 @@ Something went wrong during initialization.
         this.chatUI.updateMessage(assistantMessage.id, fullResponse, true);
       }
 
-      // Mark as complete
-      this.chatUI.updateMessage(assistantMessage.id, fullResponse, false);
+      // Mark as complete (keep as assistant message for markdown rendering)
+      this.chatUI.updateMessage(assistantMessage.id, fullResponse, true);
 
       // Hide loading when done
       this.chatUI.hideLoading();
@@ -1914,11 +1914,11 @@ Something went wrong during initialization.
       this.chatUI.hideLoading();
 
       if (error instanceof Error && error.message === 'Stream cancelled') {
-        // Update message to show it was cancelled
+        // Update message to show it was cancelled (keep markdown rendering)
         this.chatUI.updateMessage(
           assistantMessage.id,
           assistantMessage.content || '⚠️ _Message cancelled by user_',
-          false
+          true
         );
       } else {
         // Use ErrorHandler to process the error
@@ -1929,7 +1929,7 @@ Something went wrong during initialization.
         this.chatUI.updateMessage(
           assistantMessage.id,
           errorMessage,
-          false
+          true
         );
 
         // If it's a GPU context loss, attempt recovery
