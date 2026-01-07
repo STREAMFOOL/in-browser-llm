@@ -10,17 +10,31 @@ import { ProviderManager } from './provider-manager';
 import { ChromeProvider } from './chrome-provider';
 import { WebLLMProvider } from './webllm-provider';
 import type { ModelProvider, ChatSession } from './model-provider';
+import { ErrorHandler, ErrorCategory } from './error-handler';
+import { RecoveryManager } from './recovery-manager';
+import { SettingsUI, type SettingsConfig } from './settings-ui';
+import { StorageManager } from './storage-manager';
+import { HardwareDiagnostics, type HardwareProfile, type Feature } from './hardware-diagnostics';
 
 export class LocalAIAssistant extends HTMLElement {
     private shadow: ShadowRoot;
     private chatUI: ChatUI | null = null;
+    private settingsUI: SettingsUI | null = null;
     private geminiController: GeminiController;
     private providerManager: ProviderManager;
+    private recoveryManager: RecoveryManager;
+    private storageManager: StorageManager;
     private activeProvider: ModelProvider | null = null;
     private currentSession: ChatSession | null = null;
     private abortController: AbortController | null = null;
     private messageIdCounter = 0;
     private initMessageId: string | null = null;
+    private hardwareProfile: HardwareProfile | null = null;
+    private currentSettings: SettingsConfig = {
+        temperature: 0.7,
+        topK: 40,
+        enabledFeatures: ['text-chat']
+    };
 
     constructor() {
         super();
@@ -28,11 +42,22 @@ export class LocalAIAssistant extends HTMLElement {
         // Create closed Shadow DOM for style isolation
         this.shadow = this.attachShadow({ mode: 'closed' });
         this.geminiController = new GeminiController();
+        this.storageManager = new StorageManager();
 
         // Initialize provider manager with fallback support
         this.providerManager = new ProviderManager();
         this.providerManager.registerProvider(new ChromeProvider());
         this.providerManager.registerProvider(new WebLLMProvider());
+
+        // Initialize recovery manager
+        this.recoveryManager = new RecoveryManager({
+            onGPURecovery: async () => {
+                await this.handleGPURecovery();
+            },
+            onApplicationReset: async () => {
+                await this.handleApplicationReset();
+            }
+        });
 
         this.initializeComponent();
     }
@@ -82,6 +107,525 @@ export class LocalAIAssistant extends HTMLElement {
         border-radius: 9999px;
         background-color: #86efac;
         animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+
+      .provider-indicator {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .provider-indicator.local {
+        background-color: rgba(134, 239, 172, 0.3);
+      }
+
+      .provider-indicator.api {
+        background-color: rgba(251, 191, 36, 0.3);
+      }
+
+      .provider-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      .privacy-warning {
+        font-size: 0.875rem;
+        color: #fbbf24;
+      }
+
+      .settings-button {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.25rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 0.375rem;
+        transition: background-color 0.15s;
+      }
+
+      .settings-button:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .settings-button:focus {
+        outline: 2px solid white;
+        outline-offset: 2px;
+      }
+
+      /* Settings panel */
+      .settings-panel {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: white;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .settings-panel.hidden {
+        display: none;
+      }
+
+      .settings-header {
+        padding: 1rem;
+        background: linear-gradient(to bottom right, #6366f1, #9333ea);
+        color: white;
+        border-bottom: 1px solid #e5e7eb;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .settings-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        transition: background-color 0.15s;
+      }
+
+      .settings-close:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .settings-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+      }
+
+      .settings-section {
+        margin-bottom: 2rem;
+      }
+
+      .settings-section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #111827;
+      }
+
+      .provider-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .provider-item {
+        padding: 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .provider-item:hover {
+        border-color: #6366f1;
+        background-color: #f9fafb;
+      }
+
+      .provider-item.active {
+        border-color: #6366f1;
+        background-color: #eff6ff;
+      }
+
+      .provider-item.unavailable {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .provider-item.unavailable:hover {
+        border-color: #e5e7eb;
+        background-color: white;
+      }
+
+      .provider-icon {
+        font-size: 1.5rem;
+        flex-shrink: 0;
+      }
+
+      .provider-details {
+        flex: 1;
+      }
+
+      .provider-name {
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 0.25rem;
+      }
+
+      .provider-description {
+        font-size: 0.875rem;
+        color: #6b7280;
+      }
+
+      .provider-status {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-weight: 500;
+      }
+
+      .provider-status.available {
+        background-color: #d1fae5;
+        color: #065f46;
+      }
+
+      .provider-status.unavailable {
+        background-color: #fee2e2;
+        color: #991b1b;
+      }
+
+      .provider-status.active {
+        background-color: #dbeafe;
+        color: #1e40af;
+      }
+
+      /* Reset button styles */
+      .reset-button {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background-color: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.15s;
+        margin-top: 0.75rem;
+      }
+
+      .reset-button:hover {
+        background-color: #dc2626;
+      }
+
+      .reset-button:active {
+        background-color: #b91c1c;
+      }
+
+      .reset-description {
+        font-size: 0.875rem;
+        color: #6b7280;
+        line-height: 1.5;
+      }
+
+      /* Hardware diagnostics styles */
+      .hardware-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+
+      .hardware-card {
+        padding: 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        position: relative;
+      }
+
+      .hardware-card.good {
+        border-color: #10b981;
+        background-color: #f0fdf4;
+      }
+
+      .hardware-card.warning {
+        border-color: #f59e0b;
+        background-color: #fffbeb;
+      }
+
+      .hardware-card.poor {
+        border-color: #ef4444;
+        background-color: #fef2f2;
+      }
+
+      .hardware-icon {
+        font-size: 1.5rem;
+        flex-shrink: 0;
+      }
+
+      .hardware-details {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .hardware-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+      }
+
+      .hardware-value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #111827;
+      }
+
+      .hardware-indicator {
+        font-size: 1.25rem;
+        flex-shrink: 0;
+      }
+
+      .hardware-indicator.good {
+        color: #10b981;
+      }
+
+      .hardware-indicator.warning {
+        color: #f59e0b;
+      }
+
+      .hardware-indicator.poor {
+        color: #ef4444;
+      }
+
+      .performance-info {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        background-color: #f3f4f6;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+      }
+
+      .perf-label {
+        color: #6b7280;
+        font-weight: 500;
+      }
+
+      .perf-score {
+        color: #111827;
+        font-weight: 600;
+      }
+
+      /* Slider control styles */
+      .slider-control {
+        margin-bottom: 1.5rem;
+      }
+
+      .slider-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+
+      .slider-label {
+        font-weight: 600;
+        color: #111827;
+        font-size: 0.875rem;
+      }
+
+      .slider-value {
+        font-weight: 600;
+        color: #3b82f6;
+        font-size: 0.875rem;
+      }
+
+      .slider {
+        width: 100%;
+        height: 6px;
+        border-radius: 3px;
+        background: #e5e7eb;
+        outline: none;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #3b82f6;
+        cursor: pointer;
+        transition: background-color 0.15s;
+      }
+
+      .slider::-webkit-slider-thumb:hover {
+        background: #2563eb;
+      }
+
+      .slider::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #3b82f6;
+        cursor: pointer;
+        border: none;
+        transition: background-color 0.15s;
+      }
+
+      .slider::-moz-range-thumb:hover {
+        background: #2563eb;
+      }
+
+      .slider-description {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.5rem;
+        line-height: 1.4;
+      }
+
+      /* Feature toggle styles */
+      .feature-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        margin-bottom: 0.75rem;
+        transition: background-color 0.15s;
+      }
+
+      .feature-toggle:hover {
+        background-color: #f9fafb;
+      }
+
+      .feature-toggle.disabled {
+        opacity: 0.6;
+        background-color: #f9fafb;
+      }
+
+      .feature-details {
+        flex: 1;
+      }
+
+      .feature-label {
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 0.25rem;
+      }
+
+      .feature-description {
+        font-size: 0.75rem;
+        color: #6b7280;
+        line-height: 1.4;
+      }
+
+      .feature-warning {
+        color: #f59e0b;
+        font-weight: 500;
+        margin-top: 0.25rem;
+      }
+
+      /* Toggle switch styles */
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 48px;
+        height: 24px;
+        flex-shrink: 0;
+      }
+
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .switch-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #d1d5db;
+        transition: 0.3s;
+        border-radius: 24px;
+      }
+
+      .switch-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+      }
+
+      .switch input:checked + .switch-slider {
+        background-color: #3b82f6;
+      }
+
+      .switch input:checked + .switch-slider:before {
+        transform: translateX(24px);
+      }
+
+      .switch input:disabled + .switch-slider {
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+
+      /* Action button styles */
+      .action-button {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.15s;
+        margin-top: 0.75rem;
+        font-size: 0.875rem;
+      }
+
+      .action-button.secondary {
+        background-color: #6b7280;
+        color: white;
+      }
+
+      .action-button.secondary:hover {
+        background-color: #4b5563;
+      }
+
+      .action-button.danger {
+        background-color: #ef4444;
+        color: white;
+      }
+
+      .action-button.danger:hover {
+        background-color: #dc2626;
+      }
+
+      .action-button.danger:active {
+        background-color: #b91c1c;
+      }
+
+      .action-description {
+        font-size: 0.875rem;
+        color: #6b7280;
+        line-height: 1.5;
+        margin-top: 0.5rem;
       }
 
       /* Content area */
@@ -409,8 +953,24 @@ export class LocalAIAssistant extends HTMLElement {
         const headerText = document.createElement('span');
         headerText.textContent = 'Local AI Assistant';
 
+        // Create provider indicator
+        const providerIndicator = document.createElement('div');
+        providerIndicator.className = 'provider-indicator';
+        providerIndicator.setAttribute('data-provider-indicator', 'true');
+        providerIndicator.style.display = 'none'; // Hidden until provider is initialized
+
+        // Create settings button
+        const settingsButton = document.createElement('button');
+        settingsButton.className = 'settings-button';
+        settingsButton.innerHTML = '⚙️';
+        settingsButton.title = 'Settings';
+        settingsButton.setAttribute('aria-label', 'Open settings');
+        settingsButton.addEventListener('click', () => this.toggleSettings());
+
         header.appendChild(statusIndicator);
         header.appendChild(headerText);
+        header.appendChild(providerIndicator);
+        header.appendChild(settingsButton);
 
         // Create content area for chat
         const content = document.createElement('div');
@@ -422,6 +982,9 @@ export class LocalAIAssistant extends HTMLElement {
             onCancelStream: () => this.handleCancelStream()
         });
 
+        // Create settings panel
+        const settingsPanel = this.createSettingsPanel();
+
         // Create footer
         const footer = document.createElement('div');
         footer.className = 'ai-assistant-footer';
@@ -430,6 +993,7 @@ export class LocalAIAssistant extends HTMLElement {
         // Assemble component
         container.appendChild(header);
         container.appendChild(content);
+        container.appendChild(settingsPanel);
         container.appendChild(footer);
 
         this.shadow.appendChild(style);
@@ -439,8 +1003,299 @@ export class LocalAIAssistant extends HTMLElement {
         this.initializeSession();
     }
 
+    /**
+     * Create the settings panel
+     * Requirements: 16.8, 18.5, 18.8, 6.1, 6.2, 6.3, 6.4, 12.1, 12.2, 12.5
+     */
+    private createSettingsPanel(): HTMLElement {
+        const panel = document.createElement('div');
+        panel.className = 'settings-panel hidden';
+        panel.setAttribute('data-settings-panel', 'true');
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'settings-header';
+
+        const title = document.createElement('span');
+        title.textContent = 'Settings';
+
+        const closeButton = document.createElement('button');
+        closeButton.className = 'settings-close';
+        closeButton.innerHTML = '×';
+        closeButton.setAttribute('aria-label', 'Close settings');
+        closeButton.addEventListener('click', () => this.toggleSettings());
+
+        header.appendChild(title);
+        header.appendChild(closeButton);
+
+        // Content (will be populated by SettingsUI)
+        const content = document.createElement('div');
+        content.className = 'settings-content';
+
+        panel.appendChild(header);
+        panel.appendChild(content);
+
+        return panel;
+    }
+
+    /**
+     * Toggle settings panel visibility
+     */
+    private toggleSettings(): void {
+        const panel = this.shadow.querySelector('[data-settings-panel]') as HTMLElement;
+        if (!panel) return;
+
+        const isHidden = panel.classList.contains('hidden');
+        if (isHidden) {
+            // Show settings and populate provider list
+            panel.classList.remove('hidden');
+            this.populateProviderList();
+        } else {
+            // Hide settings
+            panel.classList.add('hidden');
+        }
+    }
+
+    /**
+     * Populate the provider list in settings
+     * Requirements: 16.8, 18.5, 18.8, 6.1, 6.2, 6.3, 6.4, 12.1, 12.2
+     */
+    private async populateProviderList(): Promise<void> {
+        const settingsContent = this.shadow.querySelector('.settings-content') as HTMLElement;
+        if (!settingsContent) return;
+
+        // Show loading
+        settingsContent.innerHTML = '<div style="text-align: center; padding: 2rem; color: #6b7280;">Loading settings...</div>';
+
+        try {
+            // Detect all providers
+            const providers = await this.providerManager.detectProviders();
+
+            // Clear loading
+            settingsContent.innerHTML = '';
+
+            // Initialize SettingsUI if not already done
+            if (!this.settingsUI) {
+                this.settingsUI = new SettingsUI(
+                    settingsContent,
+                    {
+                        onProviderSwitch: async (providerName: string) => {
+                            await this.switchProvider(providerName);
+                        },
+                        onSettingsChange: (config: SettingsConfig) => {
+                            this.handleSettingsChange(config);
+                        },
+                        onClearData: async () => {
+                            await this.clearAllData();
+                        },
+                        onResetApplication: async () => {
+                            await this.resetApplication();
+                        }
+                    },
+                    this.currentSettings
+                );
+            }
+
+            // Render the settings UI
+            await this.settingsUI.render(providers, this.activeProvider?.name || null);
+        } catch (error) {
+            console.error('Failed to populate settings:', error);
+            settingsContent.innerHTML = '<div style="text-align: center; padding: 2rem; color: #ef4444;">Failed to load settings</div>';
+        }
+    }
+
+    /**
+     * Switch to a different provider
+     * Requirements: 16.8
+     */
+    private async switchProvider(providerName: string): Promise<void> {
+        const settingsContent = this.shadow.querySelector('.settings-content') as HTMLElement;
+        if (!settingsContent) return;
+
+        try {
+            // Show loading state
+            settingsContent.style.opacity = '0.5';
+            settingsContent.style.pointerEvents = 'none';
+
+            // Destroy current session
+            if (this.currentSession && this.activeProvider) {
+                await this.activeProvider.destroySession(this.currentSession);
+                this.currentSession = null;
+            }
+
+            // Switch provider
+            await this.providerManager.setActiveProvider(providerName);
+            this.activeProvider = this.providerManager.getActiveProvider();
+
+            // Create new session with current settings
+            if (this.activeProvider) {
+                this.currentSession = await this.activeProvider.createSession({
+                    temperature: this.currentSettings.temperature,
+                    topK: this.currentSettings.topK
+                });
+
+                // Update provider indicator
+                this.updateProviderIndicator(this.activeProvider);
+
+                // Add system message about provider switch
+                if (this.chatUI) {
+                    const switchMessage: Message = {
+                        id: `msg-${this.messageIdCounter++}`,
+                        role: 'assistant',
+                        content: `✅ Switched to **${this.activeProvider.description}**. All future messages will use this provider.`,
+                        timestamp: Date.now()
+                    };
+                    this.chatUI.addMessage(switchMessage);
+                }
+            }
+
+            // Refresh settings UI
+            await this.populateProviderList();
+
+            // Restore state
+            settingsContent.style.opacity = '1';
+            settingsContent.style.pointerEvents = 'auto';
+        } catch (error) {
+            console.error('Failed to switch provider:', error);
+            settingsContent.style.opacity = '1';
+            settingsContent.style.pointerEvents = 'auto';
+
+            // Show error message
+            if (this.chatUI) {
+                const errorMessage: Message = {
+                    id: `msg-${this.messageIdCounter++}`,
+                    role: 'assistant',
+                    content: `⚠️ **Failed to switch provider**: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    timestamp: Date.now()
+                };
+                this.chatUI.addMessage(errorMessage);
+            }
+        }
+    }
+
+    /**
+     * Handle settings changes
+     * Requirements: 12.1, 6.5, 6.6
+     */
+    private async handleSettingsChange(config: SettingsConfig): Promise<void> {
+        console.log('Settings changed:', config);
+
+        // Requirement 6.5, 6.6: Validate enabled features against hardware capabilities
+        if (this.hardwareProfile) {
+            const invalidFeatures: Feature[] = [];
+            for (const feature of config.enabledFeatures) {
+                if (!HardwareDiagnostics.canSupport(feature, this.hardwareProfile)) {
+                    invalidFeatures.push(feature);
+                }
+            }
+
+            // Remove features that don't meet hardware requirements
+            if (invalidFeatures.length > 0) {
+                config.enabledFeatures = config.enabledFeatures.filter(
+                    f => !invalidFeatures.includes(f)
+                );
+
+                // Show warning message
+                if (this.chatUI) {
+                    const warningMessage: Message = {
+                        id: `msg-${this.messageIdCounter++}`,
+                        role: 'assistant',
+                        content: `⚠️ **Hardware Limitation**\n\nThe following features were disabled due to insufficient hardware:\n\n${invalidFeatures.map(f => `- ${f}`).join('\n')}\n\nPlease check the hardware requirements in settings.`,
+                        timestamp: Date.now()
+                    };
+                    this.chatUI.addMessage(warningMessage);
+                }
+            }
+        }
+
+        this.currentSettings = config;
+
+        // Recreate session with new parameters if provider is active
+        if (this.activeProvider && this.currentSession) {
+            try {
+                await this.activeProvider.destroySession(this.currentSession);
+                this.currentSession = await this.activeProvider.createSession({
+                    temperature: config.temperature,
+                    topK: config.topK
+                });
+                console.log('Session recreated with new settings');
+            } catch (error) {
+                console.error('Failed to apply settings:', error);
+            }
+        }
+
+        // Persist settings to storage
+        try {
+            await this.storageManager.saveSetting('modelParameters', {
+                temperature: config.temperature,
+                topK: config.topK
+            });
+            await this.storageManager.saveSetting('enabledFeatures', config.enabledFeatures);
+        } catch (error) {
+            console.error('Failed to persist settings:', error);
+        }
+    }
+
+    /**
+     * Clear all data
+     * Requirement 12.5
+     */
+    private async clearAllData(): Promise<void> {
+        try {
+            console.log('Clearing all data...');
+            await this.storageManager.clearAllData();
+
+            if (this.chatUI) {
+                const successMessage: Message = {
+                    id: `msg-${this.messageIdCounter++}`,
+                    role: 'assistant',
+                    content: '✅ **All data cleared successfully**\n\nAll conversations, cached models, and settings have been deleted.',
+                    timestamp: Date.now()
+                };
+                this.chatUI.addMessage(successMessage);
+            }
+
+            // Close settings panel
+            this.toggleSettings();
+        } catch (error) {
+            console.error('Failed to clear data:', error);
+
+            if (this.chatUI) {
+                const errorMessage: Message = {
+                    id: `msg-${this.messageIdCounter++}`,
+                    role: 'assistant',
+                    content: `⚠️ **Failed to clear data**: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    timestamp: Date.now()
+                };
+                this.chatUI.addMessage(errorMessage);
+            }
+        }
+    }
+
     private async initializeSession(): Promise<void> {
         if (!this.chatUI) return;
+
+        // Detect hardware capabilities first
+        // Requirement 6.1, 6.2, 6.3, 6.4
+        try {
+            this.hardwareProfile = await HardwareDiagnostics.detectCapabilities();
+            console.log('Hardware profile detected:', this.hardwareProfile);
+
+            // Requirement 6.5, 6.6: Filter enabled features based on hardware
+            const supportedFeatures = this.currentSettings.enabledFeatures.filter(
+                feature => HardwareDiagnostics.canSupport(feature, this.hardwareProfile!)
+            );
+
+            if (supportedFeatures.length < this.currentSettings.enabledFeatures.length) {
+                const unsupportedFeatures = this.currentSettings.enabledFeatures.filter(
+                    f => !supportedFeatures.includes(f)
+                );
+                console.warn('Some features disabled due to hardware limitations:', unsupportedFeatures);
+                this.currentSettings.enabledFeatures = supportedFeatures;
+            }
+        } catch (error) {
+            console.error('Failed to detect hardware capabilities:', error);
+        }
 
         // Show initialization message with steps
         this.initMessageId = `msg-${this.messageIdCounter++}`;
@@ -472,6 +1327,9 @@ export class LocalAIAssistant extends HTMLElement {
                         topK: 40
                     });
                     console.log('Chrome Gemini session initialized');
+
+                    // Update provider indicator
+                    this.updateProviderIndicator(this.activeProvider);
 
                     this.chatUI.updateMessage(
                         this.initMessageId,
@@ -545,6 +1403,9 @@ export class LocalAIAssistant extends HTMLElement {
 
             fallbackSteps[1] = { id: 'webllm', label: 'WebLLM ready', status: 'passed' };
 
+            // Update provider indicator
+            this.updateProviderIndicator(this.activeProvider);
+
             console.log('WebLLM session initialized as fallback');
             this.chatUI.updateMessage(
                 this.initMessageId,
@@ -610,19 +1471,73 @@ export class LocalAIAssistant extends HTMLElement {
         let guide = `**No AI Provider Available**\n\n`;
         guide += `Neither Chrome's built-in AI nor WebLLM could be initialized.\n\n`;
 
-        guide += `**Option 1: Enable Chrome AI**\n`;
-        if (chromeReason === 'api-not-available' || chromeReason === 'flags-disabled') {
-            guide += `1. Open \`chrome://flags\` in Chrome\n`;
-            guide += `2. Enable \`#optimization-guide-on-device-model\` → **Enabled BypassPerfRequirement**\n`;
-            guide += `3. Enable \`#prompt-api-for-gemini-nano\` → **Enabled**\n`;
-            guide += `4. Click **Relaunch** to restart Chrome\n\n`;
+        // Detect browser
+        const userAgent = navigator.userAgent.toLowerCase();
+        const isChrome = userAgent.includes('chrome') && !userAgent.includes('edg') && !userAgent.includes('brave');
+        const isBrave = userAgent.includes('brave') || (navigator as any).brave !== undefined;
+        const isFirefox = userAgent.includes('firefox');
+        const isEdge = userAgent.includes('edg');
+        const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome');
+
+        // Browser-specific instructions
+        if (isChrome) {
+            guide += `**You're using Chrome - Enable Built-in AI**\n\n`;
+            if (chromeReason === 'api-not-available' || chromeReason === 'flags-disabled') {
+                guide += `1. Open \`chrome://flags\` in Chrome\n`;
+                guide += `2. Enable \`#optimization-guide-on-device-model\` → **Enabled BypassPerfRequirement**\n`;
+                guide += `3. Enable \`#prompt-api-for-gemini-nano\` → **Enabled**\n`;
+                guide += `4. Click **Relaunch** to restart Chrome\n\n`;
+            } else {
+                guide += `Requires Google Chrome 138+ with experimental flags enabled.\n`;
+                guide += `Visit \`chrome://flags\` to enable the required flags.\n\n`;
+            }
+        } else if (isBrave || isFirefox || isEdge) {
+            const browserName = isBrave ? 'Brave' : isFirefox ? 'Firefox' : 'Edge';
+            guide += `**You're using ${browserName} - Enable WebGPU**\n\n`;
+            guide += `WebLLM requires WebGPU support:\n\n`;
+
+            if (isBrave) {
+                guide += `1. Open \`brave://flags\` in Brave\n`;
+                guide += `2. Search for "WebGPU"\n`;
+                guide += `3. Enable \`#enable-unsafe-webgpu\` → **Enabled**\n`;
+                guide += `4. Click **Relaunch** to restart Brave\n\n`;
+            } else if (isFirefox) {
+                guide += `1. Open \`about:config\` in Firefox\n`;
+                guide += `2. Search for "dom.webgpu.enabled"\n`;
+                guide += `3. Set it to **true**\n`;
+                guide += `4. Restart Firefox\n\n`;
+                guide += `Note: WebGPU support in Firefox is experimental.\n\n`;
+            } else if (isEdge) {
+                guide += `1. Open \`edge://flags\` in Edge\n`;
+                guide += `2. Search for "WebGPU"\n`;
+                guide += `3. Enable \`#enable-unsafe-webgpu\` → **Enabled**\n`;
+                guide += `4. Click **Restart** to restart Edge\n\n`;
+            }
+
+            guide += `**Alternative: Use Chrome**\n\n`;
+            guide += `For the best experience, use Google Chrome 138+ with built-in AI enabled.\n\n`;
+        } else if (isSafari) {
+            guide += `**Safari is not currently supported**\n\n`;
+            guide += `Safari does not support the required APIs for local AI inference.\n\n`;
+            guide += `**Recommended Browsers:**\n`;
+            guide += `- **Google Chrome 138+** (with built-in AI)\n`;
+            guide += `- **Brave** (with WebGPU enabled)\n`;
+            guide += `- **Firefox** (with WebGPU enabled)\n`;
+            guide += `- **Microsoft Edge** (with WebGPU enabled)\n\n`;
         } else {
-            guide += `Requires Google Chrome 138+ with experimental flags enabled.\n\n`;
+            guide += `**Browser Not Recognized**\n\n`;
+            guide += `This browser may not support the required APIs.\n\n`;
+            guide += `**Recommended Browsers:**\n`;
+            guide += `- **Google Chrome 138+** (with built-in AI)\n`;
+            guide += `- **Brave** (with WebGPU enabled)\n`;
+            guide += `- **Firefox** (with WebGPU enabled)\n`;
+            guide += `- **Microsoft Edge** (with WebGPU enabled)\n\n`;
         }
 
-        guide += `**Option 2: Use WebLLM**\n`;
-        guide += `WebLLM requires a browser with WebGPU support (Chrome, Edge, Firefox Nightly).\n`;
-        guide += `Make sure your GPU drivers are up to date.\n`;
+        guide += `**System Requirements:**\n`;
+        guide += `- At least 22GB free disk space\n`;
+        guide += `- WebGPU-capable GPU (for WebLLM)\n`;
+        guide += `- Up-to-date GPU drivers\n`;
 
         return guide;
     }
@@ -638,6 +1553,9 @@ export class LocalAIAssistant extends HTMLElement {
                     temperature: 0.7,
                     topK: 40
                 });
+
+                // Update provider indicator
+                this.updateProviderIndicator(this.activeProvider);
 
                 // Download complete, show welcome
                 this.chatUI.updateMessage(
@@ -832,6 +1750,53 @@ Something went wrong during initialization.
     // 4. Check the browser console for more details`;
     // }
 
+    /**
+     * Update the provider indicator in the header
+     * Requirements: 16.7
+     */
+    private updateProviderIndicator(provider: ModelProvider): void {
+        const indicator = this.shadow.querySelector('[data-provider-indicator]') as HTMLElement;
+        if (!indicator) return;
+
+        // Show the indicator
+        indicator.style.display = 'flex';
+
+        // Clear previous content
+        indicator.innerHTML = '';
+
+        // Add provider badge
+        const badge = document.createElement('span');
+        badge.className = 'provider-badge';
+
+        // Add icon based on provider type
+        const icon = document.createElement('span');
+        if (provider.type === 'local') {
+            icon.textContent = '🔒';
+            indicator.classList.add('local');
+            indicator.classList.remove('api');
+        } else {
+            icon.textContent = '🌐';
+            indicator.classList.add('api');
+            indicator.classList.remove('local');
+        }
+
+        const name = document.createElement('span');
+        name.textContent = provider.description;
+
+        badge.appendChild(icon);
+        badge.appendChild(name);
+        indicator.appendChild(badge);
+
+        // Add privacy warning for API providers (except local Ollama)
+        if (provider.type === 'api') {
+            const warning = document.createElement('span');
+            warning.className = 'privacy-warning';
+            warning.textContent = '⚠️';
+            warning.title = 'External API - data sent to third party';
+            indicator.appendChild(warning);
+        }
+    }
+
     private async handleSendMessage(content: string): Promise<void> {
         if (!this.chatUI) {
             console.error('Chat UI not initialized');
@@ -911,13 +1876,21 @@ Something went wrong during initialization.
                     false
                 );
             } else {
-                console.error('Error during streaming:', error);
-                const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+                // Use ErrorHandler to process the error
+                const category = ErrorHandler.detectErrorCategory(error);
+                const errorContext = ErrorHandler.handleError(error, category);
+                const errorMessage = ErrorHandler.formatErrorMessage(errorContext);
+
                 this.chatUI.updateMessage(
                     assistantMessage.id,
-                    `⚠️ **Error: Failed to generate response**\n\n${errorMsg}\n\nPlease try again or check the console for more details.`,
+                    errorMessage,
                     false
                 );
+
+                // If it's a GPU context loss, attempt recovery
+                if (category === ErrorCategory.GPU_CONTEXT_LOSS) {
+                    await this.recoveryManager.handleGPUContextLoss('inference-error');
+                }
             }
         } finally {
             this.abortController = null;
@@ -929,6 +1902,151 @@ Something went wrong during initialization.
             this.abortController.abort();
             console.log('Stream cancelled by user');
         }
+    }
+
+    /**
+     * Check if a feature is enabled and supported by hardware
+     * Requirements: 6.5, 6.6, 7.6
+     */
+    private isFeatureAvailable(feature: Feature): boolean {
+        // Check if feature is enabled in settings
+        if (!this.currentSettings.enabledFeatures.includes(feature)) {
+            return false;
+        }
+
+        // Check if hardware supports the feature
+        if (this.hardwareProfile) {
+            return HardwareDiagnostics.canSupport(feature, this.hardwareProfile);
+        }
+
+        // If hardware profile not available, assume feature is available
+        return true;
+    }
+
+    /**
+     * Show warning when attempting to use unsupported feature
+     * Requirements: 6.5, 6.6
+     */
+    private showFeatureUnavailableWarning(feature: Feature): void {
+        if (!this.chatUI) return;
+
+        const requirements = HardwareDiagnostics.getFeatureRequirements(feature);
+        let message = `⚠️ **Feature Not Available: ${feature}**\n\n`;
+        message += `This feature is not available because:\n\n`;
+
+        if (!this.currentSettings.enabledFeatures.includes(feature)) {
+            message += `- The feature is disabled in settings\n`;
+        }
+
+        if (this.hardwareProfile) {
+            const issues: string[] = [];
+
+            if (this.hardwareProfile.ram < requirements.minRAM) {
+                issues.push(`- Insufficient RAM: ${this.hardwareProfile.ram}GB available, ${requirements.minRAM}GB required`);
+            }
+            if (this.hardwareProfile.gpuVRAM < requirements.minVRAM) {
+                issues.push(`- Insufficient GPU VRAM: ~${this.hardwareProfile.gpuVRAM}GB available, ${requirements.minVRAM}GB required`);
+            }
+            if (this.hardwareProfile.cpuCores < requirements.minCPUCores) {
+                issues.push(`- Insufficient CPU cores: ${this.hardwareProfile.cpuCores} available, ${requirements.minCPUCores} required`);
+            }
+            if (this.hardwareProfile.storageAvailable < requirements.minStorage) {
+                issues.push(`- Insufficient storage: ${this.hardwareProfile.storageAvailable.toFixed(1)}GB available, ${requirements.minStorage}GB required`);
+            }
+            if (requirements.requiresWebGPU && !this.hardwareProfile.webGPUSupported) {
+                issues.push(`- WebGPU not supported`);
+            }
+
+            if (issues.length > 0) {
+                message += issues.join('\n');
+            }
+        }
+
+        message += `\n\nPlease check the hardware requirements in settings.`;
+
+        const warningMessage: Message = {
+            id: `msg-${this.messageIdCounter++}`,
+            role: 'assistant',
+            content: message,
+            timestamp: Date.now()
+        };
+        this.chatUI.addMessage(warningMessage);
+    }
+
+    /**
+     * Handle GPU recovery after context loss
+     * Requirements: 15.5
+     */
+    private async handleGPURecovery(): Promise<void> {
+        console.log('Handling GPU recovery...');
+
+        if (!this.chatUI) return;
+
+        // Show recovery message
+        const recoveryMessage: Message = {
+            id: `msg-${this.messageIdCounter++}`,
+            role: 'assistant',
+            content: '🔄 **GPU Recovery in Progress**\n\nThe GPU connection was lost and is being reinitialized. Please wait...',
+            timestamp: Date.now()
+        };
+        this.chatUI.addMessage(recoveryMessage);
+
+        try {
+            // Reinitialize the active provider if it uses GPU
+            if (this.activeProvider && this.activeProvider.name === 'webllm') {
+                await this.activeProvider.dispose();
+                await this.activeProvider.initialize({});
+
+                // Recreate session
+                if (this.currentSession) {
+                    this.currentSession = await this.activeProvider.createSession({
+                        temperature: 0.7,
+                        topK: 40
+                    });
+                }
+            }
+
+            // Show success message
+            const successMessage: Message = {
+                id: `msg-${this.messageIdCounter++}`,
+                role: 'assistant',
+                content: '✅ **GPU Recovery Successful**\n\nThe GPU has been reinitialized. You can continue using the assistant.',
+                timestamp: Date.now()
+            };
+            this.chatUI.addMessage(successMessage);
+        } catch (error) {
+            console.error('GPU recovery failed:', error);
+
+            // Show failure message with reset option
+            const failureMessage: Message = {
+                id: `msg-${this.messageIdCounter++}`,
+                role: 'assistant',
+                content: '⚠️ **GPU Recovery Failed**\n\nThe GPU could not be reinitialized. You may need to reset the application or restart your browser.',
+                timestamp: Date.now()
+            };
+            this.chatUI.addMessage(failureMessage);
+        }
+    }
+
+    /**
+     * Handle application reset
+     * Requirements: 15.6
+     */
+    private async handleApplicationReset(): Promise<void> {
+        console.log('Application reset initiated');
+        // The recovery manager will handle the actual reset
+    }
+
+    /**
+     * Trigger application reset (called from UI)
+     * Requirements: 15.6
+     */
+    async resetApplication(): Promise<void> {
+        if (!confirm('Are you sure you want to reset the application? This will clear all data and reload the page.')) {
+            return;
+        }
+
+        await this.recoveryManager.resetApplication();
     }
 
     connectedCallback(): void {

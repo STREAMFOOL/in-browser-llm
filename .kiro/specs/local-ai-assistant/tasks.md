@@ -226,64 +226,64 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - Test privacy warning display
     - _Requirements: 19.1, 19.3, 19.5_
 
-- [ ] 6.8. Update UI for Provider Selection
-  - [ ] 6.8.1 Add provider indicator to chat header
+- [x] 6.8. Update UI for Provider Selection
+  - [x] 6.8.1 Add provider indicator to chat header
     - Display active provider name and type (local/api)
     - Show privacy indicator for API providers
     - _Requirements: 16.7_
 
-  - [ ] 6.8.2 Add provider selection to settings
+  - [x] 6.8.2 Add provider selection to settings
     - List available providers with status
     - Allow manual provider switching
     - Show model options for WebLLM
     - _Requirements: 16.8, 18.5, 18.8_
 
-  - [ ] 6.8.3 Update error messages for provider-specific issues
+  - [x] 6.8.3 Update error messages for provider-specific issues
     - Show browser-specific setup instructions when no providers available
     - _Requirements: 16.6_
 
-  - [ ] 6.8.4 Write unit tests for provider UI
+  - [x] 6.8.4 Write unit tests for provider UI
     - Test provider indicator display
     - Test provider switching UI
     - _Requirements: 16.7, 16.8_
 
-- [ ] 6.9. Checkpoint - Provider Abstraction Complete
+- [x] 6.9. Checkpoint - Provider Abstraction Complete
   - Ensure all tests pass, ask the user if questions arise.
   - Verify Chrome provider works as before
   - Verify WebLLM provider works in Brave/Firefox
   - Verify API provider works as fallback
 
-- [ ] 7. Thread Management Implementation
-  - [ ] 7.1 Implement thread creation and storage
+- [ ]* 7. Thread Management Implementation
+  - [ ]* 7.1 Implement thread creation and storage
     - Generate unique thread IDs
     - Auto-generate titles from first message
     - Store threads in IndexedDB
     - _Requirements: 4.4, 13.2, 13.5_
 
-- [ ] 7.2 Create thread list UI
+- [ ]* 7.2 Create thread list UI
   - Sidebar/drawer with thread list
   - Display title and last message timestamp
   - Thread selection and deletion
   - _Requirements: 13.1, 13.3, 13.4, 13.6_
 
-- [ ] 7.3 Write property test for thread list completeness
+- [ ]* 7.3 Write property test for thread list completeness
   - **Property 27: Thread List Completeness**
   - **Validates: Requirements 13.1, 13.6**
 
-- [ ] 7.4 Write property test for thread message ordering
+- [ ]* 7.4 Write property test for thread message ordering
   - **Property 28: Thread Message Ordering**
   - **Validates: Requirements 13.3**
 
-- [ ] 7.5 Write property test for thread deletion completeness
+- [ ]* 7.5 Write property test for thread deletion completeness
   - **Property 29: Thread Deletion Completeness**
   - **Validates: Requirements 13.4**
 
-- [ ] 7.6 Write property test for thread title generation
+- [ ]* 7.6 Write property test for thread title generation
   - **Property 30: Thread Title Generation**
   - **Validates: Requirements 13.5**
 
-- [ ] 8. Error Handling and Recovery
-  - [ ] 8.1 Implement error handling system
+- [x] 8. Error Handling and Recovery
+  - [x] 8.1 Implement error handling system
     - Display user-friendly error messages
     - Log technical details to console
     - Handle model load failures
@@ -291,16 +291,16 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - Handle storage quota exceeded
     - _Requirements: 3.6, 15.1, 15.2, 15.3, 15.4_
 
-- [ ] 8.2 Implement recovery mechanisms
+- [x] 8.2 Implement recovery mechanisms
   - GPU reinitialization on context loss
   - Reset application button for unrecoverable errors
   - _Requirements: 15.5, 15.6_
 
-- [ ] 8.3 Write property test for error handling consistency
+- [x] 8.3 Write property test for error handling consistency
   - **Property 6: Error Handling Consistency**
   - **Validates: Requirements 3.6, 15.4**
 
-- [ ] 8.4 Write unit tests for specific error scenarios
+- [x] 8.4 Write unit tests for specific error scenarios
   - Test model load failure messages
   - Test memory exhaustion suggestions
   - Test quota exceeded prompts
@@ -308,37 +308,37 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - _Requirements: 15.1, 15.2, 15.3, 15.5, 15.6_
 
 - [ ] 9. Settings and Hardware Diagnostics
-  - [ ] 9.1 Implement HardwareDiagnostics module
+  - [x] 9.1 Implement HardwareDiagnostics module
     - Detect RAM, CPU cores, storage, GPU VRAM
     - Benchmark GPU performance
     - Cache hardware profile
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-- [ ] 9.2 Create settings UI
-  - Display hardware metrics with visual indicators
-  - Temperature and topK sliders
-  - Feature toggles (image gen, speech, web search)
-  - Clear data button
+  - [x] 9.2 Create settings UI
+    - Display hardware metrics with visual indicators
+    - Temperature and topK sliders
+    - Feature toggles (image gen, speech, web search)
+    - Clear data button
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 12.1, 12.2, 12.5_
 
-- [ ] 9.3 Implement feature gating based on hardware
-  - Warn when hardware is insufficient for features
-  - Disable features below minimum requirements
-  - _Requirements: 6.5, 6.6, 7.6_
+  - [x] 9.3 Implement feature gating based on hardware
+    - Warn when hardware is insufficient for features
+    - Disable features below minimum requirements
+    - _Requirements: 6.5, 6.6, 7.6_
 
-- [ ] 9.4 Write property test for hardware-based feature gating
-  - **Property 12: Hardware-Based Feature Gating**
-  - **Validates: Requirements 6.5, 6.6, 7.6**
+  - [ ] 9.4 Write property test for hardware-based feature gating
+    - **Property 12: Hardware-Based Feature Gating**
+    - **Validates: Requirements 6.5, 6.6, 7.6**
 
-- [ ] 9.5 Write property test for settings persistence
-  - **Property 25: Settings Persistence**
-  - **Validates: Requirements 12.3, 12.4**
+  - [ ] 9.5 Write property test for settings persistence
+    - **Property 25: Settings Persistence**
+    - **Validates: Requirements 12.3, 12.4**
 
-- [ ] 9.6 Write unit tests for hardware display
-  - Test RAM, CPU, storage, GPU display
-  - Test feature toggles
-  - Test clear data button
-  - _Requirements: 6.1, 6.2, 6.3, 6.4, 12.2, 12.5_
+  - [ ] 9.6 Write unit tests for hardware display
+    - Test RAM, CPU, storage, GPU display
+    - Test feature toggles
+    - Test clear data button
+    - _Requirements: 6.1, 6.2, 6.3, 6.4, 12.2, 12.5_
 
 - [ ] 10. Checkpoint - Core Features Complete
   - Ensure all tests pass, ask the user if questions arise.
