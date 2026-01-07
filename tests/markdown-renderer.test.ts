@@ -17,8 +17,9 @@ describe('MarkdownRenderer', () => {
             // Should contain a pre element
             expect(html).toContain('<pre');
 
-            // Should have incomplete class
-            expect(html).toContain('incomplete');
+            // Should have border-dashed class for incomplete indicator
+            expect(html).toContain('border-dashed');
+            expect(html).toContain('border-blue-500');
 
             // Should contain the code content
             expect(html).toContain('const x = 1;');
@@ -29,7 +30,7 @@ describe('MarkdownRenderer', () => {
             const html = MarkdownRenderer.render(markdown);
 
             expect(html).toContain('<pre');
-            expect(html).toContain('incomplete');
+            expect(html).toContain('border-dashed');
             expect(html).toContain('function test() {');
         });
 
@@ -55,8 +56,8 @@ const incomplete = true;
             const preCount = (html.match(/<pre/g) || []).length;
             expect(preCount).toBe(3);
 
-            // Last one should be incomplete
-            expect(html).toContain('incomplete');
+            // Last one should have incomplete indicator (border-dashed)
+            expect(html).toContain('border-dashed');
         });
 
         it('should handle incomplete code block at the very start', () => {
@@ -64,7 +65,7 @@ const incomplete = true;
             const html = MarkdownRenderer.render(markdown);
 
             expect(html).toContain('<pre');
-            expect(html).toContain('incomplete');
+            expect(html).toContain('border-dashed');
         });
 
         it('should handle empty incomplete code block', () => {
@@ -72,7 +73,7 @@ const incomplete = true;
             const html = MarkdownRenderer.render(markdown);
 
             expect(html).toContain('<pre');
-            expect(html).toContain('incomplete');
+            expect(html).toContain('border-dashed');
         });
 
         it('should not mark complete code blocks as incomplete', () => {
@@ -80,14 +81,14 @@ const incomplete = true;
             const html = MarkdownRenderer.render(markdown);
 
             expect(html).toContain('<pre');
-            expect(html).not.toContain('incomplete');
+            expect(html).not.toContain('border-dashed');
         });
 
         it('should handle text after incomplete code block', () => {
             const markdown = 'Before\n```\ncode\nAfter text';
             const html = MarkdownRenderer.render(markdown);
 
-            expect(html).toContain('incomplete');
+            expect(html).toContain('border-dashed');
             expect(html).toContain('After text');
         });
     });
@@ -96,32 +97,33 @@ const incomplete = true;
         it('should render bold text', () => {
             const markdown = '**bold text**';
             const html = MarkdownRenderer.render(markdown);
-            expect(html).toContain('<strong>bold text</strong>');
+            expect(html).toContain('<strong class="font-semibold">bold text</strong>');
         });
 
         it('should render italic text', () => {
             const markdown = '*italic text*';
             const html = MarkdownRenderer.render(markdown);
-            expect(html).toContain('<em>italic text</em>');
+            expect(html).toContain('<em class="italic">italic text</em>');
         });
 
         it('should render inline code', () => {
             const markdown = 'Use `const` keyword';
             const html = MarkdownRenderer.render(markdown);
-            expect(html).toContain('<code>const</code>');
+            expect(html).toContain('<code class="bg-black/5 py-0.5 px-1.5 rounded font-mono text-sm">const</code>');
         });
 
         it('should render headers', () => {
             const markdown = '# Header 1\n## Header 2';
             const html = MarkdownRenderer.render(markdown);
-            expect(html).toContain('<h1>Header 1</h1>');
-            expect(html).toContain('<h2>Header 2</h2>');
+            expect(html).toContain('<h1 class="my-4 mb-2 font-semibold leading-tight text-3xl">Header 1</h1>');
+            expect(html).toContain('<h2 class="my-4 mb-2 font-semibold leading-tight text-2xl">Header 2</h2>');
         });
 
         it('should render links', () => {
             const markdown = '[Google](https://google.com)';
             const html = MarkdownRenderer.render(markdown);
             expect(html).toContain('<a href="https://google.com"');
+            expect(html).toContain('class="text-blue-500 underline hover:text-blue-600"');
             expect(html).toContain('Google</a>');
         });
 
@@ -135,7 +137,7 @@ const incomplete = true;
         it('should render complete code blocks with language', () => {
             const markdown = '```python\nprint("hello")\n```';
             const html = MarkdownRenderer.render(markdown);
-            expect(html).toContain('<pre>');
+            expect(html).toContain('<pre class="bg-gray-900 text-gray-300 p-4 rounded-lg overflow-x-auto my-3">');
             expect(html).toContain('language-python');
             expect(html).toContain('print(&quot;hello&quot;)');
         });

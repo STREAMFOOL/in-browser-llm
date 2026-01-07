@@ -42,7 +42,7 @@ export class LocalAIAssistant extends HTMLElement {
         const container = document.createElement('div');
         container.className = 'ai-assistant-container';
 
-        // Add basic styles
+        // Add comprehensive styles including Tailwind equivalents for Shadow DOM
         const style = document.createElement('style');
         style.textContent = `
       :host {
@@ -51,71 +51,352 @@ export class LocalAIAssistant extends HTMLElement {
         height: 100%;
         font-family: system-ui, -apple-system, sans-serif;
       }
-      
+
+      /* Container styles */
       .ai-assistant-container {
         display: flex;
         flex-direction: column;
         width: 100%;
         height: 100%;
-        background: #ffffff;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
+        background-color: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
         overflow: hidden;
       }
-      
+
+      /* Header styles */
       .ai-assistant-header {
-        padding: 16px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1rem;
+        background: linear-gradient(to bottom right, #6366f1, #9333ea);
         color: white;
-        border-bottom: 1px solid #e0e0e0;
+        border-bottom: 1px solid #e5e7eb;
         font-weight: 600;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 0.75rem;
       }
-      
+
       .status-indicator {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #4ade80;
-        animation: pulse 2s ease-in-out infinite;
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 9999px;
+        background-color: #86efac;
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
       }
-      
-      @keyframes pulse {
-        0%, 100% {
-          opacity: 1;
-          transform: scale(1);
-        }
-        50% {
-          opacity: 0.5;
-          transform: scale(1.2);
-        }
-      }
-      
+
+      /* Content area */
       .ai-assistant-content {
         flex: 1;
         display: flex;
         flex-direction: column;
         overflow: hidden;
       }
-      
+
+      /* Footer styles */
       .ai-assistant-footer {
-        padding: 12px 16px;
-        border-top: 1px solid #e0e0e0;
-        background: #f9fafb;
+        padding: 0.75rem 1rem;
+        border-top: 1px solid #e5e7eb;
+        background-color: #f9fafb;
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 12px;
+        gap: 0.5rem;
+        font-size: 0.75rem;
         color: #6b7280;
       }
-      
+
       .footer-icon {
-        font-size: 14px;
+        font-size: 1rem;
       }
 
-      ${ChatUI.getStyles()}
+      /* Animations */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes blink {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .animate-fadeIn {
+        animation: fadeIn 0.3s ease-in;
+      }
+
+      .animate-blink {
+        animation: blink 1.5s ease-in-out infinite;
+      }
+
+      .animate-pulse {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+
+      .animate-spin {
+        animation: spin 1s linear infinite;
+      }
+
+      /* ChatUI styles - comprehensive CSS for all chat elements */
+      .message-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        scroll-behavior: smooth;
+        min-height: 0;
+      }
+
+      .message {
+        display: flex;
+        gap: 0.75rem;
+        animation: fadeIn 0.3s ease-in;
+      }
+
+      .message-avatar {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 9999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+      }
+
+      .message-avatar.user {
+        background-color: #dbeafe;
+      }
+
+      .message-avatar.assistant {
+        background-color: #f3e8ff;
+      }
+
+      .message-content-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .message-content {
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        line-height: 1.5;
+        word-break: break-word;
+      }
+
+      .message-content.user {
+        background-color: #3b82f6;
+        color: white;
+        white-space: pre-wrap;
+      }
+
+      .message-content.assistant {
+        background-color: #f3f4f6;
+        color: #111827;
+        white-space: normal;
+      }
+
+      .message-timestamp {
+        font-size: 0.6875rem;
+        color: #9ca3af;
+        padding: 0 0.25rem;
+      }
+
+      .input-container {
+        display: flex;
+        gap: 0.5rem;
+        padding: 1rem;
+        border-top: 1px solid #e5e7eb;
+        background-color: white;
+      }
+
+      .message-input {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 0.875rem;
+        resize: none;
+        outline: none;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        min-height: 44px;
+        max-height: 150px;
+      }
+
+      .message-input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      .send-button {
+        padding: 0.75rem 1.5rem;
+        background-color: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.15s;
+        white-space: nowrap;
+      }
+
+      .send-button:hover {
+        background-color: #2563eb;
+      }
+
+      .send-button:active {
+        background-color: #1d4ed8;
+      }
+
+      .send-button:disabled {
+        background-color: #9ca3af;
+        cursor: not-allowed;
+      }
+
+      .send-button:focus {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
+      }
+
+      .loading-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        margin: 0 1rem;
+        background-color: #f3f4f6;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        color: #6b7280;
+      }
+
+      .loading-indicator.hidden {
+        display: none;
+      }
+
+      .loading-spinner {
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid #e5e7eb;
+        border-top-color: #3b82f6;
+        border-radius: 9999px;
+        animation: spin 1s linear infinite;
+      }
+
+      /* Markdown styles */
+      .message-content h1,
+      .message-content h2,
+      .message-content h3,
+      .message-content h4,
+      .message-content h5,
+      .message-content h6 {
+        margin: 1rem 0 0.5rem 0;
+        font-weight: 600;
+        line-height: 1.25;
+      }
+
+      .message-content h1 { font-size: 1.875rem; }
+      .message-content h2 { font-size: 1.5rem; }
+      .message-content h3 { font-size: 1.25rem; }
+      .message-content h4 { font-size: 1.125rem; }
+      .message-content h5 { font-size: 1rem; }
+      .message-content h6 { font-size: 0.875rem; }
+
+      .message-content p {
+        margin: 0.5rem 0;
+      }
+
+      .message-content pre {
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        overflow-x: auto;
+        margin: 0.75rem 0;
+      }
+
+      .message-content pre.incomplete {
+        border-bottom: 2px dashed #3b82f6;
+        position: relative;
+      }
+
+      .message-content pre code {
+        background-color: transparent;
+        padding: 0;
+      }
+
+      .message-content code {
+        background-color: rgba(0, 0, 0, 0.05);
+        padding: 0.125rem 0.375rem;
+        border-radius: 0.25rem;
+        font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+        font-size: 0.875rem;
+      }
+
+      .message-content ul,
+      .message-content ol {
+        margin: 0.5rem 0;
+        padding-left: 1.5rem;
+      }
+
+      .message-content li {
+        margin: 0.25rem 0;
+      }
+
+      .message-content a {
+        color: #3b82f6;
+        text-decoration: underline;
+      }
+
+      .message-content a:hover {
+        color: #2563eb;
+      }
+
+      .message-content strong {
+        font-weight: 600;
+      }
+
+      .message-content em {
+        font-style: italic;
+      }
+
+      .message-content blockquote {
+        border-left: 4px solid #e5e7eb;
+        padding-left: 1rem;
+        margin: 0.75rem 0;
+        color: #6b7280;
+      }
     `;
 
         // Create header
@@ -375,26 +656,27 @@ export class LocalAIAssistant extends HTMLElement {
         }
     }
 
-    private handleDownloadProgress(loaded: number, total: number): void {
-        if (!this.chatUI || !this.initMessageId) return;
+    // Unused - kept for potential future use
+    // private handleDownloadProgress(loaded: number, total: number): void {
+    //     if (!this.chatUI || !this.initMessageId) return;
 
-        const percent = total > 0 ? Math.round((loaded / total) * 100) : 0;
-        const loadedMB = (loaded / (1024 * 1024)).toFixed(1);
-        const totalMB = (total / (1024 * 1024)).toFixed(1);
+    //     const percent = total > 0 ? Math.round((loaded / total) * 100) : 0;
+    //     const loadedMB = (loaded / (1024 * 1024)).toFixed(1);
+    //     const totalMB = (total / (1024 * 1024)).toFixed(1);
 
-        const steps: InitStep[] = [
-            { id: 'browser', label: 'Browser compatibility', status: 'passed' },
-            { id: 'api', label: 'Prompt API availability', status: 'passed' },
-            { id: 'flags', label: 'Chrome flags enabled', status: 'passed' },
-            { id: 'model', label: `Downloading model... ${loadedMB}MB / ${totalMB}MB (${percent}%)`, status: 'running' },
-        ];
+    //     const steps: InitStep[] = [
+    //         { id: 'browser', label: 'Browser compatibility', status: 'passed' },
+    //         { id: 'api', label: 'Prompt API availability', status: 'passed' },
+    //         { id: 'flags', label: 'Chrome flags enabled', status: 'passed' },
+    //         { id: 'model', label: `Downloading model... ${loadedMB}MB / ${totalMB}MB (${percent}%)`, status: 'running' },
+    //     ];
 
-        this.chatUI.updateMessage(
-            this.initMessageId,
-            this.renderInitializationStatus(steps, 'downloading', undefined, percent),
-            true
-        );
-    }
+    //     this.chatUI.updateMessage(
+    //         this.initMessageId,
+    //         this.renderInitializationStatus(steps, 'downloading', undefined, percent),
+    //         true
+    //     );
+    // }
 
     private renderInitializationStatus(
         steps: InitStep[],
@@ -537,17 +819,18 @@ Something went wrong during initialization.
         }
     }
 
-    private renderErrorMessage(error: string): string {
-        return `⚠️ **Initialization Error**
+    // Unused - kept for potential future use
+    // private renderErrorMessage(error: string): string {
+    //     return `⚠️ **Initialization Error**
 
-${error}
+    // ${error}
 
-**Troubleshooting:**
-1. Refresh the page
-2. Check \`chrome://on-device-internals\` for model status
-3. Ensure Chrome flags are enabled in \`chrome://flags\`
-4. Check the browser console for more details`;
-    }
+    // **Troubleshooting:**
+    // 1. Refresh the page
+    // 2. Check \`chrome://on-device-internals\` for model status
+    // 3. Ensure Chrome flags are enabled in \`chrome://flags\`
+    // 4. Check the browser console for more details`;
+    // }
 
     private async handleSendMessage(content: string): Promise<void> {
         if (!this.chatUI) {

@@ -82,7 +82,7 @@ export class ChatUI {
         indicator.setAttribute('aria-label', 'Loading');
 
         const spinner = document.createElement('div');
-        spinner.className = 'spinner';
+        spinner.className = 'loading-spinner';
 
         const text = document.createElement('span');
         text.textContent = 'Thinking...';
@@ -139,18 +139,18 @@ export class ChatUI {
      */
     addMessage(message: Message): HTMLElement {
         const messageEl = document.createElement('div');
-        messageEl.className = `message message-${message.role}`;
+        messageEl.className = 'message animate-fadeIn';
         messageEl.setAttribute('data-message-id', message.id);
 
         const avatar = document.createElement('div');
-        avatar.className = 'message-avatar';
+        avatar.className = `message-avatar ${message.role}`;
         avatar.textContent = message.role === 'user' ? '👤' : '🤖';
 
         const contentWrapper = document.createElement('div');
         contentWrapper.className = 'message-content-wrapper';
 
         const content = document.createElement('div');
-        content.className = 'message-content';
+        content.className = `message-content ${message.role}`;
 
         // Render markdown for assistant messages, plain text for user messages
         if (message.role === 'assistant') {
@@ -243,172 +243,5 @@ export class ChatUI {
             return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' +
                 date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
-    }
-
-    /**
-     * Get styles for the chat UI
-     */
-    static getStyles(): string {
-        return `
-            .message-list {
-                flex: 1;
-                overflow-y: auto;
-                padding: 16px;
-                display: flex;
-                flex-direction: column;
-                gap: 16px;
-                scroll-behavior: smooth;
-            }
-
-            .message {
-                display: flex;
-                gap: 12px;
-                animation: fadeIn 0.3s ease-in;
-            }
-
-            @keyframes fadeIn {
-                from {
-                    opacity: 0;
-                    transform: translateY(10px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
-
-            .message-avatar {
-                width: 36px;
-                height: 36px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 20px;
-                flex-shrink: 0;
-                background: #f3f4f6;
-            }
-
-            .message-user .message-avatar {
-                background: #dbeafe;
-            }
-
-            .message-assistant .message-avatar {
-                background: #f3e8ff;
-            }
-
-            .message-content-wrapper {
-                flex: 1;
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-            }
-
-            .message-content {
-                padding: 12px 16px;
-                border-radius: 12px;
-                background: #f9fafb;
-                color: #111827;
-                line-height: 1.5;
-                word-wrap: break-word;
-                white-space: pre-wrap;
-            }
-
-            .message-user .message-content {
-                background: #3b82f6;
-                color: white;
-            }
-
-            .message-assistant .message-content {
-                background: #f3f4f6;
-                color: #111827;
-                white-space: normal;
-            }
-
-            .message-timestamp {
-                font-size: 11px;
-                color: #9ca3af;
-                padding: 0 4px;
-            }
-
-            .loading-indicator {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                padding: 12px 16px;
-                margin: 0 16px;
-                background: #f3f4f6;
-                border-radius: 8px;
-                font-size: 14px;
-                color: #6b7280;
-            }
-
-            .loading-indicator.hidden {
-                display: none;
-            }
-
-            .loading-indicator .spinner {
-                width: 16px;
-                height: 16px;
-                border: 2px solid #e5e7eb;
-                border-top-color: #3b82f6;
-                border-radius: 50%;
-                animation: spin 0.8s linear infinite;
-            }
-
-            .input-container {
-                display: flex;
-                gap: 8px;
-                padding: 16px;
-                border-top: 1px solid #e5e7eb;
-                background: #ffffff;
-            }
-
-            .message-input {
-                flex: 1;
-                padding: 12px 16px;
-                border: 1px solid #d1d5db;
-                border-radius: 8px;
-                font-family: inherit;
-                font-size: 14px;
-                resize: none;
-                outline: none;
-                transition: border-color 0.2s;
-                min-height: 44px;
-                max-height: 150px;
-            }
-
-            .message-input:focus {
-                border-color: #3b82f6;
-                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-            }
-
-            .send-button {
-                padding: 12px 24px;
-                background: #3b82f6;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: background 0.2s;
-                white-space: nowrap;
-            }
-
-            .send-button:hover {
-                background: #2563eb;
-            }
-
-            .send-button:active {
-                background: #1d4ed8;
-            }
-
-            .send-button:disabled {
-                background: #9ca3af;
-                cursor: not-allowed;
-            }
-
-            ${MarkdownRenderer.getStyles()}
-        `;
     }
 }
