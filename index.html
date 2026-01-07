@@ -6,35 +6,13 @@
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Local AI Assistant</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 20px;
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #f0f0f0;
-    }
-
-    .demo-container {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-
-    h1 {
-      text-align: center;
-      color: #333;
-    }
-
-    local-ai-assistant {
-      height: 600px;
-      display: block;
-    }
-  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 
-<body>
-  <div class="demo-container">
-    <h1>Local AI Assistant Demo</h1>
-    <local-ai-assistant></local-ai-assistant>
+<body class="m-0 p-5 font-sans bg-gray-100">
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-center text-gray-800">Local AI Assistant Demo</h1>
+    <local-ai-assistant class="h-[600px] block"></local-ai-assistant>
   </div>
   <script type="module" src="/src/main.ts"></script>
 </body>

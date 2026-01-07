@@ -52,11 +52,11 @@ export class MarkdownRenderer {
             .replace(/'/g, '&#039;');
     }
 
-    private static renderCodeBlocks(html: string, hasIncomplete: boolean): string {
+    private static renderCodeBlocks(html: string, hasIncomplete: boolean | null): string {
         // Match complete code blocks
         const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
 
-        html = html.replace(codeBlockRegex, (match, language, code) => {
+        html = html.replace(codeBlockRegex, (_match, language, code) => {
             const lang = language || 'plaintext';
             return `<pre><code class="language-${this.escapeHtml(lang)}">${code}</code></pre>`;
         });

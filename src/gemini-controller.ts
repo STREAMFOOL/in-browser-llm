@@ -57,12 +57,31 @@ export interface SessionConfig {
     systemPrompt?: string;
 }
 
+export type InitStepStatus = 'pending' | 'running' | 'passed' | 'failed' | 'skipped';
+
+export interface InitStep {
+    id: string;
+    label: string;
+    status: InitStepStatus;
+    error?: string;
+}
+
+export interface DetailedAvailability {
+    status: 'readily' | 'after-download' | 'no' | 'error';
+    reason: 'ready' | 'api-not-available' | 'flags-disabled' | 'model-downloading' | 'model-not-downloaded' | 'unsupported-browser' | 'error';
+    downloadProgress?: number;
+    steps: InitStep[];
+    errorMessage?: string;
+}
+
 export interface ModelAvailability {
     status: 'readily' | 'after-download' | 'no';
     downloadProgress?: number;
 }
 
 export type AISession = AILanguageModel;
+
+export type DownloadProgressCallback = (loaded: number, total: number) => void;
 
 /**
  * GeminiController manages Gemini Nano sessions
@@ -72,7 +91,7 @@ export class GeminiController {
     private static readonly DEFAULT_TOP_K = 40;
 
     /**
-     * Check if the model is available
+     * Check if the model is available (simple check)
      * Requirements: 2.1
      */
     async checkAvailability(): Promise<ModelAvailability> {
@@ -99,10 +118,125 @@ export class GeminiController {
     }
 
     /**
+     * Detailed availability check with step-by-step status
+     * Returns granular information about what's working and what's not
+     */
+    async checkDetailedAvailability(): Promise<DetailedAvailability> {
+        const steps: InitStep[] = [
+            { id: 'browser', label: 'Checking browser compatibility', status: 'pending' },
+            { id: 'api', label: 'Checking Prompt API availability', status: 'pending' },
+            { id: 'flags', label: 'Verifying Chrome flags enabled', status: 'pending' },
+            { id: 'model', label: 'Checking model status', status: 'pending' },
+        ];
+
+        // Step 1: Browser check
+        steps[0].status = 'running';
+        const isChrome = this.isChromeBrowser();
+        if (!isChrome) {
+            steps[0].status = 'failed';
+            steps[0].error = 'This feature requires Google Chrome (not Brave, Edge, or other browsers)';
+            return {
+                status: 'no',
+                reason: 'unsupported-browser',
+                steps,
+                errorMessage: 'Gemini Nano requires Google Chrome browser'
+            };
+        }
+        steps[0].status = 'passed';
+
+        // Step 2: API availability
+        steps[1].status = 'running';
+        if (typeof window === 'undefined' || !window.ai) {
+            steps[1].status = 'failed';
+            steps[1].error = 'window.ai is not available';
+            return {
+                status: 'no',
+                reason: 'api-not-available',
+                steps,
+                errorMessage: 'Chrome AI APIs not found. Make sure you\'re using Chrome 138+'
+            };
+        }
+        steps[1].status = 'passed';
+
+        // Step 3: Flags check (languageModel factory exists)
+        steps[2].status = 'running';
+        if (!window.ai.languageModel) {
+            steps[2].status = 'failed';
+            steps[2].error = 'languageModel API not enabled';
+            return {
+                status: 'no',
+                reason: 'flags-disabled',
+                steps,
+                errorMessage: 'Chrome flags not enabled. Enable #optimization-guide-on-device-model and #prompt-api-for-gemini-nano in chrome://flags'
+            };
+        }
+        steps[2].status = 'passed';
+
+        // Step 4: Model status
+        steps[3].status = 'running';
+        try {
+            const capabilities = await window.ai.languageModel.capabilities();
+
+            if (capabilities.available === 'readily') {
+                steps[3].status = 'passed';
+                return {
+                    status: 'readily',
+                    reason: 'ready',
+                    steps
+                };
+            } else if (capabilities.available === 'after-download') {
+                steps[3].status = 'running';
+                steps[3].label = 'Model downloading...';
+                return {
+                    status: 'after-download',
+                    reason: 'model-downloading',
+                    steps,
+                    downloadProgress: 0
+                };
+            } else {
+                steps[3].status = 'failed';
+                steps[3].error = 'Model not available for download';
+                return {
+                    status: 'no',
+                    reason: 'model-not-downloaded',
+                    steps,
+                    errorMessage: 'Model not available. Check chrome://on-device-internals for status'
+                };
+            }
+        } catch (error) {
+            steps[3].status = 'failed';
+            steps[3].error = error instanceof Error ? error.message : 'Unknown error';
+            return {
+                status: 'error',
+                reason: 'error',
+                steps,
+                errorMessage: `Failed to check model: ${error instanceof Error ? error.message : 'Unknown error'}`
+            };
+        }
+    }
+
+    /**
+     * Check if running in actual Chrome (not Chromium derivatives)
+     */
+    private isChromeBrowser(): boolean {
+        if (typeof navigator === 'undefined') return false;
+
+        const ua = navigator.userAgent;
+        // Check for Chrome but exclude Brave, Edge, Opera, etc.
+        const isChrome = /Chrome\//.test(ua);
+        const isBrave = 'brave' in navigator;
+        const isEdge = /Edg\//.test(ua);
+        const isOpera = /OPR\//.test(ua);
+        const isSamsung = /SamsungBrowser/.test(ua);
+
+        return isChrome && !isBrave && !isEdge && !isOpera && !isSamsung;
+    }
+
+    /**
      * Create a new session with configuration
      * Requirements: 2.4, 3.1
      */
-    async createSession(config: SessionConfig = {}): Promise<AISession> {
+    async createSession(config: SessionConfig = {}, onDownloadProgress?: DownloadProgressCallback): Promise<AISession> {
         if (!window.ai?.languageModel) {
             throw new Error('Prompt API not available');
         }
@@ -112,6 +246,15 @@ export class GeminiController {
             topK: config.topK ?? GeminiController.DEFAULT_TOP_K,
             systemPrompt: config.systemPrompt
         };
+
+        // Add download progress monitor if callback provided
+        if (onDownloadProgress) {
+            options.monitor = (monitor: AICreateMonitor) => {
+                monitor.addEventListener('downloadprogress', (event: DownloadProgressEvent) => {
+                    onDownloadProgress(event.loaded, event.total);
+                });
+            };
+        }
 
         try {
             const session = await window.ai.languageModel.create(options);
