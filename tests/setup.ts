@@ -19,17 +19,20 @@ afterEach(async () => {
 
 // Mock window.ai if not available (for testing environments)
 if (typeof window !== 'undefined' && !(window as any).ai) {
+    const createMockSession = () => ({
+        prompt: async () => 'Mock response',
+        promptStreaming: async function* () {
+            yield 'Mock ';
+            yield 'response';
+        },
+        destroy: () => { },
+        clone: async () => createMockSession()
+    });
+
     (window as any).ai = {
         languageModel: {
-            capabilities: async () => ({ status: 'no' }),
-            create: async () => ({
-                prompt: async () => 'Mock response',
-                promptStreaming: async function* () {
-                    yield 'Mock ';
-                    yield 'response';
-                },
-                destroy: async () => { }
-            })
+            capabilities: async () => ({ available: 'readily' }),
+            create: async () => createMockSession()
         }
     };
 }

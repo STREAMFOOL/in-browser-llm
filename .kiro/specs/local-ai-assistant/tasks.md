@@ -66,28 +66,28 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - Test persistence request
     - _Requirements: 4.3, 4.6_
 
-- [ ] 4. Gemini Nano Integration
-  - [ ] 4.1 Implement GeminiController
+- [x] 4. Gemini Nano Integration
+  - [x] 4.1 Implement GeminiController
     - Check model availability with ai.languageModel.capabilities()
     - Create sessions with configurable temperature and topK
     - Implement streaming response handling
     - Add session lifecycle management (create, destroy, clone)
     - _Requirements: 2.1, 2.4, 3.1, 3.2, 3.5_
 
-- [ ] 4.2 Implement context window management
+- [x] 4.2 Implement context window management
   - Monitor token usage
   - Implement automatic summarization when approaching limits
   - _Requirements: 3.4_
 
-- [ ] 4.3 Write property test for session lifecycle management
+- [x] 4.3 Write property test for session lifecycle management
   - **Property 3: Session Lifecycle Management**
   - **Validates: Requirements 3.1, 3.5**
 
-- [ ] 4.4 Write property test for context window management
+- [x] 4.4 Write property test for context window management
   - **Property 5: Context Window Management**
   - **Validates: Requirements 3.4**
 
-- [ ] 4.5 Write unit tests for model availability states
+- [x] 4.5 Write unit tests for model availability states
   - Test UI for "readily", "after-download", "no" states
   - Test progress indicator display
   - _Requirements: 2.2, 2.3, 2.4, 2.5, 2.6_
