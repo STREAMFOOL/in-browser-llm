@@ -246,12 +246,14 @@ export class ChatUI {
      * Scroll to bottom of message list (only if user hasn't scrolled up)
      */
     private scrollToBottom(): void {
-        // Only auto-scroll if user is already near the bottom
-        if (!this.userHasScrolledUp || this.isScrolledNearBottom()) {
-            requestAnimationFrame(() => {
-                this.messageList.scrollTop = this.messageList.scrollHeight;
-            });
+        // Don't auto-scroll if user has intentionally scrolled up
+        if (this.userHasScrolledUp) {
+            return;
         }
+
+        requestAnimationFrame(() => {
+            this.messageList.scrollTop = this.messageList.scrollHeight;
+        });
     }
 
     /**
