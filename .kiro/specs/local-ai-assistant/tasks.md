@@ -15,7 +15,7 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - Create basic Web Component shell with closed Shadow DOM
   - _Requirements: 5.1, 5.2_
 
-- [ ]* 1.1 Write property test for Web Component structure
+- [x] 1.1 Write property test for Web Component structure
   - **Property: Web Component Registration**
   - **Validates: Requirements 5.1, 5.2**
   - Verify custom element is registered and has closed Shadow DOM
@@ -28,15 +28,15 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - Detect RAM and CPU cores
     - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [ ]* 2.2 Write property test for version validation
+- [ ] 2.2 Write property test for version validation
   - **Property 1: Version Validation Correctness**
   - **Validates: Requirements 1.1, 1.5**
 
-- [ ]* 2.3 Write property test for storage threshold validation
+- [ ] 2.3 Write property test for storage threshold validation
   - **Property 2: Storage Threshold Validation**
   - **Validates: Requirements 1.3, 1.6**
 
-- [ ]* 2.4 Write unit tests for environment validation
+- [ ] 2.4 Write unit tests for environment validation
   - Test API availability detection
   - Test error messages for incompatible browsers
   - _Requirements: 1.2, 1.5, 1.6_
@@ -53,15 +53,15 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - Implement file read/write operations
   - _Requirements: 7.5, 10.6_
 
-- [ ]* 3.3 Write property test for storage round-trip consistency
+- [ ] 3.3 Write property test for storage round-trip consistency
   - **Property 7: Storage Round-Trip Consistency**
   - **Validates: Requirements 4.1, 4.2, 4.5, 7.5, 9.6, 10.6, 12.3, 12.4**
 
-- [ ]* 3.4 Write property test for thread identifier uniqueness
+- [ ] 3.4 Write property test for thread identifier uniqueness
   - **Property 8: Thread Identifier Uniqueness**
   - **Validates: Requirements 4.4, 13.2**
 
-- [ ]* 3.5 Write unit tests for storage operations
+- [ ] 3.5 Write unit tests for storage operations
   - Test quota exceeded handling
   - Test persistence request
   - _Requirements: 4.3, 4.6_
@@ -79,15 +79,15 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - Implement automatic summarization when approaching limits
   - _Requirements: 3.4_
 
-- [ ]* 4.3 Write property test for session lifecycle management
+- [ ] 4.3 Write property test for session lifecycle management
   - **Property 3: Session Lifecycle Management**
   - **Validates: Requirements 3.1, 3.5**
 
-- [ ]* 4.4 Write property test for context window management
+- [ ] 4.4 Write property test for context window management
   - **Property 5: Context Window Management**
   - **Validates: Requirements 3.4**
 
-- [ ]* 4.5 Write unit tests for model availability states
+- [ ] 4.5 Write unit tests for model availability states
   - Test UI for "readily", "after-download", "no" states
   - Test progress indicator display
   - _Requirements: 2.2, 2.3, 2.4, 2.5, 2.6_
@@ -110,15 +110,15 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - Call abort method on session
   - _Requirements: 14.4, 14.5_
 
-- [ ]* 5.4 Write property test for streaming incremental rendering
+- [ ] 5.4 Write property test for streaming incremental rendering
   - **Property 4: Streaming Incremental Rendering**
   - **Validates: Requirements 3.3, 14.1, 14.2**
 
-- [ ]* 5.5 Write property test for stream cancellation
+- [ ] 5.5 Write property test for stream cancellation
   - **Property 31: Stream Cancellation**
   - **Validates: Requirements 14.4, 14.5**
 
-- [ ]* 5.6 Write unit test for incomplete code block handling
+- [ ] 5.6 Write unit test for incomplete code block handling
   - Test edge case for incomplete Markdown
   - _Requirements: 14.3_
 
@@ -138,19 +138,19 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - Thread selection and deletion
   - _Requirements: 13.1, 13.3, 13.4, 13.6_
 
-- [ ]* 7.3 Write property test for thread list completeness
+- [ ] 7.3 Write property test for thread list completeness
   - **Property 27: Thread List Completeness**
   - **Validates: Requirements 13.1, 13.6**
 
-- [ ]* 7.4 Write property test for thread message ordering
+- [ ] 7.4 Write property test for thread message ordering
   - **Property 28: Thread Message Ordering**
   - **Validates: Requirements 13.3**
 
-- [ ]* 7.5 Write property test for thread deletion completeness
+- [ ] 7.5 Write property test for thread deletion completeness
   - **Property 29: Thread Deletion Completeness**
   - **Validates: Requirements 13.4**
 
-- [ ]* 7.6 Write property test for thread title generation
+- [ ] 7.6 Write property test for thread title generation
   - **Property 30: Thread Title Generation**
   - **Validates: Requirements 13.5**
 
@@ -168,11 +168,11 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - Reset application button for unrecoverable errors
   - _Requirements: 15.5, 15.6_
 
-- [ ]* 8.3 Write property test for error handling consistency
+- [ ] 8.3 Write property test for error handling consistency
   - **Property 6: Error Handling Consistency**
   - **Validates: Requirements 3.6, 15.4**
 
-- [ ]* 8.4 Write unit tests for specific error scenarios
+- [ ] 8.4 Write unit tests for specific error scenarios
   - Test model load failure messages
   - Test memory exhaustion suggestions
   - Test quota exceeded prompts
@@ -198,15 +198,15 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - Disable features below minimum requirements
   - _Requirements: 6.5, 6.6, 7.6_
 
-- [ ]* 9.4 Write property test for hardware-based feature gating
+- [ ] 9.4 Write property test for hardware-based feature gating
   - **Property 12: Hardware-Based Feature Gating**
   - **Validates: Requirements 6.5, 6.6, 7.6**
 
-- [ ]* 9.5 Write property test for settings persistence
+- [ ] 9.5 Write property test for settings persistence
   - **Property 25: Settings Persistence**
   - **Validates: Requirements 12.3, 12.4**
 
-- [ ]* 9.6 Write unit tests for hardware display
+- [ ] 9.6 Write unit tests for hardware display
   - Test RAM, CPU, storage, GPU display
   - Test feature toggles
   - Test clear data button
@@ -228,7 +228,7 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - Handle GPU context loss
     - _Requirements: 7.1, 10.1_
 
-- [ ]* 11.3 Write property test for worker non-blocking execution
+- [ ] 11.3 Write property test for worker non-blocking execution
   - **Property 13: Worker Non-Blocking Execution**
   - **Validates: Requirements 7.2, 7.3, 8.5**
 
@@ -246,11 +246,11 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - Save to OPFS
     - _Requirements: 7.3, 7.4, 7.5_
 
-- [ ]* 12.3 Write property test for image generation output
+- [ ] 12.3 Write property test for image generation output
   - **Property 14: Image Generation Output**
   - **Validates: Requirements 7.4**
 
-- [ ]* 12.4 Write unit test for image generation model loading
+- [ ] 12.4 Write unit test for image generation model loading
   - Test model loading on image generation request
   - Test VRAM check and feature disabling
   - _Requirements: 7.1, 7.6_
@@ -269,15 +269,15 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - Play audio through browser audio system
     - _Requirements: 8.4, 8.5, 8.6_
 
-- [ ]* 13.3 Write property test for audio processing pipeline
+- [ ] 13.3 Write property test for audio processing pipeline
   - **Property 15: Audio Processing Pipeline**
   - **Validates: Requirements 8.2, 8.3**
 
-- [ ]* 13.4 Write property test for TTS output generation
+- [ ] 13.4 Write property test for TTS output generation
   - **Property 16: TTS Output Generation**
   - **Validates: Requirements 8.4, 8.6**
 
-- [ ]* 13.5 Write unit test for audio capture
+- [ ] 13.5 Write unit test for audio capture
   - Test MediaDevices API call on voice activation
   - _Requirements: 8.1_
 
@@ -294,23 +294,23 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - Add source citations to responses
     - _Requirements: 9.3, 9.4, 9.5_
 
-- [ ]* 14.3 Write property test for document chunking validity
+- [ ] 14.3 Write property test for document chunking validity
   - **Property 17: Document Chunking Validity**
   - **Validates: Requirements 9.2**
 
-- [ ]* 14.4 Write property test for retrieval relevance
+- [ ] 14.4 Write property test for retrieval relevance
   - **Property 18: Retrieval Relevance**
   - **Validates: Requirements 9.3**
 
-- [ ]* 14.5 Write property test for context injection completeness
+- [ ] 14.5 Write property test for context injection completeness
   - **Property 19: Context Injection Completeness**
   - **Validates: Requirements 9.4, 10.3, 11.2**
 
-- [ ]* 14.6 Write property test for source citation presence
+- [ ] 14.6 Write property test for source citation presence
   - **Property 20: Source Citation Presence**
   - **Validates: Requirements 9.5, 11.3**
 
-- [ ]* 14.7 Write unit test for file reading
+- [ ] 14.7 Write unit test for file reading
   - Test File API usage for text files
   - _Requirements: 9.1_
 
@@ -327,15 +327,15 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - Include analysis in prompt context
     - _Requirements: 10.3, 10.4, 10.5_
 
-- [ ]* 15.3 Write property test for vision model output
+- [ ] 15.3 Write property test for vision model output
   - **Property 21: Vision Model Output**
   - **Validates: Requirements 10.2**
 
-- [ ]* 15.4 Write property test for object detection visualization
+- [ ] 15.4 Write property test for object detection visualization
   - **Property 22: Object Detection Visualization**
   - **Validates: Requirements 10.5**
 
-- [ ]* 15.5 Write unit test for vision model loading
+- [ ] 15.5 Write unit test for vision model loading
   - Test model loading on image upload
   - _Requirements: 10.1_
 
@@ -356,15 +356,15 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - Display search results in UI
     - _Requirements: 11.4, 11.6_
 
-- [ ]* 17.3 Write property test for conditional search API calls
+- [ ] 17.3 Write property test for conditional search API calls
   - **Property 23: Conditional Search API Calls**
   - **Validates: Requirements 11.1, 11.5**
 
-- [ ]* 17.4 Write property test for search status indicator
+- [ ] 17.4 Write property test for search status indicator
   - **Property 24: Search Status Indicator**
   - **Validates: Requirements 11.6**
 
-- [ ]* 17.5 Write unit test for search toggle
+- [ ] 17.5 Write unit test for search toggle
   - Test toggle existence and state changes
   - _Requirements: 11.4_
 
@@ -384,19 +384,19 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - Ensure all fetches include appropriate headers
     - _Requirements: 5.6_
 
-- [ ]* 18.4 Write property test for style isolation
+- [ ] 18.4 Write property test for style isolation
   - **Property 9: Style Isolation**
   - **Validates: Requirements 5.3**
 
-- [ ]* 18.5 Write property test for configuration API validity
+- [ ] 18.5 Write property test for configuration API validity
   - **Property 10: Configuration API Validity**
   - **Validates: Requirements 5.5**
 
-- [ ]* 18.6 Write property test for resource loading headers
+- [ ] 18.6 Write property test for resource loading headers
   - **Property 11: Resource Loading Headers**
   - **Validates: Requirements 5.6**
 
-- [ ]* 18.7 Write unit test for Shadow DOM security
+- [ ] 18.7 Write unit test for Shadow DOM security
   - Test that shadowRoot is inaccessible from host
   - _Requirements: 5.4_
 
@@ -407,11 +407,11 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - Reset application state
     - _Requirements: 12.6_
 
-- [ ]* 19.2 Write property test for data clearing completeness
+- [ ] 19.2 Write property test for data clearing completeness
   - **Property 26: Data Clearing Completeness**
   - **Validates: Requirements 12.6**
 
-- [ ]* 19.3 Write property test for stream completion persistence
+- [ ] 19.3 Write property test for stream completion persistence
   - **Property 32: Stream Completion Persistence**
   - **Validates: Requirements 14.6**
 
@@ -427,7 +427,7 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - Lazy-load heavy models
     - Compress assets
 
-- [ ]* 20.3 Run full integration tests
+- [ ] 20.3 Run full integration tests
     - Test end-to-end workflows
     - Test cross-component interactions
 
