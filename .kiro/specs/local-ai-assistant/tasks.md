@@ -20,23 +20,23 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - **Validates: Requirements 5.1, 5.2**
   - Verify custom element is registered and has closed Shadow DOM
 
-- [ ] 2. Browser Environment Validation
-  - [ ] 2.1 Implement browser compatibility checker
+- [x] 2. Browser Environment Validation
+  - [x] 2.1 Implement browser compatibility checker
     - Check Chrome version >= 127
     - Verify window.ai.languageModel availability
     - Check storage availability >= 22 GB
     - Detect RAM and CPU cores
     - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [ ] 2.2 Write property test for version validation
+- [x] 2.2 Write property test for version validation
   - **Property 1: Version Validation Correctness**
   - **Validates: Requirements 1.1, 1.5**
 
-- [ ] 2.3 Write property test for storage threshold validation
+- [x] 2.3 Write property test for storage threshold validation
   - **Property 2: Storage Threshold Validation**
   - **Validates: Requirements 1.3, 1.6**
 
-- [ ] 2.4 Write unit tests for environment validation
+- [x] 2.4 Write unit tests for environment validation
   - Test API availability detection
   - Test error messages for incompatible browsers
   - _Requirements: 1.2, 1.5, 1.6_
