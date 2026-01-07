@@ -187,20 +187,20 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - Verify WebLLM provider works in Brave/Firefox
   - Verify API provider works as fallback
 
-- [ ] 7. Thread Management Implementation
-  - [ ] 7.1 Implement thread creation and storage
+- [-] 7. Thread Management Implementation
+  - [x] 7.1 Implement thread creation and storage
     - Generate unique thread IDs
     - Auto-generate titles from first message
     - Store threads in IndexedDB
     - _Requirements: 4.4, 13.2, 13.5_
 
-- [ ] 7.2 Create thread list UI
+- [x] 7.2 Create thread list UI
   - Sidebar/drawer with thread list
   - Display title and last message timestamp
   - Thread selection and deletion
   - _Requirements: 13.1, 13.3, 13.4, 13.6_
 
-- [ ] 7.3 Write property test for thread list completeness
+- [x] 7.3 Write property test for thread list completeness
   - **Property 27: Thread List Completeness**
   - **Validates: Requirements 13.1, 13.6**
 

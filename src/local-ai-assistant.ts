@@ -15,11 +15,13 @@ import { RecoveryManager } from './recovery-manager';
 import { SettingsUI, type SettingsConfig } from './settings-ui';
 import { StorageManager } from './storage-manager';
 import { HardwareDiagnostics, type HardwareProfile, type Feature } from './hardware-diagnostics';
+import { ThreadListUI } from './thread-list-ui';
 
 export class LocalAIAssistant extends HTMLElement {
   private shadow: ShadowRoot;
   private chatUI: ChatUI | null = null;
   private settingsUI: SettingsUI | null = null;
+  private threadListUI: ThreadListUI | null = null;
   private geminiController: GeminiController;
   private providerManager: ProviderManager;
   private recoveryManager: RecoveryManager;
@@ -30,6 +32,8 @@ export class LocalAIAssistant extends HTMLElement {
   private messageIdCounter = 0;
   private initMessageId: string | null = null;
   private hardwareProfile: HardwareProfile | null = null;
+  private currentThreadId: string | null = null;
+  private headerText: HTMLElement | null = null;
   private currentSettings: SettingsConfig = {
     temperature: 0.7,
     topK: 40,
@@ -941,6 +945,162 @@ export class LocalAIAssistant extends HTMLElement {
         margin: 0.75rem 0;
         color: #6b7280;
       }
+
+      /* Thread list sidebar styles */
+      .thread-list-sidebar {
+        position: absolute;
+        top: 0;
+        left: -300px;
+        width: 300px;
+        height: 100%;
+        background-color: white;
+        border-right: 1px solid #e5e7eb;
+        transition: left 0.3s ease;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .thread-list-sidebar.open {
+        left: 0;
+      }
+
+      .thread-list-header {
+        padding: 1rem;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: #f9fafb;
+      }
+
+      .thread-list-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #111827;
+        margin: 0;
+      }
+
+      .thread-new-button {
+        background: none;
+        border: none;
+        font-size: 1.25rem;
+        cursor: pointer;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        transition: background-color 0.15s;
+      }
+
+      .thread-new-button:hover {
+        background-color: #e5e7eb;
+      }
+
+      .thread-list-items {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.5rem;
+      }
+
+      .thread-list-empty {
+        padding: 2rem 1rem;
+        text-align: center;
+        color: #9ca3af;
+        font-size: 0.875rem;
+      }
+
+      .thread-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: background-color 0.15s;
+        border: 1px solid transparent;
+      }
+
+      .thread-item:hover {
+        background-color: #f3f4f6;
+      }
+
+      .thread-item.active {
+        background-color: #eff6ff;
+        border-color: #3b82f6;
+      }
+
+      .thread-item-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .thread-item-title {
+        font-weight: 500;
+        color: #111827;
+        font-size: 0.875rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-bottom: 0.25rem;
+      }
+
+      .thread-item-meta {
+        font-size: 0.75rem;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      .thread-item-timestamp {
+        flex-shrink: 0;
+      }
+
+      .thread-item-count {
+        flex-shrink: 0;
+      }
+
+      .thread-item-delete {
+        background: none;
+        border: none;
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 0.25rem;
+        border-radius: 0.25rem;
+        opacity: 0;
+        transition: opacity 0.15s, background-color 0.15s;
+        flex-shrink: 0;
+      }
+
+      .thread-item:hover .thread-item-delete {
+        opacity: 1;
+      }
+
+      .thread-item-delete:hover {
+        background-color: #fee2e2;
+      }
+
+      .thread-toggle-button {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.25rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 0.375rem;
+        transition: background-color 0.15s;
+        margin-right: 0.5rem;
+      }
+
+      .thread-toggle-button:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .thread-toggle-button:focus {
+        outline: 2px solid white;
+        outline-offset: 2px;
+      }
     `;
 
     // Create header
@@ -950,8 +1110,16 @@ export class LocalAIAssistant extends HTMLElement {
     const statusIndicator = document.createElement('div');
     statusIndicator.className = 'status-indicator';
 
-    const headerText = document.createElement('span');
-    headerText.textContent = 'Local AI Assistant';
+    // Create thread toggle button
+    const threadToggleButton = document.createElement('button');
+    threadToggleButton.className = 'thread-toggle-button';
+    threadToggleButton.innerHTML = '☰';
+    threadToggleButton.title = 'Conversations';
+    threadToggleButton.setAttribute('aria-label', 'Toggle conversation list');
+    threadToggleButton.addEventListener('click', () => this.toggleThreadList());
+
+    this.headerText = document.createElement('span');
+    this.headerText.textContent = 'Ask Ai Assistant Locally';
 
     // Create provider indicator
     const providerIndicator = document.createElement('div');
@@ -968,7 +1136,8 @@ export class LocalAIAssistant extends HTMLElement {
     settingsButton.addEventListener('click', () => this.toggleSettings());
 
     header.appendChild(statusIndicator);
-    header.appendChild(headerText);
+    header.appendChild(threadToggleButton);
+    header.appendChild(this.headerText);
     header.appendChild(providerIndicator);
     header.appendChild(settingsButton);
 
@@ -985,12 +1154,25 @@ export class LocalAIAssistant extends HTMLElement {
     // Create settings panel
     const settingsPanel = this.createSettingsPanel();
 
+    // Create thread list sidebar
+    const threadListSidebar = document.createElement('div');
+    threadListSidebar.className = 'thread-list-sidebar';
+    threadListSidebar.setAttribute('data-thread-list', 'true');
+
+    // Initialize thread list UI
+    this.threadListUI = new ThreadListUI(threadListSidebar, {
+      onThreadSelect: (threadId) => this.handleThreadSelect(threadId),
+      onThreadDelete: (threadId) => this.handleThreadDelete(threadId),
+      onNewThread: () => this.handleNewThread()
+    });
+
     // Create footer
     const footer = document.createElement('div');
     footer.className = 'ai-assistant-footer';
     footer.innerHTML = '<span class="footer-icon">🔒</span> All processing happens locally on your device';
 
     // Assemble component
+    container.appendChild(threadListSidebar);
     container.appendChild(header);
     container.appendChild(content);
     container.appendChild(settingsPanel);
@@ -1857,6 +2039,9 @@ Something went wrong during initialization.
     };
     this.chatUI.addMessage(userMessage);
 
+    // Save user message to thread
+    await this.saveMessageToThread(userMessage);
+
     // Check if session is available
     if (!this.currentSession || !this.activeProvider) {
       const errorMessage: Message = {
@@ -1866,6 +2051,7 @@ Something went wrong during initialization.
         timestamp: Date.now()
       };
       this.chatUI.addMessage(errorMessage);
+      await this.saveMessageToThread(errorMessage);
       return;
     }
 
@@ -1908,6 +2094,11 @@ Something went wrong during initialization.
       // Mark as complete (keep as assistant message for markdown rendering)
       this.chatUI.updateMessage(assistantMessage.id, fullResponse, true);
 
+      // Update assistant message content and save to thread
+      assistantMessage.content = fullResponse;
+      assistantMessage.isStreaming = false;
+      await this.saveMessageToThread(assistantMessage);
+
       // Hide loading when done
       this.chatUI.hideLoading();
     } catch (error) {
@@ -1915,11 +2106,15 @@ Something went wrong during initialization.
 
       if (error instanceof Error && error.message === 'Stream cancelled') {
         // Update message to show it was cancelled (keep markdown rendering)
+        const cancelledContent = assistantMessage.content || '⚠️ _Message cancelled by user_';
         this.chatUI.updateMessage(
           assistantMessage.id,
-          assistantMessage.content || '⚠️ _Message cancelled by user_',
+          cancelledContent,
           true
         );
+        assistantMessage.content = cancelledContent;
+        assistantMessage.isStreaming = false;
+        await this.saveMessageToThread(assistantMessage);
       } else {
         // Use ErrorHandler to process the error
         const category = ErrorHandler.detectErrorCategory(error);
@@ -1931,6 +2126,10 @@ Something went wrong during initialization.
           errorMessage,
           true
         );
+
+        assistantMessage.content = errorMessage;
+        assistantMessage.isStreaming = false;
+        await this.saveMessageToThread(assistantMessage);
 
         // If it's a GPU context loss, attempt recovery
         if (category === ErrorCategory.GPU_CONTEXT_LOSS) {
@@ -2023,6 +2222,240 @@ Something went wrong during initialization.
     }
 
     await this.recoveryManager.resetApplication();
+  }
+
+  /**
+   * Generate a unique thread ID using UUID v4
+   * Requirements: 4.4, 13.2
+   */
+  private generateThreadId(): string {
+    // UUID v4 implementation
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  /**
+   * Generate a thread title from the first user message
+   * Requirements: 13.5
+   */
+  private generateThreadTitle(firstMessage: string): string {
+    // Take first 50 characters and add ellipsis if longer
+    const maxLength = 50;
+    const trimmed = firstMessage.trim();
+
+    if (trimmed.length <= maxLength) {
+      return trimmed;
+    }
+
+    // Try to break at a word boundary
+    const truncated = trimmed.substring(0, maxLength);
+    const lastSpace = truncated.lastIndexOf(' ');
+
+    if (lastSpace > maxLength * 0.7) {
+      return truncated.substring(0, lastSpace) + '...';
+    }
+
+    return truncated + '...';
+  }
+
+  /**
+   * Create a new thread
+   * Requirements: 4.4, 13.2, 13.5
+   */
+  private async createNewThread(firstMessage?: string): Promise<string> {
+    const threadId = this.generateThreadId();
+    const now = Date.now();
+
+    const thread: import('./storage-manager').Thread = {
+      id: threadId,
+      title: firstMessage ? this.generateThreadTitle(firstMessage) : 'New Conversation',
+      createdAt: now,
+      updatedAt: now,
+      messageCount: 0,
+      settings: {
+        temperature: this.currentSettings.temperature,
+        topK: this.currentSettings.topK,
+        systemPrompt: '',
+        enabledFeatures: this.currentSettings.enabledFeatures
+      }
+    };
+
+    await this.storageManager.createThread(thread);
+    this.currentThreadId = threadId;
+
+    console.log('Created new thread:', threadId);
+    return threadId;
+  }
+
+  /**
+   * Save a message to the current thread
+   * Requirements: 4.1
+   */
+  private async saveMessageToThread(message: Message): Promise<void> {
+    if (!this.currentThreadId) {
+      // Create a new thread if none exists
+      await this.createNewThread(message.role === 'user' ? message.content : undefined);
+    }
+
+    const storageMessage: import('./storage-manager').Message = {
+      id: message.id,
+      threadId: this.currentThreadId!,
+      role: message.role,
+      content: message.content,
+      timestamp: message.timestamp,
+      attachments: [],
+      metadata: {}
+    };
+
+    await this.storageManager.saveMessage(this.currentThreadId!, storageMessage);
+  }
+
+  /**
+   * Toggle thread list sidebar
+   * Requirements: 13.1
+   */
+  private async toggleThreadList(): Promise<void> {
+    if (!this.threadListUI) return;
+
+    // Load threads from storage
+    const threads = await this.storageManager.listThreads();
+
+    // Render thread list
+    this.threadListUI.render(threads, this.currentThreadId);
+
+    // Toggle visibility
+    this.threadListUI.toggle();
+  }
+
+  /**
+   * Handle thread selection
+   * Requirements: 13.3
+   */
+  private async handleThreadSelect(threadId: string): Promise<void> {
+    if (!this.chatUI || !this.threadListUI) return;
+
+    // Close thread list
+    this.threadListUI.close();
+
+    // Load thread data to get the title
+    const thread = await this.storageManager.getThread(threadId);
+
+    // Update header with thread title
+    if (this.headerText && thread) {
+      this.headerText.textContent = thread.title;
+    }
+
+    // Load thread messages
+    const messages = await this.storageManager.loadThread(threadId);
+
+    // Clear current chat
+    this.chatUI.clearMessages();
+
+    // Display messages in chronological order (filter out system messages)
+    messages.forEach(msg => {
+      // Skip system messages as they're not displayed in chat
+      if (msg.role === 'system') return;
+
+      const chatMessage: Message = {
+        id: msg.id,
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        timestamp: msg.timestamp
+      };
+      this.chatUI!.addMessage(chatMessage);
+    });
+
+    // Update current thread ID
+    this.currentThreadId = threadId;
+
+    console.log('Loaded thread:', threadId, 'with', messages.length, 'messages');
+  }
+
+  /**
+   * Handle thread deletion
+   * Requirements: 13.4
+   */
+  private async handleThreadDelete(threadId: string): Promise<void> {
+    if (!this.chatUI || !this.threadListUI) return;
+
+    try {
+      // Delete thread from storage
+      await this.storageManager.deleteThread(threadId);
+
+      // If this was the current thread, clear the chat and create a new thread
+      if (threadId === this.currentThreadId) {
+        this.chatUI.clearMessages();
+        this.currentThreadId = null;
+
+        // Reset header text to default
+        if (this.headerText) {
+          this.headerText.textContent = 'Ask Ai Assistant Locally';
+        }
+
+        // Show welcome message
+        const welcomeMessage: Message = {
+          id: `msg-${this.messageIdCounter++}`,
+          role: 'assistant',
+          content: '👋 Hello! I\'m your local AI assistant. How can I help you today?',
+          timestamp: Date.now()
+        };
+        this.chatUI.addMessage(welcomeMessage);
+      }
+
+      // Refresh thread list
+      const threads = await this.storageManager.listThreads();
+      this.threadListUI.render(threads, this.currentThreadId);
+
+      console.log('Deleted thread:', threadId);
+    } catch (error) {
+      console.error('Failed to delete thread:', error);
+
+      if (this.chatUI) {
+        const errorMessage: Message = {
+          id: `msg-${this.messageIdCounter++}`,
+          role: 'assistant',
+          content: `⚠️ **Failed to delete conversation**: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          timestamp: Date.now()
+        };
+        this.chatUI.addMessage(errorMessage);
+      }
+    }
+  }
+
+  /**
+   * Handle new thread creation
+   * Requirements: 13.2
+   */
+  private async handleNewThread(): Promise<void> {
+    if (!this.chatUI || !this.threadListUI) return;
+
+    // Close thread list
+    this.threadListUI.close();
+
+    // Clear current chat
+    this.chatUI.clearMessages();
+
+    // Reset current thread ID (will be created on first message)
+    this.currentThreadId = null;
+
+    // Reset header text to default
+    if (this.headerText) {
+      this.headerText.textContent = 'Ask Ai Assistant Locally';
+    }
+
+    // Show welcome message
+    const welcomeMessage: Message = {
+      id: `msg-${this.messageIdCounter++}`,
+      role: 'assistant',
+      content: '👋 Hello! I\'m your local AI assistant. How can I help you today?',
+      timestamp: Date.now()
+    };
+    this.chatUI.addMessage(welcomeMessage);
+
+    console.log('Started new thread');
   }
 
   connectedCallback(): void {
