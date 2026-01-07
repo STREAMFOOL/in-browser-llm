@@ -137,7 +137,7 @@ export class BrowserCompatibilityChecker {
      * Requirements: 1.4
      */
     static detectHardware(): HardwareCheck {
-        const ram = navigator.deviceMemory || null;
+        const ram = (navigator as any).deviceMemory || null;
         const cpuCores = navigator.hardwareConcurrency || null;
 
         return {

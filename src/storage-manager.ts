@@ -4,7 +4,7 @@
  * Requirements: 4.1, 4.2, 4.3
  */
 
-import Dexie, { Table } from 'dexie';
+import Dexie, { type Table } from 'dexie';
 import { OPFSManager } from './opfs-manager';
 
 // Data Models

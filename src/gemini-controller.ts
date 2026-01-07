@@ -124,15 +124,21 @@ export class GeminiController {
 
     /**
      * Send a prompt and receive streaming response
-     * Requirements: 3.2
+     * Requirements: 3.2, 14.4, 14.5
      */
-    async *promptStreaming(session: AISession, prompt: string): AsyncIterable<string> {
+    async *promptStreaming(session: AISession, prompt: string, signal?: AbortSignal): AsyncIterable<string> {
         try {
             const stream = session.promptStreaming(prompt);
             const reader = stream.getReader();
 
             try {
                 while (true) {
+                    // Check if cancelled
+                    if (signal?.aborted) {
+                        reader.cancel();
+                        throw new Error('Stream cancelled');
+                    }
+
                     const { done, value } = await reader.read();
                     if (done) break;
                     yield value;
@@ -141,6 +147,9 @@ export class GeminiController {
                 reader.releaseLock();
             }
         } catch (error) {
+            if (error instanceof Error && error.message === 'Stream cancelled') {
+                throw error;
+            }
             console.error('Streaming error:', error);
             throw new Error(`Streaming failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }

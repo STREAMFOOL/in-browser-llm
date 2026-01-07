@@ -1,5 +1,5 @@
 // Test setup file for Vitest
-import { afterEach, beforeEach } from 'vitest';
+import { afterEach } from 'vitest';
 import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 
