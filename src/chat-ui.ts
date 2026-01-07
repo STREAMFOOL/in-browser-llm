@@ -1,8 +1,4 @@
-/**
- * Chat UI Components
- * Message list with auto-scroll, input field, and loading indicators
- * Requirements: 3.2, 3.3
- */
+
 
 import { MarkdownRenderer } from './markdown-renderer';
 
@@ -69,7 +65,7 @@ export class ChatUI {
 
         const textarea = document.createElement('textarea');
         textarea.className = 'message-input';
-        textarea.placeholder = 'Type your message...';
+        textarea.placeholder = 'Type your message here. Enter adds new line, cmd+enter submits';
         textarea.rows = 1;
         textarea.setAttribute('aria-label', 'Message input');
 
@@ -146,9 +142,7 @@ export class ChatUI {
         this.forceScrollToBottom();
     }
 
-    /**
-     * Add a message to the chat
-     */
+
     addMessage(message: Message): HTMLElement {
         const messageEl = document.createElement('div');
         messageEl.className = 'message animate-fadeIn';
@@ -187,9 +181,7 @@ export class ChatUI {
         return messageEl;
     }
 
-    /**
-     * Update an existing message (for streaming)
-     */
+
     updateMessage(messageId: string, content: string, isAssistant: boolean = true): void {
         const messageEl = this.messageList.querySelector(`[data-message-id="${messageId}"]`);
         if (messageEl) {
@@ -206,9 +198,7 @@ export class ChatUI {
         }
     }
 
-    /**
-     * Show loading indicator
-     */
+
     showLoading(): void {
         this.loadingIndicator.classList.remove('hidden');
         this.isStreaming = true;
@@ -216,25 +206,19 @@ export class ChatUI {
         this.forceScrollToBottom();
     }
 
-    /**
-     * Hide loading indicator
-     */
+
     hideLoading(): void {
         this.loadingIndicator.classList.add('hidden');
         this.isStreaming = false;
         this.sendButton.textContent = 'Send';
     }
 
-    /**
-     * Clear all messages
-     */
+
     clearMessages(): void {
         this.messageList.innerHTML = '';
     }
 
-    /**
-     * Check if user is scrolled near the bottom (within 100px threshold)
-     */
+
     private isScrolledNearBottom(): boolean {
         const threshold = 100;
         const scrollTop = this.messageList.scrollTop;
@@ -243,9 +227,7 @@ export class ChatUI {
         return scrollHeight - scrollTop - clientHeight < threshold;
     }
 
-    /**
-     * Scroll to bottom of message list (only if user hasn't scrolled up)
-     */
+
     private scrollToBottom(): void {
         // Don't auto-scroll if user has intentionally scrolled up
         if (this.userHasScrolledUp) {
@@ -257,9 +239,7 @@ export class ChatUI {
         });
     }
 
-    /**
-     * Force scroll to bottom (used when user sends a new message)
-     */
+
     private forceScrollToBottom(): void {
         this.userHasScrolledUp = false;
         requestAnimationFrame(() => {
@@ -267,10 +247,7 @@ export class ChatUI {
         });
     }
 
-    /**
-     * Show privacy warning for external API usage
-     * Requirements: 19.3, 19.6
-     */
+
     showPrivacyWarning(): void {
         if (this.privacyWarning) {
             this.privacyWarning.classList.remove('hidden');
@@ -296,19 +273,14 @@ export class ChatUI {
         this.container.insertBefore(this.privacyWarning, this.messageList);
     }
 
-    /**
-     * Hide privacy warning
-     * Requirements: 19.3, 19.6
-     */
+
     hidePrivacyWarning(): void {
         if (this.privacyWarning) {
             this.privacyWarning.classList.add('hidden');
         }
     }
 
-    /**
-     * Format timestamp for display
-     */
+
     private formatTimestamp(timestamp: number): string {
         const date = new Date(timestamp);
         const now = new Date();

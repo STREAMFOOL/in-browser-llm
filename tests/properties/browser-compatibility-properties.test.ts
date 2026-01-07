@@ -1,7 +1,4 @@
-/**
- * Property-Based Tests for Browser Compatibility
- * Feature: local-ai-assistant
- */
+
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as fc from 'fast-check';

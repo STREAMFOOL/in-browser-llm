@@ -1,8 +1,4 @@
-/**
- * Unit tests for ProviderManager
- * Tests provider detection, auto-selection logic, and manual switching
- * Requirements: 16.2, 16.7, 16.8
- */
+
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type {
@@ -14,9 +10,7 @@ import type {
 } from '../src/model-provider';
 import { ProviderManager, PROVIDER_PRIORITIES } from '../src/provider-manager';
 
-/**
- * Create a mock provider for testing
- */
+
 function createMockProvider(
     name: string,
     type: 'local' | 'api',
@@ -88,10 +82,7 @@ describe('ProviderManager - Provider Detection', () => {
         await manager.dispose();
     });
 
-    /**
-     * Test provider registration
-     * Requirements: 16.2
-     */
+
     it('should register providers correctly', () => {
         const provider = createMockProvider('test-provider', 'local', true);
         manager.registerProvider(provider);
@@ -99,17 +90,12 @@ describe('ProviderManager - Provider Detection', () => {
         expect(manager.getProvider('test-provider')).toBe(provider);
     });
 
-    /**
-     * Test getting non-existent provider
-     */
+
     it('should return null for non-existent provider', () => {
         expect(manager.getProvider('non-existent')).toBeNull();
     });
 
-    /**
-     * Test detecting all providers
-     * Requirements: 16.2
-     */
+
     it('should detect all registered providers', async () => {
         const chromeProvider = createMockProvider('chrome-gemini', 'local', true);
         const webllmProvider = createMockProvider('webllm', 'local', false, 'WebGPU not available');
@@ -131,10 +117,7 @@ describe('ProviderManager - Provider Detection', () => {
         expect(detected[2].available).toBe(true);
     });
 
-    /**
-     * Test provider detection returns sorted by priority
-     * Requirements: 16.2
-     */
+
     it('should return providers sorted by priority', async () => {
         // Register in reverse priority order
         const apiProvider = createMockProvider('api', 'api', true);
@@ -164,10 +147,7 @@ describe('ProviderManager - Auto-Selection Logic', () => {
         await manager.dispose();
     });
 
-    /**
-     * Test auto-selection chooses Chrome provider first
-     * Requirements: 16.2, 16.3
-     */
+
     it('should auto-select Chrome provider when available', async () => {
         const chromeProvider = createMockProvider('chrome-gemini', 'local', true);
         const webllmProvider = createMockProvider('webllm', 'local', true);
@@ -183,10 +163,7 @@ describe('ProviderManager - Auto-Selection Logic', () => {
         expect(selected!.name).toBe('chrome-gemini');
     });
 
-    /**
-     * Test auto-selection falls back to WebLLM when Chrome unavailable
-     * Requirements: 16.4
-     */
+
     it('should fall back to WebLLM when Chrome unavailable', async () => {
         const chromeProvider = createMockProvider('chrome-gemini', 'local', false, 'Not Chrome');
         const webllmProvider = createMockProvider('webllm', 'local', true);
@@ -202,10 +179,7 @@ describe('ProviderManager - Auto-Selection Logic', () => {
         expect(selected!.name).toBe('webllm');
     });
 
-    /**
-     * Test auto-selection falls back to API when local providers unavailable
-     * Requirements: 16.5
-     */
+
     it('should fall back to API when local providers unavailable', async () => {
         const chromeProvider = createMockProvider('chrome-gemini', 'local', false, 'Not Chrome');
         const webllmProvider = createMockProvider('webllm', 'local', false, 'No WebGPU');
@@ -221,9 +195,7 @@ describe('ProviderManager - Auto-Selection Logic', () => {
         expect(selected!.name).toBe('api');
     });
 
-    /**
-     * Test auto-selection returns null when no providers available
-     */
+
     it('should return null when no providers available', async () => {
         const chromeProvider = createMockProvider('chrome-gemini', 'local', false, 'Not Chrome');
         const webllmProvider = createMockProvider('webllm', 'local', false, 'No WebGPU');
@@ -238,10 +210,7 @@ describe('ProviderManager - Auto-Selection Logic', () => {
         expect(selected).toBeNull();
     });
 
-    /**
-     * Test getActiveProvider returns selected provider
-     * Requirements: 16.7
-     */
+
     it('should return active provider after auto-selection', async () => {
         const chromeProvider = createMockProvider('chrome-gemini', 'local', true);
         manager.registerProvider(chromeProvider);
@@ -266,10 +235,7 @@ describe('ProviderManager - Manual Switching', () => {
         await manager.dispose();
     });
 
-    /**
-     * Test manual provider switching
-     * Requirements: 16.8
-     */
+
     it('should allow manual provider switching', async () => {
         const chromeProvider = createMockProvider('chrome-gemini', 'local', true);
         const webllmProvider = createMockProvider('webllm', 'local', true);
@@ -286,10 +252,7 @@ describe('ProviderManager - Manual Switching', () => {
         expect(manager.getActiveProvider()!.name).toBe('webllm');
     });
 
-    /**
-     * Test switching to unavailable provider throws error
-     * Requirements: 16.8
-     */
+
     it('should throw error when switching to unavailable provider', async () => {
         const chromeProvider = createMockProvider('chrome-gemini', 'local', true);
         const webllmProvider = createMockProvider('webllm', 'local', false, 'No WebGPU');
@@ -300,9 +263,7 @@ describe('ProviderManager - Manual Switching', () => {
         await expect(manager.setActiveProvider('webllm')).rejects.toThrow('not available');
     });
 
-    /**
-     * Test switching to non-existent provider throws error
-     */
+
     it('should throw error when switching to non-existent provider', async () => {
         const chromeProvider = createMockProvider('chrome-gemini', 'local', true);
         manager.registerProvider(chromeProvider);
@@ -310,10 +271,7 @@ describe('ProviderManager - Manual Switching', () => {
         await expect(manager.setActiveProvider('non-existent')).rejects.toThrow('not found');
     });
 
-    /**
-     * Test provider change callback is called
-     * Requirements: 16.7
-     */
+
     it('should notify listeners when provider changes', async () => {
         const chromeProvider = createMockProvider('chrome-gemini', 'local', true);
         const webllmProvider = createMockProvider('webllm', 'local', true);
@@ -332,9 +290,7 @@ describe('ProviderManager - Manual Switching', () => {
         expect(changes).toEqual(['chrome-gemini', 'webllm']);
     });
 
-    /**
-     * Test unsubscribe from provider changes
-     */
+
     it('should allow unsubscribing from provider changes', async () => {
         const chromeProvider = createMockProvider('chrome-gemini', 'local', true);
         const webllmProvider = createMockProvider('webllm', 'local', true);
@@ -356,9 +312,7 @@ describe('ProviderManager - Manual Switching', () => {
 });
 
 describe('ProviderManager - Provider Priorities', () => {
-    /**
-     * Test priority constants are defined correctly
-     */
+
     it('should have correct priority order', () => {
         expect(PROVIDER_PRIORITIES['chrome-gemini']).toBeLessThan(PROVIDER_PRIORITIES['webllm']);
         expect(PROVIDER_PRIORITIES['webllm']).toBeLessThan(PROVIDER_PRIORITIES['api']);

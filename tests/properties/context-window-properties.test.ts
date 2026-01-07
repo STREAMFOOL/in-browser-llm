@@ -1,7 +1,4 @@
-/**
- * Property-based tests for Context Window Manager
- * Feature: local-ai-assistant
- */
+
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
@@ -21,15 +18,7 @@ describe('Context Window Manager Properties', () => {
         controller = new GeminiController();
     });
 
-    /**
-     * Property 5: Context Window Management
-     * For any conversation that exceeds the context window limit, the system should 
-     * automatically summarize or truncate older messages to maintain the conversation 
-     * within the limit.
-     * 
-     * Feature: local-ai-assistant, Property 5: Context Window Management
-     * Validates: Requirements 3.4
-     */
+
     it('should detect when context exceeds threshold and trigger summarization', async () => {
         await fc.assert(
             fc.asyncProperty(
@@ -93,11 +82,7 @@ describe('Context Window Manager Properties', () => {
         );
     });
 
-    /**
-     * Property: Token monitoring should be consistent
-     * Feature: local-ai-assistant, Property 5: Context Window Management
-     * Validates: Requirements 3.4
-     */
+
     it('should consistently calculate token usage for the same messages', async () => {
         await fc.assert(
             fc.asyncProperty(
@@ -133,11 +118,7 @@ describe('Context Window Manager Properties', () => {
         );
     });
 
-    /**
-     * Property: Summarization should preserve recent messages
-     * Feature: local-ai-assistant, Property 5: Context Window Management
-     * Validates: Requirements 3.4
-     */
+
     it('should preserve the most recent messages when summarizing', async () => {
         await fc.assert(
             fc.asyncProperty(
@@ -198,11 +179,7 @@ describe('Context Window Manager Properties', () => {
         );
     });
 
-    /**
-     * Property: Adding messages should increase token count
-     * Feature: local-ai-assistant, Property 5: Context Window Management
-     * Validates: Requirements 3.4
-     */
+
     it('should increase token count when messages are added', async () => {
         await fc.assert(
             fc.asyncProperty(

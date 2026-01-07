@@ -1,7 +1,4 @@
-/**
- * Unit Tests for Storage Manager
- * Feature: local-ai-assistant
- */
+
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { StorageManager } from '../src/storage-manager';

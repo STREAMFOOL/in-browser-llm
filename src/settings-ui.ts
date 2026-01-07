@@ -1,8 +1,4 @@
-/**
- * Settings UI Module
- * Provides settings interface with hardware diagnostics and feature management
- * Requirements: 6.1, 6.2, 6.3, 6.4, 12.1, 12.2, 12.5
- */
+
 
 import { HardwareDiagnostics, type HardwareProfile, type Feature } from './hardware-diagnostics';
 import type { ProviderInfo } from './model-provider';
@@ -33,10 +29,7 @@ export class SettingsUI {
         this.currentConfig = initialConfig;
     }
 
-    /**
-     * Render the complete settings UI
-     * Requirements: 6.1, 6.2, 6.3, 6.4, 12.1, 12.2, 12.5
-     */
+
     async render(providers: ProviderInfo[], activeProviderName: string | null): Promise<void> {
         // Clear container
         this.container.innerHTML = '';
@@ -55,10 +48,7 @@ export class SettingsUI {
         this.renderDataManagementSection();
     }
 
-    /**
-     * Render hardware diagnostics section
-     * Requirements: 6.1, 6.2, 6.3, 6.4
-     */
+
     private renderHardwareSection(): void {
         if (!this.hardwareProfile) return;
 
@@ -130,9 +120,7 @@ export class SettingsUI {
         this.container.appendChild(section);
     }
 
-    /**
-     * Create a hardware metric card
-     */
+
     private createHardwareCard(icon: string, label: string, value: string, status: 'good' | 'warning' | 'poor'): HTMLElement {
         const card = document.createElement('div');
         card.className = `hardware-card ${status}`;
@@ -166,10 +154,7 @@ export class SettingsUI {
         return card;
     }
 
-    /**
-     * Render model parameters section
-     * Requirement 12.1
-     */
+
     private renderModelParametersSection(): void {
         const section = document.createElement('div');
         section.className = 'settings-section';
@@ -213,9 +198,7 @@ export class SettingsUI {
         this.container.appendChild(section);
     }
 
-    /**
-     * Create a slider control
-     */
+
     private createSliderControl(
         label: string,
         description: string,
@@ -267,10 +250,7 @@ export class SettingsUI {
         return control;
     }
 
-    /**
-     * Render features section
-     * Requirement 12.2
-     */
+
     private renderFeaturesSection(): void {
         if (!this.hardwareProfile) return;
 
@@ -316,10 +296,7 @@ export class SettingsUI {
         this.container.appendChild(section);
     }
 
-    /**
-     * Create a feature toggle
-     * Requirements: 6.5, 6.6, 7.6
-     */
+
     private createFeatureToggle(
         label: string,
         description: string,
@@ -382,9 +359,7 @@ export class SettingsUI {
         return toggle;
     }
 
-    /**
-     * Render provider selection section
-     */
+
     private renderProviderSection(providers: ProviderInfo[], activeProviderName: string | null): void {
         const section = document.createElement('div');
         section.className = 'settings-section';
@@ -407,9 +382,7 @@ export class SettingsUI {
         this.container.appendChild(section);
     }
 
-    /**
-     * Create a provider item
-     */
+
     private createProviderItem(provider: ProviderInfo, isActive: boolean): HTMLElement {
         const item = document.createElement('div');
         item.className = 'provider-item';
@@ -471,10 +444,7 @@ export class SettingsUI {
         return item;
     }
 
-    /**
-     * Render API configuration section
-     * Requirements: 19.2, 19.4
-     */
+
     private renderApiConfigSection(activeProviderName: string | null): void {
         // Only show if API provider is active or available
         if (activeProviderName !== 'api') {
@@ -614,10 +584,7 @@ export class SettingsUI {
         this.container.appendChild(section);
     }
 
-    /**
-     * Render data management section
-     * Requirement 12.5
-     */
+
     private renderDataManagementSection(): void {
         const section = document.createElement('div');
         section.className = 'settings-section';
@@ -664,16 +631,12 @@ export class SettingsUI {
         this.container.appendChild(section);
     }
 
-    /**
-     * Update current configuration
-     */
+
     updateConfig(config: SettingsConfig): void {
         this.currentConfig = config;
     }
 
-    /**
-     * Get current configuration
-     */
+
     getConfig(): SettingsConfig {
         return { ...this.currentConfig };
     }

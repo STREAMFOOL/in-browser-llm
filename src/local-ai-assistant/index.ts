@@ -1,8 +1,4 @@
-/**
- * Local AI Assistant Web Component
- * A privacy-first, browser-based conversational AI system
- * Requirements: 5.1, 5.2
- */
+
 
 import { ChatUI, type Message } from '../chat-ui';
 import { GeminiController, type InitStep, type DetailedAvailability } from '../gemini-controller';
@@ -12,18 +8,19 @@ import { WebLLMProvider } from '../webllm-provider';
 import type { ModelProvider, ChatSession } from '../model-provider';
 import { ErrorHandler, ErrorCategory } from '../error-handler';
 import { RecoveryManager } from '../recovery-manager';
-import { SettingsUI, type SettingsConfig } from '../settings-ui';
+import { type SettingsConfig } from '../settings-ui';
 import { StorageManager } from '../storage-manager';
 import { HardwareDiagnostics, type HardwareProfile, type Feature } from '../hardware-diagnostics';
 import { ThreadListUI } from '../thread-list-ui';
 import { getTroubleshootingGuide } from './troubleshoot';
 import { generateThreadTitle } from './utils';
 import { getMainStyles } from './styles';
+import { SettingsPanel } from './settings';
 
 export class LocalAIAssistant extends HTMLElement {
   private shadow: ShadowRoot;
   private chatUI: ChatUI | null = null;
-  private settingsUI: SettingsUI | null = null;
+  private settingsPanel: SettingsPanel | null = null;
   private threadListUI: ThreadListUI | null = null;
   private geminiController: GeminiController;
   private providerManager: ProviderManager;
@@ -126,8 +123,36 @@ export class LocalAIAssistant extends HTMLElement {
       onCancelStream: () => this.handleCancelStream()
     });
 
-    // Create settings panel
-    const settingsPanel = this.createSettingsPanel();
+    // Initialize settings panel
+    this.settingsPanel = new SettingsPanel(
+      this.shadow,
+      this.providerManager,
+      this.storageManager,
+      {
+        onProviderSwitch: async (providerName: string) => {
+          await this.switchProvider(providerName);
+        },
+        onSettingsChange: (config: SettingsConfig) => {
+          this.handleSettingsChange(config);
+        },
+        onClearData: async () => {
+          await this.clearAllData();
+        },
+        onResetApplication: async () => {
+          await this.resetApplication();
+        },
+        onShowMessage: (message: Message) => {
+          if (this.chatUI) {
+            this.chatUI.addMessage(message);
+          }
+        }
+      },
+      this.currentSettings,
+      this.hardwareProfile
+    );
+
+    // Create settings panel DOM
+    const settingsPanel = this.settingsPanel.createPanel();
 
     // Create thread list sidebar
     const threadListSidebar = document.createElement('div');
@@ -160,120 +185,14 @@ export class LocalAIAssistant extends HTMLElement {
     this.initializeSession();
   }
 
-  /**
-   * Create the settings panel
-   * Requirements: 16.8, 18.5, 18.8, 6.1, 6.2, 6.3, 6.4, 12.1, 12.2, 12.5
-   */
-  private createSettingsPanel(): HTMLElement {
-    const panel = document.createElement('div');
-    panel.className = 'settings-panel hidden';
-    panel.setAttribute('data-settings-panel', 'true');
-
-    // Header
-    const header = document.createElement('div');
-    header.className = 'settings-header';
-
-    const title = document.createElement('span');
-    title.textContent = 'Settings';
-
-    const closeButton = document.createElement('button');
-    closeButton.className = 'settings-close';
-    closeButton.innerHTML = '×';
-    closeButton.setAttribute('aria-label', 'Close settings');
-    closeButton.addEventListener('click', () => this.toggleSettings());
-
-    header.appendChild(title);
-    header.appendChild(closeButton);
-
-    // Content (will be populated by SettingsUI)
-    const content = document.createElement('div');
-    content.className = 'settings-content';
-
-    panel.appendChild(header);
-    panel.appendChild(content);
-
-    return panel;
-  }
-
-  /**
-   * Toggle settings panel visibility
-   */
   private toggleSettings(): void {
-    const panel = this.shadow.querySelector('[data-settings-panel]') as HTMLElement;
-    if (!panel) return;
-
-    const isHidden = panel.classList.contains('hidden');
-    if (isHidden) {
-      // Show settings and populate provider list
-      panel.classList.remove('hidden');
-      this.populateProviderList();
-    } else {
-      // Hide settings
-      panel.classList.add('hidden');
+    if (this.settingsPanel) {
+      this.settingsPanel.toggle();
     }
   }
 
-  /**
-   * Populate the provider list in settings
-   * Requirements: 16.8, 18.5, 18.8, 6.1, 6.2, 6.3, 6.4, 12.1, 12.2
-   */
-  private async populateProviderList(): Promise<void> {
-    const settingsContent = this.shadow.querySelector('.settings-content') as HTMLElement;
-    if (!settingsContent) return;
-
-    // Show loading
-    settingsContent.innerHTML = '<div style="text-align: center; padding: 2rem; color: #6b7280;">Loading settings...</div>';
-
-    try {
-      // Detect all providers
-      const providers = await this.providerManager.detectProviders();
-
-      // Clear loading
-      settingsContent.innerHTML = '';
-
-      // Initialize SettingsUI if not already done
-      if (!this.settingsUI) {
-        this.settingsUI = new SettingsUI(
-          settingsContent,
-          {
-            onProviderSwitch: async (providerName: string) => {
-              await this.switchProvider(providerName);
-            },
-            onSettingsChange: (config: SettingsConfig) => {
-              this.handleSettingsChange(config);
-            },
-            onClearData: async () => {
-              await this.clearAllData();
-            },
-            onResetApplication: async () => {
-              await this.resetApplication();
-            }
-          },
-          this.currentSettings
-        );
-      }
-
-      // Render the settings UI
-      await this.settingsUI.render(providers, this.activeProvider?.name || null);
-    } catch (error) {
-      console.error('Failed to populate settings:', error);
-      settingsContent.innerHTML = '<div style="text-align: center; padding: 2rem; color: #ef4444;">Failed to load settings</div>';
-    }
-  }
-
-  /**
-   * Switch to a different provider
-   * Requirements: 16.8
-   */
   private async switchProvider(providerName: string): Promise<void> {
-    const settingsContent = this.shadow.querySelector('.settings-content') as HTMLElement;
-    if (!settingsContent) return;
-
     try {
-      // Show loading state
-      settingsContent.style.opacity = '0.5';
-      settingsContent.style.pointerEvents = 'none';
-
       // Destroy current session
       if (this.currentSession && this.activeProvider) {
         await this.activeProvider.destroySession(this.currentSession);
@@ -305,39 +224,16 @@ export class LocalAIAssistant extends HTMLElement {
           this.chatUI.addMessage(switchMessage);
         }
       }
-
-      // Refresh settings UI
-      await this.populateProviderList();
-
-      // Restore state
-      settingsContent.style.opacity = '1';
-      settingsContent.style.pointerEvents = 'auto';
     } catch (error) {
       console.error('Failed to switch provider:', error);
-      settingsContent.style.opacity = '1';
-      settingsContent.style.pointerEvents = 'auto';
-
-      // Show error message
-      if (this.chatUI) {
-        const errorMessage: Message = {
-          id: `msg-${this.messageIdCounter++}`,
-          role: 'assistant',
-          content: `⚠️ **Failed to switch provider**: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          timestamp: Date.now()
-        };
-        this.chatUI.addMessage(errorMessage);
-      }
+      throw error; // Re-throw to let SettingsPanel handle the error display
     }
   }
 
-  /**
-   * Handle settings changes
-   * Requirements: 12.1, 6.5, 6.6
-   */
   private async handleSettingsChange(config: SettingsConfig): Promise<void> {
     console.log('Settings changed:', config);
 
-    // Requirement 6.5, 6.6: Validate enabled features against hardware capabilities
+    // Validate enabled features against hardware capabilities
     if (this.hardwareProfile) {
       const invalidFeatures: Feature[] = [];
       for (const feature of config.enabledFeatures) {
@@ -367,6 +263,11 @@ export class LocalAIAssistant extends HTMLElement {
 
     this.currentSettings = config;
 
+    // Update settings panel
+    if (this.settingsPanel) {
+      this.settingsPanel.updateSettings(config);
+    }
+
     // Recreate session with new parameters if provider is active
     if (this.activeProvider && this.currentSession) {
       try {
@@ -393,10 +294,6 @@ export class LocalAIAssistant extends HTMLElement {
     }
   }
 
-  /**
-   * Clear all data
-   * Requirement 12.5
-   */
   private async clearAllData(): Promise<void> {
     try {
       console.log('Clearing all data...');
@@ -411,9 +308,6 @@ export class LocalAIAssistant extends HTMLElement {
         };
         this.chatUI.addMessage(successMessage);
       }
-
-      // Close settings panel
-      this.toggleSettings();
     } catch (error) {
       console.error('Failed to clear data:', error);
 
@@ -433,12 +327,11 @@ export class LocalAIAssistant extends HTMLElement {
     if (!this.chatUI) return;
 
     // Detect hardware capabilities first
-    // Requirement 6.1, 6.2, 6.3, 6.4
     try {
       this.hardwareProfile = await HardwareDiagnostics.detectCapabilities();
       console.log('Hardware profile detected:', this.hardwareProfile);
 
-      // Requirement 6.5, 6.6: Filter enabled features based on hardware
+      // Filter enabled features based on hardware
       const supportedFeatures = this.currentSettings.enabledFeatures.filter(
         feature => HardwareDiagnostics.canSupport(feature, this.hardwareProfile!)
       );
@@ -836,25 +729,16 @@ export class LocalAIAssistant extends HTMLElement {
     return content;
   }
 
-  /**
-   * Update the provider indicator in the header
-   * Requirements: 16.7
-   */
   private updateProviderIndicator(provider: ModelProvider): void {
     const indicator = this.shadow.querySelector('[data-provider-indicator]') as HTMLElement;
     if (!indicator) return;
 
-    // Show the indicator
     indicator.style.display = 'flex';
-
-    // Clear previous content
     indicator.innerHTML = '';
 
-    // Add provider badge
     const badge = document.createElement('span');
     badge.className = 'provider-badge';
 
-    // Add icon based on provider type
     const icon = document.createElement('span');
     if (provider.type === 'local') {
       icon.textContent = '🔒';
@@ -873,7 +757,7 @@ export class LocalAIAssistant extends HTMLElement {
     badge.appendChild(name);
     indicator.appendChild(badge);
 
-    // Add privacy warning for API providers (except local Ollama)
+    // Privacy warning for external API providers (not local Ollama)
     if (provider.type === 'api') {
       const warning = document.createElement('span');
       warning.className = 'privacy-warning';
@@ -889,7 +773,6 @@ export class LocalAIAssistant extends HTMLElement {
       return;
     }
 
-    // Add user message first (always add to history)
     const userMessage: Message = {
       id: `msg-${this.messageIdCounter++}`,
       role: 'user',
@@ -898,10 +781,8 @@ export class LocalAIAssistant extends HTMLElement {
     };
     this.chatUI.addMessage(userMessage);
 
-    // Save user message to thread
     await this.saveMessageToThread(userMessage);
 
-    // Check if session is available
     if (!this.currentSession || !this.activeProvider) {
       const errorMessage: Message = {
         id: `msg-${this.messageIdCounter++}`,
@@ -914,10 +795,8 @@ export class LocalAIAssistant extends HTMLElement {
       return;
     }
 
-    // Show loading
     this.chatUI.showLoading();
 
-    // Create assistant message placeholder
     const assistantMessage: Message = {
       id: `msg-${this.messageIdCounter++}`,
       role: 'assistant',
@@ -927,11 +806,9 @@ export class LocalAIAssistant extends HTMLElement {
     };
     this.chatUI.addMessage(assistantMessage);
 
-    // Create abort controller for cancellation
     this.abortController = new AbortController();
 
     try {
-      // Stream response using the active provider
       let fullResponse = '';
       const stream = this.activeProvider.promptStreaming(
         this.currentSession,
@@ -940,8 +817,7 @@ export class LocalAIAssistant extends HTMLElement {
       );
 
       for await (const chunk of stream) {
-        // For Chrome provider, it returns full text each time
-        // For WebLLM, it returns deltas
+        // Chrome provider returns full text each time, WebLLM returns deltas
         if (this.activeProvider.name === 'chrome-gemini') {
           fullResponse = chunk;
         } else {
@@ -950,21 +826,17 @@ export class LocalAIAssistant extends HTMLElement {
         this.chatUI.updateMessage(assistantMessage.id, fullResponse, true);
       }
 
-      // Mark as complete (keep as assistant message for markdown rendering)
       this.chatUI.updateMessage(assistantMessage.id, fullResponse, true);
 
-      // Update assistant message content and save to thread
       assistantMessage.content = fullResponse;
       assistantMessage.isStreaming = false;
       await this.saveMessageToThread(assistantMessage);
 
-      // Hide loading when done
       this.chatUI.hideLoading();
     } catch (error) {
       this.chatUI.hideLoading();
 
       if (error instanceof Error && error.message === 'Stream cancelled') {
-        // Update message to show it was cancelled (keep markdown rendering)
         const cancelledContent = assistantMessage.content || '⚠️ _Message cancelled by user_';
         this.chatUI.updateMessage(
           assistantMessage.id,
@@ -975,7 +847,6 @@ export class LocalAIAssistant extends HTMLElement {
         assistantMessage.isStreaming = false;
         await this.saveMessageToThread(assistantMessage);
       } else {
-        // Use ErrorHandler to process the error
         const category = ErrorHandler.detectErrorCategory(error);
         const errorContext = ErrorHandler.handleError(error, category);
         const errorMessage = ErrorHandler.formatErrorMessage(errorContext);
@@ -990,7 +861,6 @@ export class LocalAIAssistant extends HTMLElement {
         assistantMessage.isStreaming = false;
         await this.saveMessageToThread(assistantMessage);
 
-        // If it's a GPU context loss, attempt recovery
         if (category === ErrorCategory.GPU_CONTEXT_LOSS) {
           await this.recoveryManager.handleGPUContextLoss('inference-error');
         }
@@ -1007,16 +877,11 @@ export class LocalAIAssistant extends HTMLElement {
     }
   }
 
-  /**
-   * Handle GPU recovery after context loss
-   * Requirements: 15.5
-   */
   private async handleGPURecovery(): Promise<void> {
     console.log('Handling GPU recovery...');
 
     if (!this.chatUI) return;
 
-    // Show recovery message
     const recoveryMessage: Message = {
       id: `msg-${this.messageIdCounter++}`,
       role: 'assistant',
@@ -1026,12 +891,10 @@ export class LocalAIAssistant extends HTMLElement {
     this.chatUI.addMessage(recoveryMessage);
 
     try {
-      // Reinitialize the active provider if it uses GPU
       if (this.activeProvider && this.activeProvider.name === 'webllm') {
         await this.activeProvider.dispose();
         await this.activeProvider.initialize({});
 
-        // Recreate session
         if (this.currentSession) {
           this.currentSession = await this.activeProvider.createSession({
             temperature: 0.7,
@@ -1040,7 +903,6 @@ export class LocalAIAssistant extends HTMLElement {
         }
       }
 
-      // Show success message
       const successMessage: Message = {
         id: `msg-${this.messageIdCounter++}`,
         role: 'assistant',
@@ -1051,7 +913,6 @@ export class LocalAIAssistant extends HTMLElement {
     } catch (error) {
       console.error('GPU recovery failed:', error);
 
-      // Show failure message with reset option
       const failureMessage: Message = {
         id: `msg-${this.messageIdCounter++}`,
         role: 'assistant',
@@ -1062,19 +923,10 @@ export class LocalAIAssistant extends HTMLElement {
     }
   }
 
-  /**
-   * Handle application reset
-   * Requirements: 15.6
-   */
   private async handleApplicationReset(): Promise<void> {
     console.log('Application reset initiated');
-    // The recovery manager will handle the actual reset
   }
 
-  /**
-   * Trigger application reset (called from UI)
-   * Requirements: 15.6
-   */
   async resetApplication(): Promise<void> {
     if (!confirm('Are you sure you want to reset the application? This will clear all data and reload the page.')) {
       return;
@@ -1083,12 +935,8 @@ export class LocalAIAssistant extends HTMLElement {
     await this.recoveryManager.resetApplication();
   }
 
-  /**
-   * Generate a unique thread ID using UUID v4
-   * Requirements: 4.4, 13.2
-   */
+
   private generateThreadId(): string {
-    // UUID v4 implementation
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
       const r = Math.random() * 16 | 0;
       const v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -1096,11 +944,6 @@ export class LocalAIAssistant extends HTMLElement {
     });
   }
 
-
-  /**
-   * Create a new thread
-   * Requirements: 4.4, 13.2, 13.5
-   */
   private async createNewThread(firstMessage?: string): Promise<string> {
     const threadId = this.generateThreadId();
     const now = Date.now();
@@ -1126,13 +969,8 @@ export class LocalAIAssistant extends HTMLElement {
     return threadId;
   }
 
-  /**
-   * Save a message to the current thread
-   * Requirements: 4.1
-   */
   private async saveMessageToThread(message: Message): Promise<void> {
     if (!this.currentThreadId) {
-      // Create a new thread if none exists
       await this.createNewThread(message.role === 'user' ? message.content : undefined);
     }
 
@@ -1149,50 +987,29 @@ export class LocalAIAssistant extends HTMLElement {
     await this.storageManager.saveMessage(this.currentThreadId!, storageMessage);
   }
 
-  /**
-   * Toggle thread list sidebar
-   * Requirements: 13.1
-   */
   private async toggleThreadList(): Promise<void> {
     if (!this.threadListUI) return;
 
-    // Load threads from storage
     const threads = await this.storageManager.listThreads();
-
-    // Render thread list
     this.threadListUI.render(threads, this.currentThreadId);
-
-    // Toggle visibility
     this.threadListUI.toggle();
   }
 
-  /**
-   * Handle thread selection
-   * Requirements: 13.3
-   */
   private async handleThreadSelect(threadId: string): Promise<void> {
     if (!this.chatUI || !this.threadListUI) return;
 
-    // Close thread list
     this.threadListUI.close();
 
-    // Load thread data to get the title
     const thread = await this.storageManager.getThread(threadId);
 
-    // Update header with thread title
     if (this.headerText && thread) {
       this.headerText.textContent = thread.title;
     }
 
-    // Load thread messages
     const messages = await this.storageManager.loadThread(threadId);
-
-    // Clear current chat
     this.chatUI.clearMessages();
 
-    // Display messages in chronological order (filter out system messages)
     messages.forEach(msg => {
-      // Skip system messages as they're not displayed in chat
       if (msg.role === 'system') return;
 
       const chatMessage: Message = {
@@ -1204,34 +1021,24 @@ export class LocalAIAssistant extends HTMLElement {
       this.chatUI!.addMessage(chatMessage);
     });
 
-    // Update current thread ID
     this.currentThreadId = threadId;
-
     console.log('Loaded thread:', threadId, 'with', messages.length, 'messages');
   }
 
-  /**
-   * Handle thread deletion
-   * Requirements: 13.4
-   */
   private async handleThreadDelete(threadId: string): Promise<void> {
     if (!this.chatUI || !this.threadListUI) return;
 
     try {
-      // Delete thread from storage
       await this.storageManager.deleteThread(threadId);
 
-      // If this was the current thread, clear the chat and create a new thread
       if (threadId === this.currentThreadId) {
         this.chatUI.clearMessages();
         this.currentThreadId = null;
 
-        // Reset header text to default
         if (this.headerText) {
           this.headerText.textContent = 'Ask Ai Assistant Locally';
         }
 
-        // Show welcome message
         const welcomeMessage: Message = {
           id: `msg-${this.messageIdCounter++}`,
           role: 'assistant',
@@ -1241,7 +1048,6 @@ export class LocalAIAssistant extends HTMLElement {
         this.chatUI.addMessage(welcomeMessage);
       }
 
-      // Refresh thread list
       const threads = await this.storageManager.listThreads();
       this.threadListUI.render(threads, this.currentThreadId);
 
@@ -1261,28 +1067,17 @@ export class LocalAIAssistant extends HTMLElement {
     }
   }
 
-  /**
-   * Handle new thread creation
-   * Requirements: 13.2
-   */
   private async handleNewThread(): Promise<void> {
     if (!this.chatUI || !this.threadListUI) return;
 
-    // Close thread list
     this.threadListUI.close();
-
-    // Clear current chat
     this.chatUI.clearMessages();
-
-    // Reset current thread ID (will be created on first message)
     this.currentThreadId = null;
 
-    // Reset header text to default
     if (this.headerText) {
       this.headerText.textContent = 'Ask Ai Assistant Locally';
     }
 
-    // Show welcome message
     const welcomeMessage: Message = {
       id: `msg-${this.messageIdCounter++}`,
       role: 'assistant',
@@ -1295,25 +1090,20 @@ export class LocalAIAssistant extends HTMLElement {
   }
 
   connectedCallback(): void {
-    // Called when element is added to the DOM
     console.log('Local AI Assistant connected');
   }
 
   disconnectedCallback(): void {
-    // Called when element is removed from the DOM
     console.log('Local AI Assistant disconnected');
 
-    // Cleanup session and provider
     if (this.currentSession && this.activeProvider) {
       this.activeProvider.destroySession(this.currentSession);
     }
 
-    // Dispose provider manager
     this.providerManager.dispose();
   }
 }
 
-// Register the custom element
 if (!customElements.get('local-ai-assistant')) {
   customElements.define('local-ai-assistant', LocalAIAssistant);
 }

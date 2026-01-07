@@ -1,8 +1,4 @@
-/**
- * Gemini Controller
- * Manages the lifecycle of Gemini Nano sessions and streaming responses
- * Requirements: 2.1, 2.4, 3.1, 3.2, 3.5
- */
+
 
 // Type definitions for Chrome's Prompt API
 export interface AILanguageModel {
@@ -83,17 +79,12 @@ export type AISession = AILanguageModel;
 
 export type DownloadProgressCallback = (loaded: number, total: number) => void;
 
-/**
- * GeminiController manages Gemini Nano sessions
- */
+
 export class GeminiController {
     private static readonly DEFAULT_TEMPERATURE = 0.7;
     private static readonly DEFAULT_TOP_K = 40;
 
-    /**
-     * Check if the model is available (simple check)
-     * Requirements: 2.1
-     */
+
     async checkAvailability(): Promise<ModelAvailability> {
         if (!window.ai?.languageModel) {
             return {
@@ -117,10 +108,7 @@ export class GeminiController {
         }
     }
 
-    /**
-     * Detailed availability check with step-by-step status
-     * Returns granular information about what's working and what's not
-     */
+
     async checkDetailedAvailability(): Promise<DetailedAvailability> {
         const steps: InitStep[] = [
             { id: 'browser', label: 'Checking browser compatibility', status: 'pending' },
@@ -215,9 +203,7 @@ export class GeminiController {
         }
     }
 
-    /**
-     * Check if running in actual Chrome (not Chromium derivatives)
-     */
+
     private isChromeBrowser(): boolean {
         if (typeof navigator === 'undefined') return false;
 
@@ -232,10 +218,7 @@ export class GeminiController {
         return isChrome && !isBrave && !isEdge && !isOpera && !isSamsung;
     }
 
-    /**
-     * Create a new session with configuration
-     * Requirements: 2.4, 3.1
-     */
+
     async createSession(config: SessionConfig = {}, onDownloadProgress?: DownloadProgressCallback): Promise<AISession> {
         if (!window.ai?.languageModel) {
             throw new Error('Prompt API not available');
@@ -265,10 +248,7 @@ export class GeminiController {
         }
     }
 
-    /**
-     * Send a prompt and receive streaming response
-     * Requirements: 3.2, 14.4, 14.5
-     */
+
     async *promptStreaming(session: AISession, prompt: string, signal?: AbortSignal): AsyncIterable<string> {
         try {
             const stream = session.promptStreaming(prompt);
@@ -298,10 +278,7 @@ export class GeminiController {
         }
     }
 
-    /**
-     * Destroy a session to free memory
-     * Requirements: 3.5
-     */
+
     async destroySession(session: AISession): Promise<void> {
         try {
             session.destroy();
@@ -311,10 +288,7 @@ export class GeminiController {
         }
     }
 
-    /**
-     * Clone a session for branching conversations
-     * Requirements: 3.5
-     */
+
     async cloneSession(session: AISession): Promise<AISession> {
         try {
             return await session.clone();

@@ -1,8 +1,4 @@
-/**
- * Thread List UI Component
- * Sidebar/drawer for managing conversation threads
- * Requirements: 13.1, 13.3, 13.4, 13.6
- */
+
 
 import type { ThreadMetadata } from './storage-manager';
 
@@ -23,10 +19,7 @@ export class ThreadListUI {
         this.callbacks = callbacks;
     }
 
-    /**
-     * Render the thread list
-     * Requirements: 13.1, 13.6
-     */
+
     render(threads: ThreadMetadata[], currentThreadId: string | null): void {
         this.currentThreadId = currentThreadId;
 
@@ -74,10 +67,7 @@ export class ThreadListUI {
         this.container.appendChild(list);
     }
 
-    /**
-     * Create a thread list item
-     * Requirements: 13.1, 13.3, 13.6
-     */
+
     private createThreadItem(thread: ThreadMetadata): HTMLElement {
         const item = document.createElement('div');
         item.className = 'thread-item';
@@ -136,10 +126,7 @@ export class ThreadListUI {
         return item;
     }
 
-    /**
-     * Format timestamp for display
-     * Requirements: 13.6
-     */
+
     private formatTimestamp(timestamp: number): string {
         const date = new Date(timestamp);
         const now = new Date();
@@ -161,9 +148,7 @@ export class ThreadListUI {
         }
     }
 
-    /**
-     * Toggle sidebar visibility
-     */
+
     toggle(): void {
         this.isOpen = !this.isOpen;
         if (this.isOpen) {
@@ -173,17 +158,13 @@ export class ThreadListUI {
         }
     }
 
-    /**
-     * Open sidebar
-     */
+
     open(): void {
         this.isOpen = true;
         this.container.classList.add('open');
     }
 
-    /**
-     * Close sidebar
-     */
+
     close(): void {
         this.isOpen = false;
         this.container.classList.remove('open');

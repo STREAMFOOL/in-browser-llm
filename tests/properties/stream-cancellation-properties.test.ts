@@ -1,8 +1,4 @@
-/**
- * Property-Based Tests for Stream Cancellation
- * Feature: local-ai-assistant, Property 31: Stream Cancellation
- * Validates: Requirements 14.4, 14.5
- */
+
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as fc from 'fast-check';

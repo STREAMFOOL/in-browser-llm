@@ -1,7 +1,4 @@
-/**
- * Unit Tests for Browser Compatibility Checker
- * Requirements: 1.2, 1.5, 1.6
- */
+
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BrowserCompatibilityChecker } from '../src/browser-compatibility';

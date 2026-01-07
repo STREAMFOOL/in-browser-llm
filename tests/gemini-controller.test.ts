@@ -1,8 +1,4 @@
-/**
- * Unit tests for Gemini Controller
- * Tests model availability states and UI behavior
- * Requirements: 2.2, 2.3, 2.4, 2.5, 2.6
- */
+
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { GeminiController } from '../src/gemini-controller';
@@ -21,10 +17,7 @@ describe('GeminiController - Model Availability States', () => {
         (window as any).ai = originalAI;
     });
 
-    /**
-     * Test "readily" state
-     * Requirements: 2.2, 2.4
-     */
+
     it('should return "readily" status when model is immediately available', async () => {
         // Mock window.ai with readily available model
         (window as any).ai = {
@@ -39,10 +32,7 @@ describe('GeminiController - Model Availability States', () => {
         expect(availability.downloadProgress).toBeUndefined();
     });
 
-    /**
-     * Test "after-download" state
-     * Requirements: 2.2, 2.3, 2.5
-     */
+
     it('should return "after-download" status when model needs downloading', async () => {
         // Mock window.ai with model requiring download
         (window as any).ai = {
@@ -57,10 +47,7 @@ describe('GeminiController - Model Availability States', () => {
         // Note: Progress tracking would be implemented in UI layer with monitor callback
     });
 
-    /**
-     * Test "no" state
-     * Requirements: 2.3, 2.6
-     */
+
     it('should return "no" status when model is unavailable', async () => {
         // Mock window.ai with unavailable model
         (window as any).ai = {
@@ -74,10 +61,7 @@ describe('GeminiController - Model Availability States', () => {
         expect(availability.status).toBe('no');
     });
 
-    /**
-     * Test missing API
-     * Requirements: 2.3
-     */
+
     it('should return "no" status when Prompt API is not available', async () => {
         // Remove window.ai
         delete (window as any).ai;
@@ -87,10 +71,7 @@ describe('GeminiController - Model Availability States', () => {
         expect(availability.status).toBe('no');
     });
 
-    /**
-     * Test error handling during capability check
-     * Requirements: 2.3
-     */
+
     it('should return "no" status when capabilities check throws error', async () => {
         // Mock window.ai with error-throwing capabilities
         (window as any).ai = {
@@ -106,10 +87,7 @@ describe('GeminiController - Model Availability States', () => {
         expect(availability.status).toBe('no');
     });
 
-    /**
-     * Test session creation with "readily" status
-     * Requirements: 2.4
-     */
+
     it('should successfully create session when model is readily available', async () => {
         // Mock window.ai with readily available model
         const mockSession = {
@@ -137,10 +115,7 @@ describe('GeminiController - Model Availability States', () => {
         expect(typeof session.destroy).toBe('function');
     });
 
-    /**
-     * Test session creation failure
-     * Requirements: 2.4
-     */
+
     it('should throw error when session creation fails', async () => {
         // Mock window.ai with failing create
         (window as any).ai = {
@@ -155,20 +130,14 @@ describe('GeminiController - Model Availability States', () => {
         await expect(controller.createSession()).rejects.toThrow('Failed to create Gemini session');
     });
 
-    /**
-     * Test session creation without API
-     * Requirements: 2.4
-     */
+
     it('should throw error when creating session without Prompt API', async () => {
         delete (window as any).ai;
 
         await expect(controller.createSession()).rejects.toThrow('Prompt API not available');
     });
 
-    /**
-     * Test streaming response
-     * Requirements: 3.2
-     */
+
     it('should stream response chunks correctly', async () => {
         const mockChunks = ['Hello', ' ', 'world', '!'];
         const mockStream = new ReadableStream({
@@ -202,10 +171,7 @@ describe('GeminiController - Model Availability States', () => {
         expect(chunks).toEqual(mockChunks);
     });
 
-    /**
-     * Test session destruction
-     * Requirements: 3.5
-     */
+
     it('should safely destroy sessions', async () => {
         let destroyCalled = false;
         const mockSession = {
@@ -228,10 +194,7 @@ describe('GeminiController - Model Availability States', () => {
         expect(destroyCalled).toBe(true);
     });
 
-    /**
-     * Test session cloning
-     * Requirements: 3.5
-     */
+
     it('should clone sessions for branching conversations', async () => {
         const mockSession = {
             prompt: async () => 'response',
@@ -259,10 +222,7 @@ describe('GeminiController - Model Availability States', () => {
         expect(typeof clonedSession.prompt).toBe('function');
     });
 
-    /**
-     * Test default configuration values
-     * Requirements: 3.1
-     */
+
     it('should use default temperature and topK when not specified', async () => {
         let capturedOptions: any = null;
 
@@ -288,10 +248,7 @@ describe('GeminiController - Model Availability States', () => {
         expect(capturedOptions.topK).toBe(40);
     });
 
-    /**
-     * Test custom configuration values
-     * Requirements: 3.1
-     */
+
     it('should use provided temperature and topK values', async () => {
         let capturedOptions: any = null;
 

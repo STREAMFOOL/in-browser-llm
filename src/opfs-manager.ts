@@ -1,15 +1,9 @@
-/**
- * OPFS Manager
- * Origin Private File System for binary asset storage
- * Requirements: 7.5, 10.6
- */
+
 
 export class OPFSManager {
     private root: FileSystemDirectoryHandle | null = null;
 
-    /**
-     * Initialize OPFS root directory
-     */
+
     private async getRoot(): Promise<FileSystemDirectoryHandle> {
         if (this.root) {
             return this.root;
@@ -23,10 +17,7 @@ export class OPFSManager {
         return this.root;
     }
 
-    /**
-     * Save an asset to OPFS
-     * Requirements: 7.5, 10.6
-     */
+
     async saveAsset(assetId: string, data: Blob): Promise<void> {
         try {
             const root = await this.getRoot();
@@ -40,10 +31,7 @@ export class OPFSManager {
         }
     }
 
-    /**
-     * Load an asset from OPFS
-     * Requirements: 7.5, 10.6
-     */
+
     async loadAsset(assetId: string): Promise<Blob> {
         try {
             const root = await this.getRoot();
@@ -56,9 +44,7 @@ export class OPFSManager {
         }
     }
 
-    /**
-     * Delete an asset from OPFS
-     */
+
     async deleteAsset(assetId: string): Promise<void> {
         try {
             const root = await this.getRoot();
@@ -69,9 +55,7 @@ export class OPFSManager {
         }
     }
 
-    /**
-     * Check if an asset exists
-     */
+
     async assetExists(assetId: string): Promise<boolean> {
         try {
             const root = await this.getRoot();
@@ -82,9 +66,7 @@ export class OPFSManager {
         }
     }
 
-    /**
-     * List all assets
-     */
+
     async listAssets(): Promise<string[]> {
         try {
             const root = await this.getRoot();
@@ -104,10 +86,7 @@ export class OPFSManager {
         }
     }
 
-    /**
-     * Clear all assets from OPFS
-     * Requirements: 12.6
-     */
+
     async clearAllAssets(): Promise<void> {
         try {
             const assets = await this.listAssets();

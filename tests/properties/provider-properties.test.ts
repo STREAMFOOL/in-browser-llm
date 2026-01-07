@@ -1,11 +1,4 @@
-/**
- * Property-based tests for Model Provider Abstraction
- * Feature: local-ai-assistant
- * 
- * Property 33: Provider Interface Consistency
- * Property 34: Provider Selection Priority
- * Validates: Requirements 16.1, 16.2, 16.3, 16.4, 16.5
- */
+
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fc from 'fast-check';
@@ -18,9 +11,7 @@ import type {
 } from '../../src/model-provider';
 import { ProviderManager, PROVIDER_PRIORITIES } from '../../src/provider-manager';
 
-/**
- * Mock provider factory for testing
- */
+
 function createMockProvider(
     name: string,
     type: 'local' | 'api',
@@ -85,15 +76,7 @@ function createMockProvider(
 }
 
 describe('Provider Interface Consistency Properties', () => {
-    /**
-     * Property 33: Provider Interface Consistency
-     * For any ModelProvider implementation, calling checkAvailability() should return 
-     * a valid ProviderAvailability object, and if available is true, initialize() 
-     * should succeed without errors.
-     * 
-     * Feature: local-ai-assistant, Property 33: Provider Interface Consistency
-     * Validates: Requirements 16.1, 16.2
-     */
+
     it('Property 33: checkAvailability returns valid object and initialize succeeds when available', async () => {
         await fc.assert(
             fc.asyncProperty(
@@ -132,11 +115,7 @@ describe('Provider Interface Consistency Properties', () => {
         );
     });
 
-    /**
-     * Additional property: Session lifecycle follows interface contract
-     * Feature: local-ai-assistant, Property 33: Provider Interface Consistency
-     * Validates: Requirements 16.1
-     */
+
     it('Property 33: Session lifecycle follows interface contract', async () => {
         await fc.assert(
             fc.asyncProperty(
@@ -184,14 +163,7 @@ describe('Provider Selection Priority Properties', () => {
         await manager.dispose();
     });
 
-    /**
-     * Property 34: Provider Selection Priority
-     * For any browser environment, the ProviderManager should select providers 
-     * in priority order (Chrome → WebLLM → API), choosing the first available provider.
-     * 
-     * Feature: local-ai-assistant, Property 34: Provider Selection Priority
-     * Validates: Requirements 16.2, 16.3, 16.4, 16.5
-     */
+
     it('Property 34: autoSelectProvider chooses first available provider by priority', async () => {
         await fc.assert(
             fc.asyncProperty(
@@ -243,11 +215,7 @@ describe('Provider Selection Priority Properties', () => {
         );
     });
 
-    /**
-     * Additional property: detectProviders returns providers sorted by priority
-     * Feature: local-ai-assistant, Property 34: Provider Selection Priority
-     * Validates: Requirements 16.2
-     */
+
     it('Property 34: detectProviders returns providers sorted by priority', async () => {
         await fc.assert(
             fc.asyncProperty(
@@ -298,14 +266,7 @@ describe('Provider Selection Priority Properties', () => {
 
 
 describe('Provider Streaming Equivalence Properties', () => {
-    /**
-     * Property 35: Provider Streaming Equivalence
-     * For any ModelProvider implementation, the streaming response should produce
-     * the same concatenated result regardless of chunk boundaries.
-     * 
-     * Feature: local-ai-assistant, Property 35: Provider Streaming Equivalence
-     * Validates: Requirements 16.1, 17.6, 18.6, 19.5
-     */
+
     it('Property 35: streaming response concatenation produces consistent result', async () => {
         await fc.assert(
             fc.asyncProperty(
@@ -345,11 +306,7 @@ describe('Provider Streaming Equivalence Properties', () => {
         );
     });
 
-    /**
-     * Property 35: Multiple streaming calls produce independent results
-     * Feature: local-ai-assistant, Property 35: Provider Streaming Equivalence
-     * Validates: Requirements 16.1, 17.6, 18.6, 19.5
-     */
+
     it('Property 35: multiple streaming calls produce independent results', async () => {
         await fc.assert(
             fc.asyncProperty(
@@ -392,14 +349,7 @@ describe('Provider Streaming Equivalence Properties', () => {
 
 
 describe('WebLLM Model Caching Properties', () => {
-    /**
-     * Property 36: WebLLM Model Caching
-     * For any WebLLM model, once downloaded, subsequent loads should use cached weights.
-     * This is tested by verifying the progress reporting behavior.
-     * 
-     * Feature: local-ai-assistant, Property 36: WebLLM Model Caching
-     * Validates: Requirements 18.3, 18.7
-     */
+
     it('Property 36: model caching behavior is consistent', async () => {
         await fc.assert(
             fc.asyncProperty(
@@ -430,11 +380,7 @@ describe('WebLLM Model Caching Properties', () => {
         );
     });
 
-    /**
-     * Property 36: Model info consistency
-     * Feature: local-ai-assistant, Property 36: WebLLM Model Caching
-     * Validates: Requirements 18.3, 18.7
-     */
+
     it('Property 36: model info is consistent across calls', async () => {
         await fc.assert(
             fc.asyncProperty(

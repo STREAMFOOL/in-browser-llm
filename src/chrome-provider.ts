@@ -1,8 +1,4 @@
-/**
- * Chrome Provider
- * Implements ModelProvider using Chrome's built-in Gemini Nano
- * Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.6
- */
+
 
 import type {
     ModelProvider,
@@ -19,10 +15,7 @@ import {
     type ModelAvailability
 } from './gemini-controller';
 
-/**
- * ChromeProvider class
- * Wraps GeminiController to implement the ModelProvider interface
- */
+
 export class ChromeProvider implements ModelProvider {
     readonly name = 'chrome-gemini';
     readonly type = 'local' as const;
@@ -37,20 +30,14 @@ export class ChromeProvider implements ModelProvider {
         this.controller = new GeminiController();
     }
 
-    /**
-     * Check if Chrome's Gemini Nano is available
-     * Requirements: 17.2
-     */
+
     async checkAvailability(): Promise<ProviderAvailability> {
         const availability = await this.controller.checkAvailability();
 
         return this.mapAvailability(availability);
     }
 
-    /**
-     * Initialize the provider
-     * Requirements: 17.3, 17.4
-     */
+
     async initialize(_config?: ProviderConfig): Promise<void> {
         if (this.initialized) {
             return;
@@ -80,10 +67,7 @@ export class ChromeProvider implements ModelProvider {
         };
     }
 
-    /**
-     * Create a new chat session
-     * Requirements: 17.5
-     */
+
     async createSession(config: SessionConfig): Promise<ChatSession> {
         const mergedConfig = {
             ...DEFAULT_SESSION_CONFIG,
@@ -107,10 +91,7 @@ export class ChromeProvider implements ModelProvider {
         };
     }
 
-    /**
-     * Send a prompt and receive streaming response
-     * Requirements: 17.6
-     */
+
     async *promptStreaming(
         session: ChatSession,
         prompt: string,
@@ -124,10 +105,7 @@ export class ChromeProvider implements ModelProvider {
         yield* this.controller.promptStreaming(aiSession, prompt, signal);
     }
 
-    /**
-     * Destroy a session to free memory
-     * Requirements: 17.5
-     */
+
     async destroySession(session: ChatSession): Promise<void> {
         const aiSession = this.sessions.get(session.id);
         if (aiSession) {
@@ -136,17 +114,12 @@ export class ChromeProvider implements ModelProvider {
         }
     }
 
-    /**
-     * Get current download/loading progress
-     * Requirements: 17.3
-     */
+
     getProgress(): DownloadProgress | null {
         return this.currentProgress;
     }
 
-    /**
-     * Cleanup and release resources
-     */
+
     async dispose(): Promise<void> {
         // Destroy all sessions
         for (const [sessionId, aiSession] of this.sessions) {
@@ -161,9 +134,7 @@ export class ChromeProvider implements ModelProvider {
         this.currentProgress = null;
     }
 
-    /**
-     * Clone a session (Chrome-specific feature)
-     */
+
     async cloneSession(session: ChatSession): Promise<ChatSession> {
         const aiSession = this.sessions.get(session.id);
         if (!aiSession) {
@@ -182,16 +153,12 @@ export class ChromeProvider implements ModelProvider {
         };
     }
 
-    /**
-     * Get the underlying GeminiController for backward compatibility
-     */
+
     getController(): GeminiController {
         return this.controller;
     }
 
-    /**
-     * Map GeminiController availability to ProviderAvailability
-     */
+
     private mapAvailability(availability: ModelAvailability): ProviderAvailability {
         switch (availability.status) {
             case 'readily':

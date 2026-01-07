@@ -1,8 +1,4 @@
-/**
- * Storage Manager
- * Unified interface for persisting conversations and assets
- * Requirements: 4.1, 4.2, 4.3
- */
+
 
 import Dexie, { type Table } from 'dexie';
 import { OPFSManager } from './opfs-manager';
@@ -130,10 +126,7 @@ export class StorageManager {
         this.opfs = new OPFSManager();
     }
 
-    /**
-     * Request persistent storage
-     * Requirements: 4.3
-     */
+
     async requestPersistence(): Promise<boolean> {
         if (this.persistenceRequested) {
             return true;
@@ -154,10 +147,7 @@ export class StorageManager {
         }
     }
 
-    /**
-     * Get storage estimate
-     * Requirements: 4.6
-     */
+
     async getStorageEstimate(): Promise<StorageEstimate> {
         if (!navigator.storage || !navigator.storage.estimate) {
             return { usage: 0, quota: 0 };
@@ -177,10 +167,7 @@ export class StorageManager {
 
     // Thread Operations
 
-    /**
-     * Save a message to a thread
-     * Requirements: 4.1
-     */
+
     async saveMessage(threadId: string, message: Message): Promise<void> {
         await this.db.messages.put(message);
 
@@ -193,10 +180,7 @@ export class StorageManager {
         }
     }
 
-    /**
-     * Load all messages for a thread
-     * Requirements: 4.5
-     */
+
     async loadThread(threadId: string): Promise<Message[]> {
         return await this.db.messages
             .where('threadId')
@@ -204,10 +188,7 @@ export class StorageManager {
             .sortBy('timestamp');
     }
 
-    /**
-     * List all threads
-     * Requirements: 4.2
-     */
+
     async listThreads(): Promise<ThreadMetadata[]> {
         const threads = await this.db.threads.orderBy('updatedAt').reverse().toArray();
 
@@ -219,24 +200,17 @@ export class StorageManager {
         }));
     }
 
-    /**
-     * Create a new thread
-     * Requirements: 4.4
-     */
+
     async createThread(thread: Thread): Promise<void> {
         await this.db.threads.put(thread);
     }
 
-    /**
-     * Get a thread by ID
-     */
+
     async getThread(threadId: string): Promise<Thread | undefined> {
         return await this.db.threads.get(threadId);
     }
 
-    /**
-     * Delete a thread and all its messages
-     */
+
     async deleteThread(threadId: string): Promise<void> {
         await this.db.messages.where('threadId').equals(threadId).delete();
         await this.db.threads.delete(threadId);
@@ -244,31 +218,22 @@ export class StorageManager {
 
     // Document Operations
 
-    /**
-     * Save a document
-     * Requirements: 9.6
-     */
+
     async saveDocument(document: Document): Promise<void> {
         await this.db.documents.put(document);
     }
 
-    /**
-     * Save a chunk
-     */
+
     async saveChunk(chunk: Chunk): Promise<void> {
         await this.db.chunks.put(chunk);
     }
 
-    /**
-     * Get chunks for a document
-     */
+
     async getChunks(documentId: string): Promise<Chunk[]> {
         return await this.db.chunks.where('documentId').equals(documentId).toArray();
     }
 
-    /**
-     * Delete a document and its chunks
-     */
+
     async deleteDocument(documentId: string): Promise<void> {
         await this.db.chunks.where('documentId').equals(documentId).delete();
         await this.db.documents.delete(documentId);
@@ -276,27 +241,18 @@ export class StorageManager {
 
     // Settings Operations
 
-    /**
-     * Save a setting
-     * Requirements: 12.3
-     */
+
     async saveSetting(key: string, value: any): Promise<void> {
         await this.db.settings.put({ key, value });
     }
 
-    /**
-     * Load a setting
-     * Requirements: 12.4
-     */
+
     async loadSetting(key: string): Promise<any | undefined> {
         const setting = await this.db.settings.get(key);
         return setting?.value;
     }
 
-    /**
-     * Clear all data
-     * Requirements: 12.6
-     */
+
     async clearAllData(): Promise<void> {
         await this.db.threads.clear();
         await this.db.messages.clear();
@@ -308,32 +264,22 @@ export class StorageManager {
 
     // Asset Operations (OPFS)
 
-    /**
-     * Save an asset (image, audio, etc.)
-     * Requirements: 7.5, 10.6
-     */
+
     async saveAsset(assetId: string, data: Blob): Promise<void> {
         await this.opfs.saveAsset(assetId, data);
     }
 
-    /**
-     * Load an asset
-     * Requirements: 7.5, 10.6
-     */
+
     async loadAsset(assetId: string): Promise<Blob> {
         return await this.opfs.loadAsset(assetId);
     }
 
-    /**
-     * Delete an asset
-     */
+
     async deleteAsset(assetId: string): Promise<void> {
         await this.opfs.deleteAsset(assetId);
     }
 
-    /**
-     * Check if an asset exists
-     */
+
     async assetExists(assetId: string): Promise<boolean> {
         return await this.opfs.assetExists(assetId);
     }

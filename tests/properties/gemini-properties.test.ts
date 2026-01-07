@@ -1,7 +1,4 @@
-/**
- * Property-based tests for Gemini Controller
- * Feature: local-ai-assistant
- */
+
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fc from 'fast-check';
@@ -28,15 +25,7 @@ describe('Gemini Controller Properties', () => {
         createdSessions = [];
     });
 
-    /**
-     * Property 3: Session Lifecycle Management
-     * For any sequence of conversations, creating a new conversation should destroy 
-     * the previous session (if one exists) and create a new session with the 
-     * specified configuration parameters.
-     * 
-     * Feature: local-ai-assistant, Property 3: Session Lifecycle Management
-     * Validates: Requirements 3.1, 3.5
-     */
+
     it('should create new sessions with specified configuration and allow destruction', async () => {
         await fc.assert(
             fc.asyncProperty(
@@ -79,11 +68,7 @@ describe('Gemini Controller Properties', () => {
         );
     });
 
-    /**
-     * Additional property: Session cloning should create independent sessions
-     * Feature: local-ai-assistant, Property 3: Session Lifecycle Management
-     * Validates: Requirements 3.5
-     */
+
     it('should clone sessions creating independent copies', async () => {
         await fc.assert(
             fc.asyncProperty(
@@ -124,11 +109,7 @@ describe('Gemini Controller Properties', () => {
         );
     });
 
-    /**
-     * Property: Destroying a session multiple times should be safe
-     * Feature: local-ai-assistant, Property 3: Session Lifecycle Management
-     * Validates: Requirements 3.5
-     */
+
     it('should safely handle multiple destroy calls on the same session', async () => {
         await fc.assert(
             fc.asyncProperty(

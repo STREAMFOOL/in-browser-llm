@@ -1,8 +1,4 @@
-/**
- * Property-Based Tests for API Provider
- * Feature: local-ai-assistant
- * Requirements: 19.4
- */
+
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fc from 'fast-check';
@@ -25,15 +21,7 @@ describe('API Provider Properties', () => {
         await storage.clearAllData();
     });
 
-    /**
-     * Property 37: API Key Security
-     * Feature: local-ai-assistant, Property 37: API Key Security
-     * 
-     * For any API key stored by the APIProvider, the key should be stored in IndexedDB
-     * (not LocalStorage) and should not be accessible via the DOM.
-     * 
-     * Validates: Requirements 19.4
-     */
+
     it('Property 37: API keys are stored securely in IndexedDB and not accessible via DOM', async () => {
         await fc.assert(
             fc.asyncProperty(
@@ -110,10 +98,7 @@ describe('API Provider Properties', () => {
         );
     });
 
-    /**
-     * Additional property: API key persistence
-     * Verify that API keys persist across provider instances
-     */
+
     it('API keys persist across provider instances', async () => {
         await fc.assert(
             fc.asyncProperty(
@@ -142,10 +127,7 @@ describe('API Provider Properties', () => {
         );
     });
 
-    /**
-     * Additional property: Backend configuration security
-     * Verify that backend configuration is stored securely
-     */
+
     it('Backend configuration is stored in IndexedDB', async () => {
         await fc.assert(
             fc.asyncProperty(

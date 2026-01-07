@@ -1,8 +1,4 @@
-/**
- * Browser Compatibility Checker
- * Validates browser environment meets minimum requirements
- * Requirements: 1.1, 1.2, 1.3, 1.4
- */
+
 
 export interface CompatibilityResult {
     compatible: boolean;
@@ -45,10 +41,7 @@ export class BrowserCompatibilityChecker {
     private static readonly MIN_CHROME_VERSION = 127;
     private static readonly MIN_STORAGE_GB = 22;
 
-    /**
-     * Check Chrome version
-     * Requirements: 1.1, 1.5
-     */
+
     static checkChromeVersion(): VersionCheck {
         const userAgent = navigator.userAgent;
         const chromeMatch = userAgent.match(/Chrome\/(\d+)/);
@@ -75,10 +68,7 @@ export class BrowserCompatibilityChecker {
         };
     }
 
-    /**
-     * Check Prompt API availability
-     * Requirements: 1.2
-     */
+
     static checkPromptAPI(): APICheck {
         const available = typeof window !== 'undefined' &&
             'ai' in window &&
@@ -94,10 +84,7 @@ export class BrowserCompatibilityChecker {
         };
     }
 
-    /**
-     * Check storage availability
-     * Requirements: 1.3, 1.6
-     */
+
     static async checkStorage(): Promise<StorageCheck> {
         if (!navigator.storage || !navigator.storage.estimate) {
             return {
@@ -132,10 +119,7 @@ export class BrowserCompatibilityChecker {
         }
     }
 
-    /**
-     * Detect hardware capabilities
-     * Requirements: 1.4
-     */
+
     static detectHardware(): HardwareCheck {
         const ram = (navigator as any).deviceMemory || null;
         const cpuCores = navigator.hardwareConcurrency || null;
@@ -146,10 +130,7 @@ export class BrowserCompatibilityChecker {
         };
     }
 
-    /**
-     * Run all compatibility checks
-     * Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6
-     */
+
     static async checkCompatibility(): Promise<CompatibilityResult> {
         const chromeVersion = this.checkChromeVersion();
         const promptAPI = this.checkPromptAPI();

@@ -1,8 +1,4 @@
-/**
- * Hardware Diagnostics Module
- * Detects device capabilities and provides hardware-based feature recommendations
- * Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6
- */
+
 
 export interface HardwareProfile {
     ram: number;              // GB
@@ -72,10 +68,7 @@ export class HardwareDiagnostics {
         }
     };
 
-    /**
-     * Detect all hardware capabilities
-     * Requirements: 6.1, 6.2, 6.3, 6.4
-     */
+
     static async detectCapabilities(): Promise<HardwareProfile> {
         // Check cache first
         const cached = this.getCachedProfile();
@@ -114,10 +107,7 @@ export class HardwareDiagnostics {
         return profile;
     }
 
-    /**
-     * Check if a specific feature is supported
-     * Requirements: 6.5, 6.6
-     */
+
     static canSupport(feature: Feature, profile: HardwareProfile): boolean {
         const requirements = this.FEATURE_REQUIREMENTS[feature];
 
@@ -131,10 +121,7 @@ export class HardwareDiagnostics {
         return true;
     }
 
-    /**
-     * Get recommended settings for current hardware
-     * Requirements: 6.5, 6.6
-     */
+
     static getRecommendedSettings(profile: HardwareProfile): FeatureSettings {
         const enabledFeatures: Feature[] = [];
 
@@ -168,17 +155,12 @@ export class HardwareDiagnostics {
         };
     }
 
-    /**
-     * Get feature requirements for display
-     */
+
     static getFeatureRequirements(feature: Feature): FeatureRequirements {
         return this.FEATURE_REQUIREMENTS[feature];
     }
 
-    /**
-     * Detect available storage
-     * Requirement 6.3
-     */
+
     private static async detectStorage(): Promise<number> {
         if (!navigator.storage || !navigator.storage.estimate) {
             return 0;
@@ -194,10 +176,7 @@ export class HardwareDiagnostics {
         }
     }
 
-    /**
-     * Detect GPU VRAM and WebGPU support
-     * Requirement 6.4
-     */
+
     private static async detectGPU(): Promise<{ gpuVRAM: number; webGPUSupported: boolean }> {
         if (!navigator.gpu) {
             return { gpuVRAM: 0, webGPUSupported: false };
@@ -224,10 +203,7 @@ export class HardwareDiagnostics {
         }
     }
 
-    /**
-     * Benchmark GPU performance
-     * Returns a score from 0-100
-     */
+
     private static async benchmarkGPU(): Promise<number> {
         if (!navigator.gpu) {
             return 0;
@@ -330,9 +306,7 @@ export class HardwareDiagnostics {
         }
     }
 
-    /**
-     * Get cached hardware profile
-     */
+
     private static getCachedProfile(): HardwareProfile | null {
         try {
             const cached = localStorage.getItem(this.CACHE_KEY);
@@ -352,9 +326,7 @@ export class HardwareDiagnostics {
         }
     }
 
-    /**
-     * Cache hardware profile
-     */
+
     private static cacheProfile(profile: HardwareProfile): void {
         try {
             localStorage.setItem(this.CACHE_KEY, JSON.stringify(profile));
@@ -363,9 +335,7 @@ export class HardwareDiagnostics {
         }
     }
 
-    /**
-     * Clear cached profile (force re-detection)
-     */
+
     static clearCache(): void {
         try {
             localStorage.removeItem(this.CACHE_KEY);

@@ -1,8 +1,4 @@
-/**
- * Property-Based Tests for Streaming Response Rendering
- * Feature: local-ai-assistant, Property 4: Streaming Incremental Rendering
- * Validates: Requirements 3.3, 14.1, 14.2
- */
+
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as fc from 'fast-check';

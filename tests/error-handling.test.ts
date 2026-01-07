@@ -1,8 +1,4 @@
-/**
- * Unit Tests for Error Handling
- * Tests specific error scenarios and recovery mechanisms
- * Requirements: 15.1, 15.2, 15.3, 15.5, 15.6
- */
+
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ErrorHandler, ErrorCategory } from '../src/error-handler';

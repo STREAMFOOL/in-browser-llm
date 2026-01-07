@@ -1,8 +1,4 @@
-/**
- * Recovery Manager
- * Handles GPU reinitialization and application reset
- * Requirements: 15.5, 15.6
- */
+
 
 export interface RecoveryOptions {
     onGPURecovery?: () => Promise<void>;
@@ -20,9 +16,7 @@ export class RecoveryManager {
         this.setupGPUContextLossDetection();
     }
 
-    /**
-     * Set up detection for GPU context loss
-     */
+
     private setupGPUContextLossDetection(): void {
         // Listen for WebGPU device lost events
         if (navigator.gpu) {
@@ -43,9 +37,7 @@ export class RecoveryManager {
         }
     }
 
-    /**
-     * Handle GPU context loss and attempt recovery
-     */
+
     async handleGPUContextLoss(reason: string): Promise<boolean> {
         if (this.gpuRecoveryInProgress) {
             console.log('GPU recovery already in progress, skipping...');
@@ -93,9 +85,7 @@ export class RecoveryManager {
         }
     }
 
-    /**
-     * Attempt to reinitialize WebGPU
-     */
+
     private async reinitializeGPU(): Promise<boolean> {
         try {
             if (!navigator.gpu) {
@@ -131,9 +121,7 @@ export class RecoveryManager {
         }
     }
 
-    /**
-     * Reset the entire application state
-     */
+
     async resetApplication(): Promise<void> {
         console.log('Resetting application...');
 
@@ -167,9 +155,7 @@ export class RecoveryManager {
         }
     }
 
-    /**
-     * Clear all IndexedDB databases
-     */
+
     private async clearIndexedDB(): Promise<void> {
         try {
             const databases = await indexedDB.databases();
@@ -196,9 +182,7 @@ export class RecoveryManager {
         }
     }
 
-    /**
-     * Clear Origin Private File System
-     */
+
     private async clearOPFS(): Promise<void> {
         try {
             if (!navigator.storage || !navigator.storage.getDirectory) {
@@ -225,9 +209,7 @@ export class RecoveryManager {
         }
     }
 
-    /**
-     * Get recovery status
-     */
+
     getRecoveryStatus(): {
         gpuRecoveryAttempts: number;
         maxGPURecoveryAttempts: number;
@@ -242,16 +224,12 @@ export class RecoveryManager {
         };
     }
 
-    /**
-     * Reset GPU recovery counter (call after successful operation)
-     */
+
     resetGPURecoveryCounter(): void {
         this.gpuRecoveryAttempts = 0;
     }
 
-    /**
-     * Utility: delay for specified milliseconds
-     */
+
     private delay(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));
     }

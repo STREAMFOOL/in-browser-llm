@@ -1,8 +1,4 @@
-/**
- * API Provider Implementation
- * Provides external API fallback for OpenAI, Anthropic, and Ollama
- * Requirements: 19.1, 19.2, 19.3, 19.4, 19.5, 19.6
- */
+
 
 import type {
     ModelProvider,
@@ -15,14 +11,10 @@ import type {
 import { generateSessionId } from './model-provider';
 import { StorageManager } from './storage-manager';
 
-/**
- * Supported API backends
- */
+
 export type APIBackend = 'openai' | 'anthropic' | 'ollama';
 
-/**
- * Backend configuration
- */
+
 export interface BackendConfig {
     name: string;
     models: string[];
@@ -30,10 +22,7 @@ export interface BackendConfig {
     requiresApiKey: boolean;
 }
 
-/**
- * Available API backends
- * Requirements: 19.1
- */
+
 export const API_BACKENDS: Record<APIBackend, BackendConfig> = {
     openai: {
         name: 'OpenAI',
@@ -55,27 +44,20 @@ export const API_BACKENDS: Record<APIBackend, BackendConfig> = {
     }
 };
 
-/**
- * Message format for API calls
- */
+
 interface APIMessage {
     role: 'system' | 'user' | 'assistant';
     content: string;
 }
 
-/**
- * Session internal state
- */
+
 interface APISessionInternal {
     messages: APIMessage[];
     backend: APIBackend;
     modelId: string;
 }
 
-/**
- * API Provider
- * Implements ModelProvider interface for external API fallback
- */
+
 export class APIProvider implements ModelProvider {
     readonly name = 'api';
     readonly type = 'api' as const;
@@ -93,10 +75,7 @@ export class APIProvider implements ModelProvider {
         this.storage = storage || new StorageManager();
     }
 
-    /**
-     * Check if API provider is available (has API key configured)
-     * Requirements: 19.2
-     */
+
     async checkAvailability(): Promise<ProviderAvailability> {
         // Load saved configuration
         const savedBackend = await this.storage.loadSetting('api_backend');
@@ -141,10 +120,7 @@ export class APIProvider implements ModelProvider {
         };
     }
 
-    /**
-     * Initialize the API provider
-     * Requirements: 19.2, 19.4
-     */
+
     async initialize(config?: ProviderConfig): Promise<void> {
         if (this.initialized) {
             return;
@@ -173,9 +149,7 @@ export class APIProvider implements ModelProvider {
         this.initialized = true;
     }
 
-    /**
-     * Create a new chat session
-     */
+
     async createSession(config: SessionConfig): Promise<ChatSession> {
         if (!this.initialized) {
             throw new Error('API provider not initialized. Call initialize() first.');
@@ -209,10 +183,7 @@ export class APIProvider implements ModelProvider {
         return session;
     }
 
-    /**
-     * Send a prompt and receive streaming response
-     * Requirements: 19.5
-     */
+
     async *promptStreaming(
         session: ChatSession,
         prompt: string,
@@ -271,10 +242,7 @@ export class APIProvider implements ModelProvider {
         }
     }
 
-    /**
-     * Stream from OpenAI API
-     * Requirements: 19.5
-     */
+
     private async *streamOpenAI(
         internal: APISessionInternal,
         signal?: AbortSignal
@@ -345,10 +313,7 @@ export class APIProvider implements ModelProvider {
         }
     }
 
-    /**
-     * Stream from Anthropic API
-     * Requirements: 19.5
-     */
+
     private async *streamAnthropic(
         internal: APISessionInternal,
         signal?: AbortSignal
@@ -425,10 +390,7 @@ export class APIProvider implements ModelProvider {
         }
     }
 
-    /**
-     * Stream from Ollama API
-     * Requirements: 19.5
-     */
+
     private async *streamOllama(
         internal: APISessionInternal,
         signal?: AbortSignal
@@ -495,32 +457,23 @@ export class APIProvider implements ModelProvider {
         }
     }
 
-    /**
-     * Destroy a session to free memory
-     */
+
     async destroySession(session: ChatSession): Promise<void> {
         this.sessions.delete(session.id);
     }
 
-    /**
-     * Get current download/loading progress (N/A for API provider)
-     */
+
     getProgress(): DownloadProgress | null {
         return null;
     }
 
-    /**
-     * Cleanup and release resources
-     */
+
     async dispose(): Promise<void> {
         this.sessions.clear();
         this.initialized = false;
     }
 
-    /**
-     * Set the backend to use
-     * Requirements: 19.1
-     */
+
     async setBackend(backend: APIBackend): Promise<void> {
         if (!API_BACKENDS[backend]) {
             throw new Error(`Invalid backend: ${backend}`);
@@ -537,9 +490,7 @@ export class APIProvider implements ModelProvider {
         this.initialized = false;
     }
 
-    /**
-     * Set the model to use
-     */
+
     async setModel(modelId: string): Promise<void> {
         const backendConfig = API_BACKENDS[this.currentBackend];
         if (!backendConfig.models.includes(modelId)) {
@@ -550,42 +501,30 @@ export class APIProvider implements ModelProvider {
         await this.storage.saveSetting('api_model_id', modelId);
     }
 
-    /**
-     * Set API key
-     * Requirements: 19.2, 19.4
-     */
+
     async setApiKey(apiKey: string): Promise<void> {
         this.apiKey = apiKey;
         // Store securely in IndexedDB
         await this.storage.saveSetting('api_key', apiKey);
     }
 
-    /**
-     * Set custom API endpoint
-     */
+
     async setEndpoint(endpoint: string): Promise<void> {
         this.apiEndpoint = endpoint;
         await this.storage.saveSetting('api_endpoint', endpoint);
     }
 
-    /**
-     * Get current backend
-     */
+
     getCurrentBackend(): APIBackend {
         return this.currentBackend;
     }
 
-    /**
-     * Get current model ID
-     */
+
     getCurrentModelId(): string {
         return this.currentModelId;
     }
 
-    /**
-     * Check if current backend requires privacy warning
-     * Requirements: 19.3, 19.6
-     */
+
     requiresPrivacyWarning(): boolean {
         // Ollama with local endpoint doesn't require warning
         if (this.currentBackend === 'ollama') {
@@ -597,16 +536,12 @@ export class APIProvider implements ModelProvider {
         return true;
     }
 
-    /**
-     * Get available backends
-     */
+
     static getAvailableBackends(): Record<APIBackend, BackendConfig> {
         return { ...API_BACKENDS };
     }
 
-    /**
-     * Get backend configuration
-     */
+
     static getBackendConfig(backend: APIBackend): BackendConfig | undefined {
         return API_BACKENDS[backend];
     }

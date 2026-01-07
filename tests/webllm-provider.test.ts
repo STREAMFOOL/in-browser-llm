@@ -1,8 +1,4 @@
-/**
- * Unit tests for WebLLMProvider
- * Tests WebGPU detection, model selection, and download progress reporting
- * Requirements: 18.2, 18.5, 18.8
- */
+
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {

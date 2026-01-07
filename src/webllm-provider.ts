@@ -1,8 +1,4 @@
-/**
- * WebLLM Provider Implementation
- * Provides cross-browser local LLM inference using WebGPU
- * Requirements: 18.1, 18.2, 18.3, 18.4, 18.5, 18.6, 18.7, 18.8
- */
+
 
 import * as webllm from '@mlc-ai/web-llm';
 import type { ChatCompletionMessageParam } from '@mlc-ai/web-llm';
@@ -16,9 +12,7 @@ import type {
 } from './model-provider';
 import { generateSessionId } from './model-provider';
 
-/**
- * Supported model options with their configurations
- */
+
 export interface WebLLMModelInfo {
     id: string;
     name: string;
@@ -27,10 +21,7 @@ export interface WebLLMModelInfo {
     contextLength: number;
 }
 
-/**
- * Available models for WebLLM
- * Requirements: 18.5, 18.8
- */
+
 export const WEBLLM_MODELS: WebLLMModelInfo[] = [
     {
         id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC',
@@ -62,16 +53,11 @@ export const WEBLLM_MODELS: WebLLMModelInfo[] = [
     }
 ];
 
-/**
- * Default model to use
- */
+
 export const DEFAULT_WEBLLM_MODEL = WEBLLM_MODELS[0].id;
 
 
-/**
- * WebLLM Provider
- * Implements ModelProvider interface for cross-browser local inference
- */
+
 export class WebLLMProvider implements ModelProvider {
     readonly name = 'webllm';
     readonly type = 'local' as const;
@@ -83,10 +69,7 @@ export class WebLLMProvider implements ModelProvider {
     private sessions: Map<string, ChatSession> = new Map();
     private initialized = false;
 
-    /**
-     * Check if WebGPU is available
-     * Requirements: 18.2
-     */
+
     async checkAvailability(): Promise<ProviderAvailability> {
         // Check for WebGPU support
         if (typeof navigator === 'undefined' || !('gpu' in navigator)) {
@@ -147,9 +130,7 @@ export class WebLLMProvider implements ModelProvider {
         }
     }
 
-    /**
-     * Get estimated download size for current model
-     */
+
     private getModelDownloadSize(): number {
         const model = WEBLLM_MODELS.find(m => m.id === this.currentModelId);
         // Rough estimate: VRAM * 1.2 for download size
@@ -157,10 +138,7 @@ export class WebLLMProvider implements ModelProvider {
     }
 
 
-    /**
-     * Initialize the WebLLM engine and load the model
-     * Requirements: 18.3, 18.4, 18.7
-     */
+
     async initialize(config?: ProviderConfig): Promise<void> {
         if (this.initialized && this.engine) {
             return;
@@ -201,10 +179,7 @@ export class WebLLMProvider implements ModelProvider {
         }
     }
 
-    /**
-     * Handle progress reports from WebLLM
-     * Requirements: 18.4
-     */
+
     private handleProgressReport(report: webllm.InitProgressReport): void {
         // Parse progress from WebLLM report
         const text = report.text || '';
@@ -224,10 +199,7 @@ export class WebLLMProvider implements ModelProvider {
         };
     }
 
-    /**
-     * Create a new chat session
-     * Requirements: 18.6
-     */
+
     async createSession(config: SessionConfig): Promise<ChatSession> {
         if (!this.engine) {
             throw new Error('WebLLM engine not initialized. Call initialize() first.');
@@ -256,10 +228,7 @@ export class WebLLMProvider implements ModelProvider {
     }
 
 
-    /**
-     * Send a prompt and receive streaming response
-     * Requirements: 18.6
-     */
+
     async *promptStreaming(
         session: ChatSession,
         prompt: string,
@@ -322,24 +291,17 @@ export class WebLLMProvider implements ModelProvider {
         }
     }
 
-    /**
-     * Destroy a session to free memory
-     */
+
     async destroySession(session: ChatSession): Promise<void> {
         this.sessions.delete(session.id);
     }
 
-    /**
-     * Get current download/loading progress
-     * Requirements: 18.4
-     */
+
     getProgress(): DownloadProgress | null {
         return this.progress;
     }
 
-    /**
-     * Cleanup and release resources
-     */
+
     async dispose(): Promise<void> {
         this.sessions.clear();
         if (this.engine) {
@@ -350,17 +312,12 @@ export class WebLLMProvider implements ModelProvider {
         this.progress = null;
     }
 
-    /**
-     * Get the currently selected model ID
-     */
+
     getCurrentModelId(): string {
         return this.currentModelId;
     }
 
-    /**
-     * Set the model to use (requires re-initialization)
-     * Requirements: 18.5
-     */
+
     async setModel(modelId: string): Promise<void> {
         const validModel = WEBLLM_MODELS.find(m => m.id === modelId);
         if (!validModel) {
@@ -375,17 +332,12 @@ export class WebLLMProvider implements ModelProvider {
         }
     }
 
-    /**
-     * Get list of available models with their info
-     * Requirements: 18.5, 18.8
-     */
+
     static getAvailableModels(): WebLLMModelInfo[] {
         return [...WEBLLM_MODELS];
     }
 
-    /**
-     * Get info for a specific model
-     */
+
     static getModelInfo(modelId: string): WebLLMModelInfo | undefined {
         return WEBLLM_MODELS.find(m => m.id === modelId);
     }

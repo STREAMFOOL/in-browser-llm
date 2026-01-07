@@ -1,7 +1,4 @@
-/**
- * Unit Tests for API Provider
- * Requirements: 19.1, 19.3, 19.5
- */
+
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { APIProvider, API_BACKENDS } from '../src/api-provider';
@@ -23,10 +20,7 @@ describe('APIProvider', () => {
     });
 
     describe('API Key Validation', () => {
-        /**
-         * Test API key validation for OpenAI
-         * Requirements: 19.1
-         */
+
         it('should require API key for OpenAI backend', async () => {
             await provider.setBackend('openai');
 
@@ -35,10 +29,7 @@ describe('APIProvider', () => {
             expect(availability.reason).toContain('API key not configured');
         });
 
-        /**
-         * Test API key validation for Anthropic
-         * Requirements: 19.1
-         */
+
         it('should require API key for Anthropic backend', async () => {
             await provider.setBackend('anthropic');
 
@@ -47,10 +38,7 @@ describe('APIProvider', () => {
             expect(availability.reason).toContain('API key not configured');
         });
 
-        /**
-         * Test that Ollama does not require API key
-         * Requirements: 19.1
-         */
+
         it('should not require API key for Ollama backend', async () => {
             await provider.setBackend('ollama');
 
@@ -58,9 +46,7 @@ describe('APIProvider', () => {
             expect(availability.available).toBe(true);
         });
 
-        /**
-         * Test that provider becomes available after setting API key
-         */
+
         it('should become available after setting API key', async () => {
             await provider.setBackend('openai');
             await provider.setApiKey('sk-test-key-12345');
@@ -71,48 +57,33 @@ describe('APIProvider', () => {
     });
 
     describe('Privacy Warning Display', () => {
-        /**
-         * Test privacy warning for OpenAI
-         * Requirements: 19.3
-         */
+
         it('should require privacy warning for OpenAI', async () => {
             await provider.setBackend('openai');
             expect(provider.requiresPrivacyWarning()).toBe(true);
         });
 
-        /**
-         * Test privacy warning for Anthropic
-         * Requirements: 19.3
-         */
+
         it('should require privacy warning for Anthropic', async () => {
             await provider.setBackend('anthropic');
             expect(provider.requiresPrivacyWarning()).toBe(true);
         });
 
-        /**
-         * Test no privacy warning for local Ollama
-         * Requirements: 19.3, 19.6
-         */
+
         it('should not require privacy warning for local Ollama', async () => {
             await provider.setBackend('ollama');
             await provider.setEndpoint('http://localhost:11434');
             expect(provider.requiresPrivacyWarning()).toBe(false);
         });
 
-        /**
-         * Test privacy warning for remote Ollama
-         * Requirements: 19.3, 19.6
-         */
+
         it('should require privacy warning for remote Ollama', async () => {
             await provider.setBackend('ollama');
             await provider.setEndpoint('https://remote-ollama.example.com');
             expect(provider.requiresPrivacyWarning()).toBe(true);
         });
 
-        /**
-         * Test privacy warning for Ollama with 127.0.0.1
-         * Requirements: 19.6
-         */
+
         it('should not require privacy warning for Ollama on 127.0.0.1', async () => {
             await provider.setBackend('ollama');
             await provider.setEndpoint('http://127.0.0.1:11434');
@@ -121,10 +92,7 @@ describe('APIProvider', () => {
     });
 
     describe('Streaming Response Parsing', () => {
-        /**
-         * Test OpenAI SSE parsing
-         * Requirements: 19.5
-         */
+
         it('should parse OpenAI Server-Sent Events correctly', async () => {
             // Mock fetch for OpenAI streaming
             global.fetch = vi.fn().mockResolvedValue({
@@ -172,10 +140,7 @@ describe('APIProvider', () => {
             expect(chunks).toEqual(['Hello', ' world']);
         });
 
-        /**
-         * Test Anthropic SSE parsing
-         * Requirements: 19.5
-         */
+
         it('should parse Anthropic Server-Sent Events correctly', async () => {
             // Mock fetch for Anthropic streaming
             global.fetch = vi.fn().mockResolvedValue({
@@ -223,10 +188,7 @@ describe('APIProvider', () => {
             expect(chunks).toEqual(['Hello', ' world']);
         });
 
-        /**
-         * Test Ollama streaming format
-         * Requirements: 19.5
-         */
+
         it('should parse Ollama streaming format correctly', async () => {
             // Mock fetch for Ollama streaming
             global.fetch = vi.fn().mockResolvedValue({
@@ -275,10 +237,7 @@ describe('APIProvider', () => {
     });
 
     describe('Backend Configuration', () => {
-        /**
-         * Test backend switching
-         * Requirements: 19.1
-         */
+
         it('should switch backends correctly', async () => {
             expect(provider.getCurrentBackend()).toBe('openai');
 
@@ -289,27 +248,20 @@ describe('APIProvider', () => {
             expect(provider.getCurrentBackend()).toBe('ollama');
         });
 
-        /**
-         * Test model selection
-         * Requirements: 19.1
-         */
+
         it('should set model correctly', async () => {
             await provider.setBackend('openai');
             await provider.setModel('gpt-4o');
             expect(provider.getCurrentModelId()).toBe('gpt-4o');
         });
 
-        /**
-         * Test invalid model rejection
-         */
+
         it('should reject invalid model for backend', async () => {
             await provider.setBackend('openai');
             await expect(provider.setModel('claude-3-opus-latest')).rejects.toThrow();
         });
 
-        /**
-         * Test available backends
-         */
+
         it('should provide list of available backends', () => {
             const backends = APIProvider.getAvailableBackends();
             expect(backends).toHaveProperty('openai');
@@ -317,9 +269,7 @@ describe('APIProvider', () => {
             expect(backends).toHaveProperty('ollama');
         });
 
-        /**
-         * Test backend configuration
-         */
+
         it('should provide backend configuration', () => {
             const openaiConfig = APIProvider.getBackendConfig('openai');
             expect(openaiConfig).toBeDefined();
@@ -329,9 +279,7 @@ describe('APIProvider', () => {
     });
 
     describe('Session Management', () => {
-        /**
-         * Test session creation
-         */
+
         it('should create session successfully', async () => {
             await provider.setBackend('ollama');
             await provider.initialize();
@@ -347,9 +295,7 @@ describe('APIProvider', () => {
             expect(session.provider).toBe('api');
         });
 
-        /**
-         * Test session destruction
-         */
+
         it('should destroy session successfully', async () => {
             await provider.setBackend('ollama');
             await provider.initialize();
@@ -364,17 +310,13 @@ describe('APIProvider', () => {
     });
 
     describe('Error Handling', () => {
-        /**
-         * Test initialization without API key
-         */
+
         it('should throw error when initializing OpenAI without API key', async () => {
             await provider.setBackend('openai');
             await expect(provider.initialize()).rejects.toThrow('requires an API key');
         });
 
-        /**
-         * Test invalid backend
-         */
+
         it('should throw error for invalid backend', async () => {
             await expect(provider.setBackend('invalid' as any)).rejects.toThrow();
         });

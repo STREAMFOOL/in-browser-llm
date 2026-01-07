@@ -1,7 +1,4 @@
-/**
- * Property-Based Tests for Thread Management
- * Feature: local-ai-assistant
- */
+
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fc from 'fast-check';

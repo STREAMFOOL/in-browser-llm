@@ -1,8 +1,4 @@
-/**
- * Error Handler
- * Centralized error handling with user-friendly messages and technical logging
- * Requirements: 3.6, 15.1, 15.2, 15.3, 15.4
- */
+
 
 export const ErrorCategory = {
     MODEL_LOAD_FAILURE: 'model-load-failure',
@@ -26,9 +22,7 @@ export interface ErrorContext {
 }
 
 export class ErrorHandler {
-    /**
-     * Handle an error by logging technical details and returning user-friendly message
-     */
+
     static handleError(error: unknown, category: ErrorCategory = ErrorCategory.UNKNOWN): ErrorContext {
         const errorObj = error instanceof Error ? error : new Error(String(error));
 
@@ -42,9 +36,7 @@ export class ErrorHandler {
         return context;
     }
 
-    /**
-     * Generate error context with user-friendly messages and troubleshooting steps
-     */
+
     private static generateErrorContext(error: Error, category: ErrorCategory): ErrorContext {
         switch (category) {
             case ErrorCategory.MODEL_LOAD_FAILURE:
@@ -162,9 +154,7 @@ export class ErrorHandler {
         }
     }
 
-    /**
-     * Format error context as a user-friendly markdown message
-     */
+
     static formatErrorMessage(context: ErrorContext): string {
         let message = context.userMessage + '\n\n';
 
@@ -182,9 +172,7 @@ export class ErrorHandler {
         return message;
     }
 
-    /**
-     * Detect error category from error object
-     */
+
     static detectErrorCategory(error: unknown): ErrorCategory {
         if (!(error instanceof Error)) {
             return ErrorCategory.UNKNOWN;
@@ -221,9 +209,7 @@ export class ErrorHandler {
         return ErrorCategory.UNKNOWN;
     }
 
-    /**
-     * Check if an error is recoverable
-     */
+
     static isRecoverable(error: unknown): boolean {
         const category = this.detectErrorCategory(error);
         const context = this.generateErrorContext(

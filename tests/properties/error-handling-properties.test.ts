@@ -1,19 +1,11 @@
-/**
- * Property-Based Tests for Error Handling
- * Feature: local-ai-assistant, Property 6: Error Handling Consistency
- * Validates: Requirements 3.6, 15.4
- */
+
 
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import { ErrorHandler, ErrorCategory } from '../../src/error-handler';
 
 describe('Error Handling Properties', () => {
-    /**
-     * Property 6: Error Handling Consistency
-     * For any inference error, the system should display a user-friendly error message
-     * in the UI and log detailed technical information to the console.
-     */
+
     it('should handle all errors consistently with user messages and console logs', () => {
         // Feature: local-ai-assistant, Property 6: Error Handling Consistency
 

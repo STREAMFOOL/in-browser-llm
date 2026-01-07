@@ -1,14 +1,7 @@
-/**
- * Markdown Renderer
- * Incremental markdown parsing for streaming responses
- * Requirements: 3.3, 14.1, 14.2, 14.3
- */
+
 
 export class MarkdownRenderer {
-    /**
-     * Render markdown to HTML incrementally
-     * Handles incomplete code blocks gracefully
-     */
+
     static render(markdown: string): string {
         // Handle empty or whitespace-only content
         if (!markdown || markdown.trim().length === 0) {

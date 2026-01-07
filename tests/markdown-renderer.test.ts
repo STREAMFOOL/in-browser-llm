@@ -1,8 +1,4 @@
-/**
- * Unit Tests for Markdown Renderer
- * Tests edge cases for incomplete Markdown
- * Requirements: 14.3
- */
+
 
 import { describe, it, expect } from 'vitest';
 import { MarkdownRenderer } from '../src/markdown-renderer';

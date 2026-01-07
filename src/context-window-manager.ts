@@ -1,8 +1,4 @@
-/**
- * Context Window Manager
- * Monitors token usage and implements automatic summarization
- * Requirements: 3.4
- */
+
 
 import type { AISession } from './gemini-controller';
 import type { Message } from './storage-manager';
@@ -19,9 +15,7 @@ export interface TokenUsage {
     needsSummarization: boolean;
 }
 
-/**
- * ContextWindowManager monitors and manages context window usage
- */
+
 export class ContextWindowManager {
     private static readonly DEFAULT_MAX_TOKENS = 4096;
     private static readonly DEFAULT_THRESHOLD = 0.8;
@@ -37,27 +31,19 @@ export class ContextWindowManager {
         };
     }
 
-    /**
-     * Estimate token count for a text string
-     * Uses a simple heuristic: ~4 characters per token
-     */
+
     private estimateTokens(text: string): number {
         return Math.ceil(text.length * ContextWindowManager.TOKENS_PER_CHAR);
     }
 
-    /**
-     * Calculate total tokens from messages
-     */
+
     private calculateMessageTokens(messages: Message[]): number {
         return messages.reduce((total, msg) => {
             return total + this.estimateTokens(msg.content);
         }, 0);
     }
 
-    /**
-     * Monitor token usage for current context
-     * Requirements: 3.4
-     */
+
     monitorTokenUsage(messages: Message[]): TokenUsage {
         this.currentTokenCount = this.calculateMessageTokens(messages);
         const percentageUsed = this.currentTokenCount / this.config.maxTokens;
@@ -71,10 +57,7 @@ export class ContextWindowManager {
         };
     }
 
-    /**
-     * Summarize older messages to reduce context size
-     * Requirements: 3.4
-     */
+
     async summarizeMessages(
         session: AISession,
         messages: Message[],
@@ -114,9 +97,7 @@ export class ContextWindowManager {
         }
     }
 
-    /**
-     * Build a prompt for summarizing conversation history
-     */
+
     private buildSummaryPrompt(messages: Message[]): string {
         const conversationText = messages
             .map(msg => `${msg.role}: ${msg.content}`)
@@ -125,31 +106,23 @@ export class ContextWindowManager {
         return `Please provide a concise summary of the following conversation, capturing the key points and context:\n\n${conversationText}\n\nSummary:`;
     }
 
-    /**
-     * Check if context needs summarization
-     */
+
     needsSummarization(messages: Message[]): boolean {
         const usage = this.monitorTokenUsage(messages);
         return usage.needsSummarization;
     }
 
-    /**
-     * Get current token usage
-     */
+
     getCurrentTokenCount(): number {
         return this.currentTokenCount;
     }
 
-    /**
-     * Get max token limit
-     */
+
     getMaxTokens(): number {
         return this.config.maxTokens;
     }
 
-    /**
-     * Update configuration
-     */
+
     updateConfig(config: Partial<ContextWindowConfig>): void {
         this.config = {
             ...this.config,
