@@ -9,10 +9,6 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
 ## Tasks
 
 - [x] 1. Project Setup and Core Infrastructure
-  - Initialize Vite + TypeScript project with Web Component support
-  - Configure build for library mode (embeddable widget)
-  - Set up testing framework (Vitest + fast-check)
-  - Create basic Web Component shell with closed Shadow DOM
   - _Requirements: 5.1, 5.2_
 
 - [x] 1.1 Write property test for Web Component structure
@@ -22,10 +18,6 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
 
 - [x] 2. Browser Environment Validation
   - [x] 2.1 Implement browser compatibility checker
-    - Check Chrome version >= 127
-    - Verify window.ai.languageModel availability
-    - Check storage availability >= 22 GB
-    - Detect RAM and CPU cores
     - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
 - [x] 2.2 Write property test for version validation
@@ -37,20 +29,13 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - **Validates: Requirements 1.3, 1.6**
 
 - [x] 2.4 Write unit tests for environment validation
-  - Test API availability detection
-  - Test error messages for incompatible browsers
   - _Requirements: 1.2, 1.5, 1.6_
 
 - [x] 3. Storage Layer Implementation
   - [x] 3.1 Set up IndexedDB with Dexie.js
-    - Define schema for threads, messages, documents, chunks, settings
-    - Implement StorageManager interface
-    - Add persistence request on initialization
     - _Requirements: 4.1, 4.2, 4.3_
 
   - [x] 3.2 Implement OPFS integration
-    - Create asset storage for images and audio
-    - Implement file read/write operations
     - _Requirements: 7.5, 10.6_
 
   - [x] 3.3 Write property test for storage round-trip consistency
@@ -62,21 +47,13 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - **Validates: Requirements 4.4, 13.2**
 
   - [x] 3.5 Write unit tests for storage operations
-    - Test quota exceeded handling
-    - Test persistence request
     - _Requirements: 4.3, 4.6_
 
 - [x] 4. Gemini Nano Integration
   - [x] 4.1 Implement GeminiController
-    - Check model availability with ai.languageModel.capabilities()
-    - Create sessions with configurable temperature and topK
-    - Implement streaming response handling
-    - Add session lifecycle management (create, destroy, clone)
     - _Requirements: 2.1, 2.4, 3.1, 3.2, 3.5_
 
 - [x] 4.2 Implement context window management
-  - Monitor token usage
-  - Implement automatic summarization when approaching limits
   - _Requirements: 3.4_
 
 - [x] 4.3 Write property test for session lifecycle management
@@ -88,26 +65,16 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - **Validates: Requirements 3.4**
 
 - [x] 4.5 Write unit tests for model availability states
-  - Test UI for "readily", "after-download", "no" states
-  - Test progress indicator display
   - _Requirements: 2.2, 2.3, 2.4, 2.5, 2.6_
 
 - [x] 5. Basic Chat UI Implementation
   - [x] 5.1 Create chat interface components
-    - Message list with auto-scroll
-    - Input field with send button
-    - Loading indicators
     - _Requirements: 3.2, 3.3_
 
 - [x] 5.2 Implement streaming response rendering
-  - Render tokens incrementally as they arrive
-  - Parse Markdown syntax incrementally
-  - Handle incomplete code blocks gracefully
   - _Requirements: 3.3, 14.1, 14.2, 14.3_
 
 - [x] 5.3 Implement stream cancellation
-  - Cancel stream when new message is sent
-  - Call abort method on session
   - _Requirements: 14.4, 14.5_
 
 - [x] 5.4 Write property test for streaming incremental rendering
@@ -119,7 +86,6 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - **Validates: Requirements 14.4, 14.5**
 
 - [x] 5.6 Write unit test for incomplete code block handling
-  - Test edge case for incomplete Markdown
   - _Requirements: 14.3_
 
 - [x] 6. Checkpoint - Basic Chat Functionality
@@ -127,20 +93,12 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
 
 - [x] 6.5. Model Provider Abstraction Layer
   - [x] 6.5.1 Define ModelProvider interface and types
-    - Create ModelProvider interface with checkAvailability, initialize, createSession, promptStreaming, destroySession
-    - Define ProviderAvailability, ProviderConfig, SessionConfig, ChatSession, DownloadProgress types
     - _Requirements: 16.1_
 
   - [x] 6.5.2 Implement ProviderManager
-    - Detect available providers in priority order (Chrome → WebLLM → API)
-    - Implement auto-selection logic
-    - Support manual provider switching
-    - Persist provider preference to IndexedDB
     - _Requirements: 16.2, 16.3, 16.4, 16.5, 16.7, 16.8_
 
   - [x] 6.5.3 Refactor GeminiController into ChromeProvider
-    - Wrap existing GeminiController as ChromeProvider implementing ModelProvider
-    - Maintain backward compatibility with existing code
     - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.6_
 
   - [x] 6.5.4 Write property test for provider interface consistency
@@ -152,32 +110,19 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - **Validates: Requirements 16.2, 16.3, 16.4, 16.5**
 
   - [x] 6.5.6 Write unit tests for ProviderManager
-    - Test provider detection
-    - Test auto-selection logic
-    - Test manual switching
     - _Requirements: 16.2, 16.7, 16.8_
 
 - [x] 6.6. WebLLM Provider Implementation
   - [x] 6.6.1 Install and configure WebLLM dependency
-    - Add @mlc-ai/web-llm package
-    - Configure Vite for WebLLM compatibility
     - _Requirements: 18.1_
 
   - [x] 6.6.2 Implement WebLLMProvider class
-    - Implement ModelProvider interface
-    - Check WebGPU availability via navigator.gpu
-    - Support multiple model options (Llama 3, Mistral, Phi-3)
     - _Requirements: 18.1, 18.2, 18.5_
 
   - [x] 6.6.3 Implement model download and caching
-    - Download model weights with progress reporting
-    - Cache weights in IndexedDB
-    - Load from cache on subsequent visits
     - _Requirements: 18.3, 18.4, 18.7_
 
   - [x] 6.6.4 Implement streaming inference
-    - Use WebLLM streaming chat completion API
-    - Run inference in Web Worker to prevent UI blocking
     - _Requirements: 18.6_
 
   - [x] 6.6.5 Write property test for streaming equivalence
@@ -189,38 +134,35 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
     - **Validates: Requirements 18.3, 18.7**
 
   - [x] 6.6.7 Write unit tests for WebLLMProvider
-    - Test WebGPU detection
-    - Test model selection
-    - Test download progress reporting
     - _Requirements: 18.2, 18.5, 18.8_
 
-- [ ]* 6.7. API Provider Implementation (Optional Fallback)
-  - [ ]* 6.7.1 Implement APIProvider class
+- [-] 6.7. API Provider Implementation (Optional Fallback)
+  - [x] 6.7.1 Implement APIProvider class
     - Implement ModelProvider interface
     - Support OpenAI, Anthropic, and Ollama backends
     - _Requirements: 19.1_
 
-  - [ ]* 6.7.2 Implement secure API key storage
+  - [x] 6.7.2 Implement secure API key storage
     - Store API keys in IndexedDB (not LocalStorage)
     - Provide key management UI in settings
     - _Requirements: 19.2, 19.4_
 
-  - [ ]* 6.7.3 Implement streaming API calls
+  - [x] 6.7.3 Implement streaming API calls
     - Use fetch with streaming response
     - Parse Server-Sent Events for OpenAI/Anthropic
     - Handle Ollama streaming format
     - _Requirements: 19.5_
 
-  - [ ]* 6.7.4 Add privacy warning for external APIs
+  - [x] 6.7.4 Add privacy warning for external APIs
     - Display warning when API provider is active
     - Exclude warning for local Ollama endpoint
     - _Requirements: 19.3, 19.6_
 
-  - [ ]* 6.7.5 Write property test for API key security
+  - [x] 6.7.5 Write property test for API key security
     - **Property 37: API Key Security**
     - **Validates: Requirements 19.4**
 
-  - [ ]* 6.7.6 Write unit tests for APIProvider
+  - [x] 6.7.6 Write unit tests for APIProvider
     - Test API key validation
     - Test streaming response parsing
     - Test privacy warning display
@@ -228,23 +170,15 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
 
 - [x] 6.8. Update UI for Provider Selection
   - [x] 6.8.1 Add provider indicator to chat header
-    - Display active provider name and type (local/api)
-    - Show privacy indicator for API providers
     - _Requirements: 16.7_
 
   - [x] 6.8.2 Add provider selection to settings
-    - List available providers with status
-    - Allow manual provider switching
-    - Show model options for WebLLM
     - _Requirements: 16.8, 18.5, 18.8_
 
   - [x] 6.8.3 Update error messages for provider-specific issues
-    - Show browser-specific setup instructions when no providers available
     - _Requirements: 16.6_
 
   - [x] 6.8.4 Write unit tests for provider UI
-    - Test provider indicator display
-    - Test provider switching UI
     - _Requirements: 16.7, 16.8_
 
 - [x] 6.9. Checkpoint - Provider Abstraction Complete
@@ -253,47 +187,40 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - Verify WebLLM provider works in Brave/Firefox
   - Verify API provider works as fallback
 
-- [ ]* 7. Thread Management Implementation
-  - [ ]* 7.1 Implement thread creation and storage
+- [ ] 7. Thread Management Implementation
+  - [ ] 7.1 Implement thread creation and storage
     - Generate unique thread IDs
     - Auto-generate titles from first message
     - Store threads in IndexedDB
     - _Requirements: 4.4, 13.2, 13.5_
 
-- [ ]* 7.2 Create thread list UI
+- [ ] 7.2 Create thread list UI
   - Sidebar/drawer with thread list
   - Display title and last message timestamp
   - Thread selection and deletion
   - _Requirements: 13.1, 13.3, 13.4, 13.6_
 
-- [ ]* 7.3 Write property test for thread list completeness
+- [ ] 7.3 Write property test for thread list completeness
   - **Property 27: Thread List Completeness**
   - **Validates: Requirements 13.1, 13.6**
 
-- [ ]* 7.4 Write property test for thread message ordering
+- [ ] 7.4 Write property test for thread message ordering
   - **Property 28: Thread Message Ordering**
   - **Validates: Requirements 13.3**
 
-- [ ]* 7.5 Write property test for thread deletion completeness
+- [ ] 7.5 Write property test for thread deletion completeness
   - **Property 29: Thread Deletion Completeness**
   - **Validates: Requirements 13.4**
 
-- [ ]* 7.6 Write property test for thread title generation
+- [ ] 7.6 Write property test for thread title generation
   - **Property 30: Thread Title Generation**
   - **Validates: Requirements 13.5**
 
 - [x] 8. Error Handling and Recovery
   - [x] 8.1 Implement error handling system
-    - Display user-friendly error messages
-    - Log technical details to console
-    - Handle model load failures
-    - Handle memory exhaustion
-    - Handle storage quota exceeded
     - _Requirements: 3.6, 15.1, 15.2, 15.3, 15.4_
 
 - [x] 8.2 Implement recovery mechanisms
-  - GPU reinitialization on context loss
-  - Reset application button for unrecoverable errors
   - _Requirements: 15.5, 15.6_
 
 - [x] 8.3 Write property test for error handling consistency
@@ -301,29 +228,16 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - **Validates: Requirements 3.6, 15.4**
 
 - [x] 8.4 Write unit tests for specific error scenarios
-  - Test model load failure messages
-  - Test memory exhaustion suggestions
-  - Test quota exceeded prompts
-  - Test GPU loss recovery
   - _Requirements: 15.1, 15.2, 15.3, 15.5, 15.6_
 
 - [x] 9. Settings and Hardware Diagnostics
   - [x] 9.1 Implement HardwareDiagnostics module
-    - Detect RAM, CPU cores, storage, GPU VRAM
-    - Benchmark GPU performance
-    - Cache hardware profile
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
   - [x] 9.2 Create settings UI
-    - Display hardware metrics with visual indicators
-    - Temperature and topK sliders
-    - Feature toggles (image gen, speech, web search)
-    - Clear data button
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 12.1, 12.2, 12.5_
 
   - [x] 9.3 Implement feature gating based on hardware
-    - Warn when hardware is insufficient for features
-    - Disable features below minimum requirements
     - _Requirements: 6.5, 6.6, 7.6_
 
   - [ ]* 9.4 Write property test for hardware-based feature gating
