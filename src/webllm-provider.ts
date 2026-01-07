@@ -90,6 +90,7 @@ export class WebLLMProvider implements ModelProvider {
     async checkAvailability(): Promise<ProviderAvailability> {
         // Check for WebGPU support
         if (typeof navigator === 'undefined' || !('gpu' in navigator)) {
+            console.log('WebLLM: WebGPU not supported - navigator.gpu not available');
             return {
                 available: false,
                 reason: 'WebGPU is not supported in this browser'
@@ -101,6 +102,7 @@ export class WebLLMProvider implements ModelProvider {
             const gpu = (navigator as any).gpu;
             const adapter = await gpu.requestAdapter();
             if (!adapter) {
+                console.log('WebLLM: No WebGPU adapter found');
                 return {
                     available: false,
                     reason: 'No WebGPU adapter found'
@@ -108,25 +110,36 @@ export class WebLLMProvider implements ModelProvider {
             }
 
             // Check if we have enough VRAM (estimate from adapter limits)
-            const device = await adapter.requestDevice();
-            const maxBufferSize = device.limits.maxBufferSize;
-            device.destroy();
+            // Use adapter.limits instead of device.limits to get the actual hardware capabilities
+            // Device limits are conservative defaults unless explicitly requested
+            const maxBufferSize = adapter.limits.maxBufferSize;
+            console.log(`WebLLM: maxBufferSize = ${maxBufferSize} bytes (${(maxBufferSize / (1024 * 1024 * 1024)).toFixed(2)}GB)`);
 
-            // Rough estimate: if maxBufferSize is very small, VRAM is likely insufficient
-            const estimatedVRAM = maxBufferSize / (1024 * 1024 * 1024); // Convert to GB
-            if (estimatedVRAM < 1) {
+            // Estimate VRAM using same heuristic as hardware diagnostics
+            // maxBufferSize is typically a fraction of total VRAM, multiply by 4 as heuristic
+            const estimatedVRAM = (maxBufferSize / (1024 * 1024 * 1024)) * 4;
+
+            // Get minimum VRAM requirement for the current model
+            const currentModel = WEBLLM_MODELS.find(m => m.id === this.currentModelId);
+            const minVRAM = currentModel ? currentModel.estimatedVRAM : 1.5;
+
+            console.log(`WebLLM: Estimated VRAM: ${estimatedVRAM.toFixed(1)}GB, Required: ${minVRAM}GB, Model: ${this.currentModelId}`);
+
+            if (estimatedVRAM < minVRAM) {
                 return {
                     available: false,
-                    reason: 'Insufficient GPU memory for WebLLM models'
+                    reason: `Insufficient GPU memory for WebLLM models (estimated ${estimatedVRAM.toFixed(1)}GB, need ${minVRAM}GB)`
                 };
             }
 
+            console.log('WebLLM: Available! VRAM check passed.');
             return {
                 available: true,
                 requiresDownload: true,
                 downloadSize: this.getModelDownloadSize()
             };
         } catch (error) {
+            console.error('WebLLM: Availability check failed with error:', error);
             return {
                 available: false,
                 reason: `WebGPU initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`

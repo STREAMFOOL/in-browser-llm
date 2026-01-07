@@ -414,6 +414,8 @@ export class SettingsUI {
 
         if (!provider.available) {
             item.classList.add('unavailable');
+            // Add title attribute for hover tooltip showing why unavailable
+            item.title = provider.reason || 'Provider is not available';
         }
 
         if (isActive) {

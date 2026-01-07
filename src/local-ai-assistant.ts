@@ -1353,14 +1353,17 @@ export class LocalAIAssistant extends HTMLElement {
   }
 
   private async tryWebLLMFallback(chromeAvailability?: DetailedAvailability): Promise<void> {
+    console.debug('enter tryWebLLMFallback, chromeAvailability=', chromeAvailability);
     if (!this.chatUI || !this.initMessageId) return;
 
-    // Show that we're trying WebLLM
+    // 
+    console.debug('show that we trying WebLLM');
     const fallbackSteps: InitStep[] = [
       { id: 'chrome', label: 'Chrome AI not available', status: 'failed', error: chromeAvailability?.errorMessage || 'Not supported' },
       { id: 'webllm', label: 'Trying WebLLM fallback...', status: 'running' },
     ];
 
+    console.debug('updateMessage checking fallback=', fallbackSteps);
     this.chatUI.updateMessage(
       this.initMessageId,
       this.renderFallbackStatus(fallbackSteps, 'checking'),
@@ -1368,13 +1371,15 @@ export class LocalAIAssistant extends HTMLElement {
     );
 
     try {
-      // Check WebLLM availability
+      console.debug('check webllm provider');
       const webllmProvider = this.providerManager.getProvider('webllm');
       if (!webllmProvider) {
         throw new Error('WebLLM provider not registered');
       }
 
+      console.debug('check webllm availability');
       const webllmAvailability = await webllmProvider.checkAvailability();
+      console.log('WebLLM availability check result:', webllmAvailability);
 
       if (!webllmAvailability.available) {
         fallbackSteps[1] = { id: 'webllm', label: 'WebLLM not available', status: 'failed', error: webllmAvailability.reason };
@@ -1383,10 +1388,11 @@ export class LocalAIAssistant extends HTMLElement {
           this.renderFallbackStatus(fallbackSteps, 'failed', chromeAvailability),
           true
         );
+        console.warn('WebLLM unavailable. Reason:', webllmAvailability.reason);
         return;
       }
 
-      // Initialize WebLLM with progress
+      console.debug('initialize WebLLM with progress monitoring');
       fallbackSteps[1] = { id: 'webllm', label: 'Initializing WebLLM...', status: 'running' };
       this.chatUI.updateMessage(
         this.initMessageId,
@@ -1394,16 +1400,55 @@ export class LocalAIAssistant extends HTMLElement {
         true
       );
 
-      await webllmProvider.initialize();
-      this.activeProvider = webllmProvider;
-      this.currentSession = await webllmProvider.createSession({
-        temperature: 0.7,
-        topK: 40
-      });
+      const timestamp = Date.now()
+      const progressInterval = setInterval(() => {
+        let timespan = Date.now() - timestamp
+        console.debug(`${timespan} millis monitoring WebLLM initialization`);
+        if (!this.chatUI || !this.initMessageId) {
+          clearInterval(progressInterval);
+          return;
+        }
 
-      fallbackSteps[1] = { id: 'webllm', label: 'WebLLM ready', status: 'passed' };
+        const progress = webllmProvider.getProgress();
+        if (progress) {
+          const percentage = progress.percentage || 0;
+          const phase = progress.phase || 'downloading';
+          const currentFile = progress.currentFile || '';
 
-      // Update provider indicator
+          fallbackSteps[1] = {
+            id: 'webllm',
+            label: `${phase === 'downloading' ? 'Downloading' : 'Loading'} WebLLM model... ${percentage}%`,
+            status: 'running',
+            error: currentFile
+          };
+
+          this.chatUI.updateMessage(
+            this.initMessageId,
+            this.renderFallbackStatus(fallbackSteps, 'downloading'),
+            true
+          );
+        }
+      }, 500);
+
+      try {
+        console.debug('initializing WebLLM');
+        await webllmProvider.initialize();
+        clearInterval(progressInterval);
+
+        this.activeProvider = webllmProvider;
+        this.currentSession = await webllmProvider.createSession({
+          temperature: 0.7,
+          topK: 40
+        });
+
+        fallbackSteps[1] = { id: 'webllm', label: 'WebLLM ready', status: 'passed' };
+      } catch (initError) {
+        console.error(initError, 'ERROR while initializing WebLLM');
+        clearInterval(progressInterval);
+        throw initError;
+      }
+
+      console.debug('Update provider indicator');
       this.updateProviderIndicator(this.activeProvider);
 
       console.log('WebLLM session initialized as fallback');
