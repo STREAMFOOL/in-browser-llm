@@ -2,9 +2,9 @@
 
 ## Overview
 
-This implementation plan breaks down the Local AI Assistant into discrete, incremental coding tasks. The approach follows a phased strategy: starting with core text chat functionality, then adding multimodal capabilities, and finally implementing advanced features like RAG and web search. Each task builds on previous work, ensuring no orphaned code.
+This implementation plan breaks down the Local AI Assistant into discrete, incremental coding tasks. The approach follows a phased strategy: starting with core text chat functionality, then adding the provider abstraction layer for cross-browser support, followed by multimodal capabilities, and finally implementing advanced features like RAG and web search. Each task builds on previous work, ensuring no orphaned code.
 
-The implementation uses TypeScript with Vite for bundling, Web Components for encapsulation, and fast-check for property-based testing.
+The implementation uses TypeScript with Vite for bundling, Web Components for encapsulation, and fast-check for property-based testing. The hybrid model provider architecture supports Chrome's built-in Gemini Nano, WebLLM for cross-browser local inference (Brave, Firefox), and optional external API providers as fallback.
 
 ## Tasks
 
@@ -92,38 +92,166 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - Test progress indicator display
   - _Requirements: 2.2, 2.3, 2.4, 2.5, 2.6_
 
-- [ ] 5. Basic Chat UI Implementation
-  - [ ] 5.1 Create chat interface components
+- [x] 5. Basic Chat UI Implementation
+  - [x] 5.1 Create chat interface components
     - Message list with auto-scroll
     - Input field with send button
     - Loading indicators
     - _Requirements: 3.2, 3.3_
 
-- [ ] 5.2 Implement streaming response rendering
+- [x] 5.2 Implement streaming response rendering
   - Render tokens incrementally as they arrive
   - Parse Markdown syntax incrementally
   - Handle incomplete code blocks gracefully
   - _Requirements: 3.3, 14.1, 14.2, 14.3_
 
-- [ ] 5.3 Implement stream cancellation
+- [x] 5.3 Implement stream cancellation
   - Cancel stream when new message is sent
   - Call abort method on session
   - _Requirements: 14.4, 14.5_
 
-- [ ] 5.4 Write property test for streaming incremental rendering
+- [x] 5.4 Write property test for streaming incremental rendering
   - **Property 4: Streaming Incremental Rendering**
   - **Validates: Requirements 3.3, 14.1, 14.2**
 
-- [ ] 5.5 Write property test for stream cancellation
+- [x] 5.5 Write property test for stream cancellation
   - **Property 31: Stream Cancellation**
   - **Validates: Requirements 14.4, 14.5**
 
-- [ ] 5.6 Write unit test for incomplete code block handling
+- [x] 5.6 Write unit test for incomplete code block handling
   - Test edge case for incomplete Markdown
   - _Requirements: 14.3_
 
-- [ ] 6. Checkpoint - Basic Chat Functionality
+- [x] 6. Checkpoint - Basic Chat Functionality
   - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 6.5. Model Provider Abstraction Layer
+  - [ ] 6.5.1 Define ModelProvider interface and types
+    - Create ModelProvider interface with checkAvailability, initialize, createSession, promptStreaming, destroySession
+    - Define ProviderAvailability, ProviderConfig, SessionConfig, ChatSession, DownloadProgress types
+    - _Requirements: 16.1_
+
+  - [ ] 6.5.2 Implement ProviderManager
+    - Detect available providers in priority order (Chrome → WebLLM → API)
+    - Implement auto-selection logic
+    - Support manual provider switching
+    - Persist provider preference to IndexedDB
+    - _Requirements: 16.2, 16.3, 16.4, 16.5, 16.7, 16.8_
+
+  - [ ] 6.5.3 Refactor GeminiController into ChromeProvider
+    - Wrap existing GeminiController as ChromeProvider implementing ModelProvider
+    - Maintain backward compatibility with existing code
+    - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.6_
+
+  - [ ] 6.5.4 Write property test for provider interface consistency
+    - **Property 33: Provider Interface Consistency**
+    - **Validates: Requirements 16.1, 16.2**
+
+  - [ ] 6.5.5 Write property test for provider selection priority
+    - **Property 34: Provider Selection Priority**
+    - **Validates: Requirements 16.2, 16.3, 16.4, 16.5**
+
+  - [ ] 6.5.6 Write unit tests for ProviderManager
+    - Test provider detection
+    - Test auto-selection logic
+    - Test manual switching
+    - _Requirements: 16.2, 16.7, 16.8_
+
+- [ ] 6.6. WebLLM Provider Implementation
+  - [ ] 6.6.1 Install and configure WebLLM dependency
+    - Add @mlc-ai/web-llm package
+    - Configure Vite for WebLLM compatibility
+    - _Requirements: 18.1_
+
+  - [ ] 6.6.2 Implement WebLLMProvider class
+    - Implement ModelProvider interface
+    - Check WebGPU availability via navigator.gpu
+    - Support multiple model options (Llama 3, Mistral, Phi-3)
+    - _Requirements: 18.1, 18.2, 18.5_
+
+  - [ ] 6.6.3 Implement model download and caching
+    - Download model weights with progress reporting
+    - Cache weights in IndexedDB
+    - Load from cache on subsequent visits
+    - _Requirements: 18.3, 18.4, 18.7_
+
+  - [ ] 6.6.4 Implement streaming inference
+    - Use WebLLM streaming chat completion API
+    - Run inference in Web Worker to prevent UI blocking
+    - _Requirements: 18.6_
+
+  - [ ] 6.6.5 Write property test for streaming equivalence
+    - **Property 35: Provider Streaming Equivalence**
+    - **Validates: Requirements 16.1, 17.6, 18.6, 19.5**
+
+  - [ ] 6.6.6 Write property test for model caching
+    - **Property 36: WebLLM Model Caching**
+    - **Validates: Requirements 18.3, 18.7**
+
+  - [ ] 6.6.7 Write unit tests for WebLLMProvider
+    - Test WebGPU detection
+    - Test model selection
+    - Test download progress reporting
+    - _Requirements: 18.2, 18.5, 18.8_
+
+- [ ] 6.7. API Provider Implementation (Optional Fallback)
+  - [ ] 6.7.1 Implement APIProvider class
+    - Implement ModelProvider interface
+    - Support OpenAI, Anthropic, and Ollama backends
+    - _Requirements: 19.1_
+
+  - [ ] 6.7.2 Implement secure API key storage
+    - Store API keys in IndexedDB (not LocalStorage)
+    - Provide key management UI in settings
+    - _Requirements: 19.2, 19.4_
+
+  - [ ] 6.7.3 Implement streaming API calls
+    - Use fetch with streaming response
+    - Parse Server-Sent Events for OpenAI/Anthropic
+    - Handle Ollama streaming format
+    - _Requirements: 19.5_
+
+  - [ ] 6.7.4 Add privacy warning for external APIs
+    - Display warning when API provider is active
+    - Exclude warning for local Ollama endpoint
+    - _Requirements: 19.3, 19.6_
+
+  - [ ] 6.7.5 Write property test for API key security
+    - **Property 37: API Key Security**
+    - **Validates: Requirements 19.4**
+
+  - [ ] 6.7.6 Write unit tests for APIProvider
+    - Test API key validation
+    - Test streaming response parsing
+    - Test privacy warning display
+    - _Requirements: 19.1, 19.3, 19.5_
+
+- [ ] 6.8. Update UI for Provider Selection
+  - [ ] 6.8.1 Add provider indicator to chat header
+    - Display active provider name and type (local/api)
+    - Show privacy indicator for API providers
+    - _Requirements: 16.7_
+
+  - [ ] 6.8.2 Add provider selection to settings
+    - List available providers with status
+    - Allow manual provider switching
+    - Show model options for WebLLM
+    - _Requirements: 16.8, 18.5, 18.8_
+
+  - [ ] 6.8.3 Update error messages for provider-specific issues
+    - Show browser-specific setup instructions when no providers available
+    - _Requirements: 16.6_
+
+  - [ ] 6.8.4 Write unit tests for provider UI
+    - Test provider indicator display
+    - Test provider switching UI
+    - _Requirements: 16.7, 16.8_
+
+- [ ] 6.9. Checkpoint - Provider Abstraction Complete
+  - Ensure all tests pass, ask the user if questions arise.
+  - Verify Chrome provider works as before
+  - Verify WebLLM provider works in Brave/Firefox
+  - Verify API provider works as fallback
 
 - [ ] 7. Thread Management Implementation
   - [ ] 7.1 Implement thread creation and storage
@@ -441,4 +569,6 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
 - Checkpoints ensure incremental validation at major milestones
 - Property tests validate universal correctness properties across all inputs
 - Unit tests validate specific examples, edge cases, and error conditions
-- The implementation prioritizes core text chat first, then adds multimodal capabilities incrementally
+- The implementation prioritizes core text chat first, then adds provider abstraction for cross-browser support, then multimodal capabilities incrementally
+- **Browser Support**: Chrome uses built-in Gemini Nano, Brave/Firefox use WebLLM, other browsers can use API fallback
+- **Provider Priority**: Chrome Provider → WebLLM Provider → API Provider

@@ -2,18 +2,24 @@
 
 ## Introduction
 
-This document specifies the requirements for a local-first, privacy-preserving AI assistant that runs entirely within the Chrome browser. The system leverages Chrome's built-in Gemini Nano model via the Prompt API and WebGPU for multimodal capabilities including text chat, image generation, speech interaction, and document processing. All inference and data storage occur on the user's device, ensuring zero data transmission to external servers.
+This document specifies the requirements for a local-first, privacy-preserving AI assistant that runs in modern browsers including Chrome, Brave, and Firefox. The system uses a hybrid model provider architecture that prioritizes Chrome's built-in Gemini Nano when available, falls back to WebLLM for cross-browser local inference, and optionally supports external API providers. The system also leverages WebGPU for multimodal capabilities including text chat, image generation, speech interaction, and document processing. All local inference and data storage occur on the user's device, ensuring privacy when using local providers.
 
 ## Glossary
 
 - **Local_AI_Assistant**: The complete browser-based application system
+- **Model_Provider**: An abstraction layer that provides a unified interface for different LLM backends
+- **Chrome_Provider**: Model provider using Chrome's built-in Gemini Nano via the Prompt API
+- **WebLLM_Provider**: Model provider using WebLLM library for cross-browser local inference via WebGPU
+- **API_Provider**: Model provider using external APIs (OpenAI, Anthropic, Ollama) as fallback
+- **Provider_Manager**: Component that detects available providers and selects the best one
 - **Gemini_Nano**: Chrome's built-in lightweight language model accessed via the Prompt API
+- **WebLLM**: Open-source library for running LLMs locally in browsers using WebGPU
 - **Prompt_API**: Chrome's window.ai.languageModel interface for text generation
 - **WebGPU**: Modern browser API for GPU-accelerated computation
 - **Shadow_DOM**: Encapsulated DOM tree for style and script isolation
 - **IndexedDB**: Browser's transactional database for structured data storage
 - **OPFS**: Origin Private File System for high-performance binary file storage
-- **Session**: A stateful conversation context maintained by the Prompt API
+- **Session**: A stateful conversation context maintained by a Model_Provider
 - **Web_Component**: Custom HTML element with encapsulated functionality
 - **Inference_Worker**: Dedicated Web Worker for running ML models without blocking UI
 - **RAG**: Retrieval-Augmented Generation for document-based question answering
@@ -30,12 +36,68 @@ This document specifies the requirements for a local-first, privacy-preserving A
 
 #### Acceptance Criteria
 
-1. WHEN the application initializes, THE Local_AI_Assistant SHALL check if the browser is Chrome version 127 or higher
-2. WHEN the application initializes, THE Local_AI_Assistant SHALL verify that window.ai.languageModel is available
-3. WHEN the application initializes, THE Local_AI_Assistant SHALL call navigator.storage.estimate() to verify at least 22 GB of available storage
+1. WHEN the application initializes, THE Local_AI_Assistant SHALL detect the browser type (Chrome, Brave, Firefox, Edge, Safari, or other)
+2. WHEN the application initializes, THE Local_AI_Assistant SHALL check if WebGPU is available via navigator.gpu
+3. WHEN the application initializes, THE Local_AI_Assistant SHALL call navigator.storage.estimate() to verify at least 22 GB of available storage for local models
 4. WHEN the application initializes, THE Local_AI_Assistant SHALL detect available RAM using navigator.deviceMemory
-5. IF the browser version is below 127, THEN THE Local_AI_Assistant SHALL display an error message indicating incompatibility
+5. IF WebGPU is not available and no API provider is configured, THEN THE Local_AI_Assistant SHALL display an error message indicating incompatibility
 6. IF available storage is below 22 GB, THEN THE Local_AI_Assistant SHALL display a warning about potential model download failures
+
+### Requirement 16: Model Provider Abstraction
+
+**User Story:** As a user, I want the assistant to work across different browsers, so that I can use it regardless of which browser I prefer.
+
+#### Acceptance Criteria
+
+1. THE Local_AI_Assistant SHALL implement a Model_Provider interface that abstracts LLM interactions
+2. THE Provider_Manager SHALL detect available providers in priority order: Chrome_Provider, WebLLM_Provider, API_Provider
+3. WHEN Chrome's window.ai.languageModel is available, THE Provider_Manager SHALL select Chrome_Provider as the active provider
+4. WHEN Chrome_Provider is unavailable and WebGPU is available, THE Provider_Manager SHALL select WebLLM_Provider as the active provider
+5. WHEN both Chrome_Provider and WebLLM_Provider are unavailable, THE Provider_Manager SHALL select API_Provider if configured
+6. IF no providers are available, THEN THE Local_AI_Assistant SHALL display an error message with setup instructions for each browser
+7. THE Local_AI_Assistant SHALL display the currently active provider name in the UI
+8. THE Local_AI_Assistant SHALL allow users to manually switch between available providers in settings
+
+### Requirement 17: Chrome Built-in AI Provider
+
+**User Story:** As a Chrome user, I want to use Chrome's built-in Gemini Nano model, so that I get the fastest and most optimized local AI experience.
+
+#### Acceptance Criteria
+
+1. WHEN Chrome_Provider is selected, THE Local_AI_Assistant SHALL use window.ai.languageModel for text generation
+2. WHEN Chrome_Provider initializes, THE Local_AI_Assistant SHALL call ai.languageModel.capabilities() to check model availability
+3. WHEN the model status is "after-download", THE Chrome_Provider SHALL display a progress indicator for the model download
+4. WHEN the model status is "no", THE Chrome_Provider SHALL report unavailability to Provider_Manager
+5. WHEN the model status is "readily", THE Chrome_Provider SHALL create a session with configurable temperature and topK
+6. THE Chrome_Provider SHALL support streaming responses via session.promptStreaming()
+
+### Requirement 18: WebLLM Cross-Browser Provider
+
+**User Story:** As a Brave or Firefox user, I want to run AI models locally in my browser, so that I maintain privacy without needing Chrome.
+
+#### Acceptance Criteria
+
+1. WHEN WebLLM_Provider is selected, THE Local_AI_Assistant SHALL use the WebLLM library for text generation
+2. WHEN WebLLM_Provider initializes, THE Local_AI_Assistant SHALL check WebGPU availability via navigator.gpu
+3. WHEN WebLLM_Provider is first used, THE Local_AI_Assistant SHALL download and cache model weights to IndexedDB
+4. WHILE model weights are downloading, THE WebLLM_Provider SHALL display download progress with percentage and size
+5. THE WebLLM_Provider SHALL support multiple model options (Llama 3, Mistral, Phi-3) selectable in settings
+6. THE WebLLM_Provider SHALL support streaming responses via the WebLLM streaming API
+7. WHEN model weights are cached, THE WebLLM_Provider SHALL load from cache on subsequent visits
+8. THE WebLLM_Provider SHALL display estimated VRAM requirements for each model option
+
+### Requirement 19: External API Provider (Optional Fallback)
+
+**User Story:** As a user with an unsupported browser, I want to optionally use external AI APIs, so that I can still use the assistant with reduced privacy.
+
+#### Acceptance Criteria
+
+1. WHERE API_Provider is configured, THE Local_AI_Assistant SHALL support OpenAI, Anthropic, and Ollama APIs
+2. THE API_Provider SHALL require users to provide their own API keys
+3. WHEN API_Provider is active, THE Local_AI_Assistant SHALL display a privacy warning indicating data is sent externally
+4. THE API_Provider SHALL store API keys securely in IndexedDB (not LocalStorage)
+5. THE API_Provider SHALL support streaming responses from compatible APIs
+6. WHERE Ollama is configured with a local endpoint, THE Local_AI_Assistant SHALL treat it as a local provider (no privacy warning)
 
 ### Requirement 2: Model Availability and Download Management
 
@@ -43,12 +105,12 @@ This document specifies the requirements for a local-first, privacy-preserving A
 
 #### Acceptance Criteria
 
-1. WHEN the application starts, THE Local_AI_Assistant SHALL call ai.languageModel.capabilities() to determine model availability
-2. WHEN the model status is "after-download", THE Local_AI_Assistant SHALL display a progress indicator for the model download
-3. WHEN the model status is "no", THE Local_AI_Assistant SHALL display an error message explaining that the built-in AI is unavailable
-4. WHEN the model status is "readily", THE Local_AI_Assistant SHALL proceed to create a session
-5. WHILE the model is downloading, THE Local_AI_Assistant SHALL prevent user interaction with the chat interface
-6. WHEN the model download completes, THE Local_AI_Assistant SHALL automatically enable the chat interface
+1. WHEN the application starts, THE Provider_Manager SHALL check availability of all configured providers
+2. WHEN any provider requires model download, THE Local_AI_Assistant SHALL display a progress indicator
+3. WHEN no providers are available, THE Local_AI_Assistant SHALL display setup instructions specific to the detected browser
+4. WHEN a provider becomes ready, THE Local_AI_Assistant SHALL automatically enable the chat interface
+5. WHILE a model is downloading, THE Local_AI_Assistant SHALL prevent user interaction with the chat interface
+6. WHEN model download completes, THE Local_AI_Assistant SHALL automatically enable the chat interface
 
 ### Requirement 3: Text Chat Session Management
 
@@ -56,12 +118,18 @@ This document specifies the requirements for a local-first, privacy-preserving A
 
 #### Acceptance Criteria
 
-1. WHEN a user sends a message, THE Local_AI_Assistant SHALL create or reuse a Prompt_API Session with configurable temperature and topK parameters
-2. WHEN generating a response, THE Local_AI_Assistant SHALL use session.promptStreaming() to provide real-time output
+1. WHEN a user sends a message, THE Local_AI_Assistant SHALL use the active Model_Provider to generate a response with configurable temperature and topK parameters
+2. WHEN generating a response, THE Local_AI_Assistant SHALL use the provider's streaming API to provide real-time output
 3. WHEN streaming a response, THE Local_AI_Assistant SHALL render each chunk incrementally in the UI
 4. WHEN a Session exceeds its context window, THE Local_AI_Assistant SHALL summarize older messages to maintain coherence
-5. WHEN a user starts a new conversation, THE Local_AI_Assistant SHALL call session.destroy() on the previous Session to free memory
+5. WHEN a user starts a new conversation, THE Local_AI_Assistant SHALL destroy the previous Session to free memory
 6. WHEN an error occurs during inference, THE Local_AI_Assistant SHALL display a user-friendly error message and log technical details
+7. WHEN a user presses Enter in the message input, THE Local_AI_Assistant SHALL insert a newline character
+8. WHEN a user presses Cmd+Enter on macOS, THE Local_AI_Assistant SHALL submit the message
+9. WHEN a user presses Ctrl+Enter on Windows or Linux, THE Local_AI_Assistant SHALL submit the message
+10. WHEN a user presses Shift+Enter in the message input, THE Local_AI_Assistant SHALL insert a newline character
+11. WHEN a user presses Option+Enter on macOS, THE Local_AI_Assistant SHALL insert a newline character
+12. WHEN a user presses Ctrl+Enter on macOS, THE Local_AI_Assistant SHALL insert a newline character
 
 ### Requirement 4: Persistent Conversation Storage
 

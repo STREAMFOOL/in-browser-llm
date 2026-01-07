@@ -2,9 +2,9 @@
 
 ## Overview
 
-The Local AI Assistant is a privacy-first, browser-based conversational AI system that executes entirely on the user's device. The architecture leverages Chrome's built-in Gemini Nano model for text generation, WebGPU for hardware-accelerated multimodal inference, and browser storage APIs for persistent state management. By eliminating server-side dependencies, the system provides zero-latency responses, absolute data privacy, and offline functionality.
+The Local AI Assistant is a privacy-first, browser-based conversational AI system that executes on the user's device across multiple browsers. The architecture uses a hybrid model provider system that prioritizes Chrome's built-in Gemini Nano, falls back to WebLLM for cross-browser local inference, and optionally supports external API providers. The system also leverages WebGPU for hardware-accelerated multimodal inference and browser storage APIs for persistent state management.
 
-The system is designed as a modular Web Component that can function both as a standalone Progressive Web App (PWA) and as an embeddable widget on third-party websites. The architecture prioritizes incremental loading, hardware-aware feature gating, and graceful degradation to ensure broad device compatibility.
+The system is designed as a modular Web Component that can function both as a standalone Progressive Web App (PWA) and as an embeddable widget on third-party websites. The architecture prioritizes incremental loading, hardware-aware feature gating, and graceful degradation to ensure broad device and browser compatibility.
 
 ## Architecture
 
@@ -16,8 +16,14 @@ graph TB
         UI[Web Component UI<br/>Shadow DOM]
         Controller[Application Controller]
         
+        subgraph "Model Provider Layer"
+            ProviderManager[Provider Manager]
+            ChromeProvider[Chrome Provider<br/>Gemini Nano]
+            WebLLMProvider[WebLLM Provider<br/>Llama/Mistral/Phi]
+            APIProvider[API Provider<br/>OpenAI/Anthropic/Ollama]
+        end
+        
         subgraph "Inference Layer"
-            GeminiAPI[Gemini Nano<br/>Prompt API]
             InferenceWorker[Inference Worker<br/>WebGPU Context]
             ImageGen[Stable Diffusion<br/>Pipeline]
             VisionModel[Florence-2<br/>Vision Model]
@@ -27,37 +33,50 @@ graph TB
         subgraph "Storage Layer"
             IndexDB[(IndexedDB<br/>Conversations)]
             OPFS[(OPFS<br/>Binary Assets)]
-            LocalStorage[(LocalStorage<br/>Settings)]
+            ModelCache[(IndexedDB<br/>Model Weights)]
         end
         
         subgraph "External Services"
             SearchAPI[Web Search API<br/>Optional]
+            ExternalLLM[External LLM APIs<br/>Optional]
         end
     end
     
     UI --> Controller
-    Controller --> GeminiAPI
+    Controller --> ProviderManager
+    ProviderManager --> ChromeProvider
+    ProviderManager --> WebLLMProvider
+    ProviderManager --> APIProvider
+    WebLLMProvider --> InferenceWorker
+    APIProvider -.Optional.-> ExternalLLM
     Controller --> InferenceWorker
     InferenceWorker --> ImageGen
     InferenceWorker --> VisionModel
     InferenceWorker --> SpeechModels
     Controller --> IndexDB
     Controller --> OPFS
-    Controller --> LocalStorage
+    WebLLMProvider --> ModelCache
     Controller -.Optional.-> SearchAPI
 ```
 
 ### Component Responsibilities
+
+**Model Provider Layer**
+- Abstracts LLM interactions behind a unified interface
+- Detects available providers and selects the best one
+- Manages provider-specific initialization and configuration
+- Handles provider switching and fallback logic
 
 **Web Component UI Layer**
 - Encapsulates all visual elements within a closed Shadow DOM
 - Handles user input events (text, voice, file uploads)
 - Renders streaming responses with incremental Markdown parsing
 - Manages thread navigation and settings interface
+- Displays active provider and allows manual switching
 
 **Application Controller**
-- Orchestrates communication between UI and inference layers
-- Manages Prompt API session lifecycle (create, clone, destroy)
+- Orchestrates communication between UI and model provider layer
+- Manages session lifecycle through the provider abstraction
 - Implements hardware capability detection and feature gating
 - Coordinates storage operations across IndexedDB and OPFS
 
@@ -68,15 +87,250 @@ graph TB
 - Handles inference cancellation via AbortController
 
 **Storage Layer**
-- IndexedDB: Stores structured conversation data, thread metadata, and settings
+- IndexedDB: Stores structured conversation data, thread metadata, settings, and model weights
 - OPFS: Stores large binary assets (images, audio) with high-performance access
-- LocalStorage: Caches small configuration flags for synchronous access
+- Model Cache: Dedicated IndexedDB store for WebLLM model weights
 
 ## Components and Interfaces
 
-### 1. GeminiController
+### 1. ModelProvider Interface
 
-**Purpose:** Manages the lifecycle of Gemini Nano sessions and streaming responses.
+**Purpose:** Defines the unified interface that all model providers must implement.
+
+**Interface:**
+```typescript
+interface ModelProvider {
+  // Provider identification
+  readonly name: string;
+  readonly type: 'local' | 'api';
+  readonly description: string;
+  
+  // Check if this provider is available in the current environment
+  checkAvailability(): Promise<ProviderAvailability>;
+  
+  // Initialize the provider (load models, etc.)
+  initialize(config: ProviderConfig): Promise<void>;
+  
+  // Create a new chat session
+  createSession(config: SessionConfig): Promise<ChatSession>;
+  
+  // Send a prompt and receive streaming response
+  promptStreaming(session: ChatSession, prompt: string): AsyncIterable<string>;
+  
+  // Destroy a session to free memory
+  destroySession(session: ChatSession): Promise<void>;
+  
+  // Get current download/loading progress
+  getProgress(): DownloadProgress | null;
+  
+  // Cleanup and release resources
+  dispose(): Promise<void>;
+}
+
+interface ProviderAvailability {
+  available: boolean;
+  reason?: string;  // Why unavailable
+  requiresDownload?: boolean;
+  downloadSize?: number;  // Bytes
+}
+
+interface ProviderConfig {
+  modelId?: string;  // For providers with multiple models
+  apiKey?: string;   // For API providers
+  apiEndpoint?: string;  // For custom endpoints (Ollama)
+}
+
+interface SessionConfig {
+  temperature: number;  // 0.0 to 1.0
+  topK: number;         // Number of top tokens to consider
+  systemPrompt?: string;
+  maxTokens?: number;
+}
+
+interface ChatSession {
+  id: string;
+  provider: string;
+  config: SessionConfig;
+}
+
+interface DownloadProgress {
+  phase: 'downloading' | 'loading' | 'ready';
+  percentage: number;  // 0 to 100
+  downloadedBytes?: number;
+  totalBytes?: number;
+  currentFile?: string;
+}
+```
+
+### 2. ProviderManager
+
+**Purpose:** Detects available providers and manages provider selection and switching.
+
+**Interface:**
+```typescript
+interface ProviderManager {
+  // Detect all available providers
+  detectProviders(): Promise<ProviderInfo[]>;
+  
+  // Get the currently active provider
+  getActiveProvider(): ModelProvider | null;
+  
+  // Set the active provider (manual switch)
+  setActiveProvider(providerName: string): Promise<void>;
+  
+  // Auto-select the best available provider
+  autoSelectProvider(): Promise<ModelProvider>;
+  
+  // Get provider by name
+  getProvider(name: string): ModelProvider | null;
+  
+  // Register a custom provider
+  registerProvider(provider: ModelProvider): void;
+  
+  // Listen for provider changes
+  onProviderChange(callback: (provider: ModelProvider) => void): void;
+}
+
+interface ProviderInfo {
+  name: string;
+  type: 'local' | 'api';
+  available: boolean;
+  reason?: string;
+  priority: number;  // Lower = higher priority
+}
+```
+
+**Key Behaviors:**
+- Checks providers in priority order: Chrome → WebLLM → API
+- Caches availability results to avoid repeated checks
+- Emits events when active provider changes
+- Persists user's manual provider selection to IndexedDB
+
+### 3. ChromeProvider
+
+**Purpose:** Implements ModelProvider using Chrome's built-in Gemini Nano.
+
+**Interface:**
+```typescript
+class ChromeProvider implements ModelProvider {
+  readonly name = 'chrome-gemini';
+  readonly type = 'local';
+  readonly description = 'Chrome Built-in AI (Gemini Nano)';
+  
+  async checkAvailability(): Promise<ProviderAvailability> {
+    // Check window.ai.languageModel exists
+    // Call capabilities() to check model status
+  }
+  
+  async initialize(config: ProviderConfig): Promise<void> {
+    // Wait for model to be ready if downloading
+  }
+  
+  async createSession(config: SessionConfig): Promise<ChatSession> {
+    // Call ai.languageModel.create() with config
+  }
+  
+  async *promptStreaming(session: ChatSession, prompt: string): AsyncIterable<string> {
+    // Use session.promptStreaming() and yield chunks
+  }
+}
+```
+
+**Key Behaviors:**
+- Only available in Chrome 127+ with flags enabled
+- Uses native Prompt API for optimal performance
+- Monitors download progress via capabilities() polling
+- Handles session lifecycle (create, destroy, clone)
+
+### 4. WebLLMProvider
+
+**Purpose:** Implements ModelProvider using WebLLM for cross-browser local inference.
+
+**Interface:**
+```typescript
+class WebLLMProvider implements ModelProvider {
+  readonly name = 'webllm';
+  readonly type = 'local';
+  readonly description = 'WebLLM Local Inference';
+  
+  // Available models
+  static readonly MODELS = {
+    'llama-3-8b': { name: 'Llama 3 8B', size: '4.5GB', vram: '6GB' },
+    'mistral-7b': { name: 'Mistral 7B', size: '4GB', vram: '5GB' },
+    'phi-3-mini': { name: 'Phi-3 Mini', size: '2.3GB', vram: '4GB' },
+  };
+  
+  async checkAvailability(): Promise<ProviderAvailability> {
+    // Check navigator.gpu exists
+    // Check WebGPU adapter can be obtained
+  }
+  
+  async initialize(config: ProviderConfig): Promise<void> {
+    // Load WebLLM engine
+    // Download/load model weights (with progress callbacks)
+  }
+  
+  async createSession(config: SessionConfig): Promise<ChatSession> {
+    // Configure WebLLM chat completion settings
+  }
+  
+  async *promptStreaming(session: ChatSession, prompt: string): AsyncIterable<string> {
+    // Use WebLLM streaming chat completion
+  }
+}
+```
+
+**Key Behaviors:**
+- Works in Chrome, Brave, Firefox (with WebGPU), and Edge
+- Caches model weights in IndexedDB for fast subsequent loads
+- Reports detailed download progress (file-by-file)
+- Supports multiple model options with different size/performance tradeoffs
+- Runs inference in Web Worker to prevent UI blocking
+
+### 5. APIProvider
+
+**Purpose:** Implements ModelProvider using external APIs as fallback.
+
+**Interface:**
+```typescript
+class APIProvider implements ModelProvider {
+  readonly name = 'api';
+  readonly type = 'api';
+  readonly description = 'External API (OpenAI/Anthropic/Ollama)';
+  
+  // Supported API backends
+  static readonly BACKENDS = {
+    'openai': { name: 'OpenAI', models: ['gpt-4o-mini', 'gpt-4o'] },
+    'anthropic': { name: 'Anthropic', models: ['claude-3-haiku', 'claude-3-sonnet'] },
+    'ollama': { name: 'Ollama (Local)', models: ['llama3', 'mistral', 'phi3'] },
+  };
+  
+  async checkAvailability(): Promise<ProviderAvailability> {
+    // Check if API key is configured
+    // Optionally ping endpoint to verify
+  }
+  
+  async initialize(config: ProviderConfig): Promise<void> {
+    // Validate API key
+    // Set up API client
+  }
+  
+  async *promptStreaming(session: ChatSession, prompt: string): AsyncIterable<string> {
+    // Use fetch with streaming response
+    // Parse SSE events and yield content
+  }
+}
+```
+
+**Key Behaviors:**
+- Requires user-provided API keys (stored securely in IndexedDB)
+- Displays privacy warning when active (except for local Ollama)
+- Supports streaming via Server-Sent Events
+- Handles rate limiting and API errors gracefully
+
+### 6. GeminiController (Legacy - Refactored)
+
+**Purpose:** Legacy controller now wrapped by ChromeProvider. Manages the lifecycle of Gemini Nano sessions and streaming responses.
 
 **Interface:**
 ```typescript
@@ -713,6 +967,36 @@ The following properties define the correctness criteria for the Local AI Assist
 *For any* completed streaming response, the message should be marked as complete in storage.
 
 **Validates: Requirements 14.6**
+
+### Property 33: Provider Interface Consistency
+
+*For any* ModelProvider implementation, calling checkAvailability() should return a valid ProviderAvailability object, and if available is true, initialize() should succeed without errors.
+
+**Validates: Requirements 16.1, 16.2**
+
+### Property 34: Provider Selection Priority
+
+*For any* browser environment, the ProviderManager should select providers in priority order (Chrome → WebLLM → API), choosing the first available provider.
+
+**Validates: Requirements 16.2, 16.3, 16.4, 16.5**
+
+### Property 35: Provider Streaming Equivalence
+
+*For any* prompt sent to any available provider, the streaming response should yield non-empty string chunks that can be concatenated into a complete response.
+
+**Validates: Requirements 16.1, 17.6, 18.6, 19.5**
+
+### Property 36: WebLLM Model Caching
+
+*For any* WebLLM model that has been downloaded, subsequent initializations should load from cache without re-downloading.
+
+**Validates: Requirements 18.3, 18.7**
+
+### Property 37: API Key Security
+
+*For any* API key stored by the APIProvider, the key should be stored in IndexedDB (not LocalStorage) and should not be accessible via the DOM.
+
+**Validates: Requirements 19.4**
 
 ### Edge Cases
 
