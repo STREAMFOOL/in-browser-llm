@@ -24,6 +24,7 @@
     "vitest": "^4.0.16"
   },
   "dependencies": {
+    "@mlc-ai/web-llm": "^0.2.80",
     "dexie": "^4.2.1"
   }
 }

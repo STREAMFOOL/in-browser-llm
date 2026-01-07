@@ -125,70 +125,70 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
 - [x] 6. Checkpoint - Basic Chat Functionality
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6.5. Model Provider Abstraction Layer
-  - [ ] 6.5.1 Define ModelProvider interface and types
+- [x] 6.5. Model Provider Abstraction Layer
+  - [x] 6.5.1 Define ModelProvider interface and types
     - Create ModelProvider interface with checkAvailability, initialize, createSession, promptStreaming, destroySession
     - Define ProviderAvailability, ProviderConfig, SessionConfig, ChatSession, DownloadProgress types
     - _Requirements: 16.1_
 
-  - [ ] 6.5.2 Implement ProviderManager
+  - [x] 6.5.2 Implement ProviderManager
     - Detect available providers in priority order (Chrome → WebLLM → API)
     - Implement auto-selection logic
     - Support manual provider switching
     - Persist provider preference to IndexedDB
     - _Requirements: 16.2, 16.3, 16.4, 16.5, 16.7, 16.8_
 
-  - [ ] 6.5.3 Refactor GeminiController into ChromeProvider
+  - [x] 6.5.3 Refactor GeminiController into ChromeProvider
     - Wrap existing GeminiController as ChromeProvider implementing ModelProvider
     - Maintain backward compatibility with existing code
     - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.6_
 
-  - [ ] 6.5.4 Write property test for provider interface consistency
+  - [x] 6.5.4 Write property test for provider interface consistency
     - **Property 33: Provider Interface Consistency**
     - **Validates: Requirements 16.1, 16.2**
 
-  - [ ] 6.5.5 Write property test for provider selection priority
+  - [x] 6.5.5 Write property test for provider selection priority
     - **Property 34: Provider Selection Priority**
     - **Validates: Requirements 16.2, 16.3, 16.4, 16.5**
 
-  - [ ] 6.5.6 Write unit tests for ProviderManager
+  - [x] 6.5.6 Write unit tests for ProviderManager
     - Test provider detection
     - Test auto-selection logic
     - Test manual switching
     - _Requirements: 16.2, 16.7, 16.8_
 
-- [ ] 6.6. WebLLM Provider Implementation
-  - [ ] 6.6.1 Install and configure WebLLM dependency
+- [x] 6.6. WebLLM Provider Implementation
+  - [x] 6.6.1 Install and configure WebLLM dependency
     - Add @mlc-ai/web-llm package
     - Configure Vite for WebLLM compatibility
     - _Requirements: 18.1_
 
-  - [ ] 6.6.2 Implement WebLLMProvider class
+  - [x] 6.6.2 Implement WebLLMProvider class
     - Implement ModelProvider interface
     - Check WebGPU availability via navigator.gpu
     - Support multiple model options (Llama 3, Mistral, Phi-3)
     - _Requirements: 18.1, 18.2, 18.5_
 
-  - [ ] 6.6.3 Implement model download and caching
+  - [x] 6.6.3 Implement model download and caching
     - Download model weights with progress reporting
     - Cache weights in IndexedDB
     - Load from cache on subsequent visits
     - _Requirements: 18.3, 18.4, 18.7_
 
-  - [ ] 6.6.4 Implement streaming inference
+  - [x] 6.6.4 Implement streaming inference
     - Use WebLLM streaming chat completion API
     - Run inference in Web Worker to prevent UI blocking
     - _Requirements: 18.6_
 
-  - [ ] 6.6.5 Write property test for streaming equivalence
+  - [x] 6.6.5 Write property test for streaming equivalence
     - **Property 35: Provider Streaming Equivalence**
     - **Validates: Requirements 16.1, 17.6, 18.6, 19.5**
 
-  - [ ] 6.6.6 Write property test for model caching
+  - [x] 6.6.6 Write property test for model caching
     - **Property 36: WebLLM Model Caching**
     - **Validates: Requirements 18.3, 18.7**
 
-  - [ ] 6.6.7 Write unit tests for WebLLMProvider
+  - [x] 6.6.7 Write unit tests for WebLLMProvider
     - Test WebGPU detection
     - Test model selection
     - Test download progress reporting

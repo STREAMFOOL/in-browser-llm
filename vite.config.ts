@@ -14,7 +14,17 @@ export default defineConfig({
                 assetFileNames: 'assets/[name][extname]',
                 exports: 'named'
             }
-        }
+        },
+        // WebLLM compatibility: ensure WASM files are handled correctly
+        target: 'esnext'
+    },
+    // WebLLM uses Web Workers and WASM
+    worker: {
+        format: 'es'
+    },
+    optimizeDeps: {
+        // Exclude WebLLM from pre-bundling to avoid WASM issues
+        exclude: ['@mlc-ai/web-llm']
     },
     test: {
         globals: true,
