@@ -41,30 +41,30 @@ The implementation uses TypeScript with Vite for bundling, Web Components for en
   - Test error messages for incompatible browsers
   - _Requirements: 1.2, 1.5, 1.6_
 
-- [ ] 3. Storage Layer Implementation
-  - [ ] 3.1 Set up IndexedDB with Dexie.js
+- [x] 3. Storage Layer Implementation
+  - [x] 3.1 Set up IndexedDB with Dexie.js
     - Define schema for threads, messages, documents, chunks, settings
     - Implement StorageManager interface
     - Add persistence request on initialization
     - _Requirements: 4.1, 4.2, 4.3_
 
-- [ ] 3.2 Implement OPFS integration
-  - Create asset storage for images and audio
-  - Implement file read/write operations
-  - _Requirements: 7.5, 10.6_
+  - [x] 3.2 Implement OPFS integration
+    - Create asset storage for images and audio
+    - Implement file read/write operations
+    - _Requirements: 7.5, 10.6_
 
-- [ ] 3.3 Write property test for storage round-trip consistency
-  - **Property 7: Storage Round-Trip Consistency**
-  - **Validates: Requirements 4.1, 4.2, 4.5, 7.5, 9.6, 10.6, 12.3, 12.4**
+  - [x] 3.3 Write property test for storage round-trip consistency
+    - **Property 7: Storage Round-Trip Consistency**
+    - **Validates: Requirements 4.1, 4.2, 4.5, 7.5, 9.6, 10.6, 12.3, 12.4**
 
-- [ ] 3.4 Write property test for thread identifier uniqueness
-  - **Property 8: Thread Identifier Uniqueness**
-  - **Validates: Requirements 4.4, 13.2**
+  - [x] 3.4 Write property test for thread identifier uniqueness
+    - **Property 8: Thread Identifier Uniqueness**
+    - **Validates: Requirements 4.4, 13.2**
 
-- [ ] 3.5 Write unit tests for storage operations
-  - Test quota exceeded handling
-  - Test persistence request
-  - _Requirements: 4.3, 4.6_
+  - [x] 3.5 Write unit tests for storage operations
+    - Test quota exceeded handling
+    - Test persistence request
+    - _Requirements: 4.3, 4.6_
 
 - [ ] 4. Gemini Nano Integration
   - [ ] 4.1 Implement GeminiController

@@ -1,9 +1,20 @@
 // Test setup file for Vitest
-import { afterEach } from 'vitest';
+import { afterEach, beforeEach } from 'vitest';
+import 'fake-indexeddb/auto';
+import Dexie from 'dexie';
 
 // Clean up DOM after each test
 afterEach(() => {
     document.body.innerHTML = '';
+});
+
+// Clean up IndexedDB after each test
+afterEach(async () => {
+    try {
+        await Dexie.delete('LocalAIAssistant');
+    } catch (e) {
+        // Ignore errors
+    }
 });
 
 // Mock window.ai if not available (for testing environments)
