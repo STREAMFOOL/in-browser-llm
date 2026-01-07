@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
-import { LocalAIAssistant } from '../../src/local-ai-assistant';
+import { LocalAIAssistant } from '../../src/local-ai-assistant/index';
 
 // Feature: local-ai-assistant, Property: Web Component Registration
 // Validates: Requirements 5.1, 5.2
