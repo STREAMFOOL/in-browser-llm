@@ -23,6 +23,10 @@ inclusion: always
 - One class per file (with related interfaces in same file)
 - Group imports: external libraries, then internal modules
 - Export interfaces alongside their implementations
+- **File size limit**: Keep files under 300 lines when possible
+  - Extract related functionality into separate modules when files grow large
+  - Exception: Files may exceed 300 lines if functionality is truly inseparable
+  - Consider splitting by: UI components, business logic, utilities, types
 
 ## Styling with Tailwind CSS
 
@@ -64,6 +68,35 @@ Use Tailwind built-ins for:
 - Use arrow functions for event handlers to preserve `this`
 - Clean up event listeners in `disconnectedCallback`
 - Use AbortController for cancellable operations
+
+## Comments
+
+### When to Comment
+- **Critical tradeoffs**: Explain non-obvious architectural decisions
+- **Magic numbers**: Document why specific values are used (e.g., `22GB` storage requirement)
+- **Complex algorithms**: Clarify non-trivial logic that isn't self-explanatory
+- **Workarounds**: Explain temporary fixes or browser-specific hacks
+- **Requirements tracing**: Link to spec requirements only when mandated by project
+
+### When NOT to Comment
+- **Self-descriptive code**: Method names and variable names should explain themselves
+- **Obvious operations**: Don't comment "create button" above `document.createElement('button')`
+- **Type information**: TypeScript types already document parameters and return values
+- **Redundant descriptions**: Avoid repeating what the code clearly shows
+
+### Example
+```typescript
+// BAD: Redundant comments
+// Create a button element
+const button = document.createElement('button');
+// Set the button text
+button.textContent = 'Click me';
+
+// GOOD: Only comment non-obvious decisions
+const STORAGE_THRESHOLD_GB = 22; // Minimum for Gemini Nano model + cache
+const button = document.createElement('button');
+button.textContent = 'Click me';
+```
 
 ## Error Handling
 
