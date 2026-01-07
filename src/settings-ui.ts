@@ -18,6 +18,7 @@ export interface SettingsCallbacks {
     onSettingsChange: (config: SettingsConfig) => void;
     onClearData: () => Promise<void>;
     onResetApplication: () => Promise<void>;
+    onApiConfigChange?: (backend: string, modelId: string, apiKey: string, endpoint: string) => Promise<void>;
 }
 
 export class SettingsUI {
@@ -50,6 +51,7 @@ export class SettingsUI {
         this.renderModelParametersSection();
         this.renderFeaturesSection();
         this.renderProviderSection(providers, activeProviderName);
+        this.renderApiConfigSection(activeProviderName);
         this.renderDataManagementSection();
     }
 
@@ -467,6 +469,149 @@ export class SettingsUI {
         }
 
         return item;
+    }
+
+    /**
+     * Render API configuration section
+     * Requirements: 19.2, 19.4
+     */
+    private renderApiConfigSection(activeProviderName: string | null): void {
+        // Only show if API provider is active or available
+        if (activeProviderName !== 'api') {
+            return;
+        }
+
+        const section = document.createElement('div');
+        section.className = 'settings-section api-config-section';
+
+        const title = document.createElement('div');
+        title.className = 'settings-section-title';
+        title.textContent = 'API Configuration';
+
+        // Backend selection
+        const backendLabel = document.createElement('label');
+        backendLabel.className = 'input-label';
+        backendLabel.textContent = 'API Backend';
+
+        const backendSelect = document.createElement('select');
+        backendSelect.className = 'input-select';
+        backendSelect.innerHTML = `
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+            <option value="ollama">Ollama (Local)</option>
+        `;
+
+        // Model selection
+        const modelLabel = document.createElement('label');
+        modelLabel.className = 'input-label';
+        modelLabel.textContent = 'Model';
+
+        const modelSelect = document.createElement('select');
+        modelSelect.className = 'input-select';
+
+        // Update models when backend changes
+        const updateModels = (backend: string) => {
+            const models: Record<string, string[]> = {
+                openai: ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'],
+                anthropic: ['claude-3-5-haiku-latest', 'claude-3-5-sonnet-latest', 'claude-3-opus-latest'],
+                ollama: ['llama3.2', 'mistral', 'phi3', 'qwen2.5']
+            };
+
+            modelSelect.innerHTML = '';
+            (models[backend] || []).forEach(model => {
+                const option = document.createElement('option');
+                option.value = model;
+                option.textContent = model;
+                modelSelect.appendChild(option);
+            });
+        };
+
+        backendSelect.addEventListener('change', () => {
+            updateModels(backendSelect.value);
+            // Show/hide API key field based on backend
+            if (backendSelect.value === 'ollama') {
+                apiKeyContainer.style.display = 'none';
+            } else {
+                apiKeyContainer.style.display = 'block';
+            }
+        });
+
+        // Initialize models
+        updateModels(backendSelect.value);
+
+        // API Key input
+        const apiKeyContainer = document.createElement('div');
+        apiKeyContainer.className = 'input-container';
+
+        const apiKeyLabel = document.createElement('label');
+        apiKeyLabel.className = 'input-label';
+        apiKeyLabel.textContent = 'API Key';
+
+        const apiKeyInput = document.createElement('input');
+        apiKeyInput.type = 'password';
+        apiKeyInput.className = 'input-field';
+        apiKeyInput.placeholder = 'Enter your API key';
+
+        const apiKeyNote = document.createElement('div');
+        apiKeyNote.className = 'input-note';
+        apiKeyNote.textContent = '🔒 API keys are stored securely in IndexedDB and never sent to external servers except the configured API endpoint.';
+
+        apiKeyContainer.appendChild(apiKeyLabel);
+        apiKeyContainer.appendChild(apiKeyInput);
+        apiKeyContainer.appendChild(apiKeyNote);
+
+        // Endpoint input (optional)
+        const endpointLabel = document.createElement('label');
+        endpointLabel.className = 'input-label';
+        endpointLabel.textContent = 'Custom Endpoint (Optional)';
+
+        const endpointInput = document.createElement('input');
+        endpointInput.type = 'text';
+        endpointInput.className = 'input-field';
+        endpointInput.placeholder = 'Leave empty for default endpoint';
+
+        const endpointNote = document.createElement('div');
+        endpointNote.className = 'input-note';
+        endpointNote.textContent = 'For Ollama, use http://localhost:11434 (default). For custom OpenAI/Anthropic endpoints, enter the full URL.';
+
+        // Save button
+        const saveButton = document.createElement('button');
+        saveButton.className = 'action-button primary';
+        saveButton.textContent = '💾 Save API Configuration';
+        saveButton.addEventListener('click', async () => {
+            if (this.callbacks.onApiConfigChange) {
+                const backend = backendSelect.value;
+                const modelId = modelSelect.value;
+                const apiKey = apiKeyInput.value;
+                const endpoint = endpointInput.value;
+
+                // Validate API key for non-Ollama backends
+                if (backend !== 'ollama' && !apiKey) {
+                    alert('Please enter an API key for ' + backend);
+                    return;
+                }
+
+                try {
+                    await this.callbacks.onApiConfigChange(backend, modelId, apiKey, endpoint);
+                    alert('✅ API configuration saved successfully!');
+                } catch (error) {
+                    alert('❌ Failed to save API configuration: ' + (error instanceof Error ? error.message : 'Unknown error'));
+                }
+            }
+        });
+
+        section.appendChild(title);
+        section.appendChild(backendLabel);
+        section.appendChild(backendSelect);
+        section.appendChild(modelLabel);
+        section.appendChild(modelSelect);
+        section.appendChild(apiKeyContainer);
+        section.appendChild(endpointLabel);
+        section.appendChild(endpointInput);
+        section.appendChild(endpointNote);
+        section.appendChild(saveButton);
+
+        this.container.appendChild(section);
     }
 
     /**

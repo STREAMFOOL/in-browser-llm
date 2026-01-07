@@ -25,6 +25,7 @@ export class ChatUI {
     private inputField: HTMLTextAreaElement;
     private sendButton: HTMLButtonElement;
     private loadingIndicator: HTMLElement;
+    private privacyWarning: HTMLElement | null = null;
     private callbacks: ChatUICallbacks;
     private isStreaming: boolean = false;
     private userHasScrolledUp: boolean = false;
@@ -264,6 +265,45 @@ export class ChatUI {
         requestAnimationFrame(() => {
             this.messageList.scrollTop = this.messageList.scrollHeight;
         });
+    }
+
+    /**
+     * Show privacy warning for external API usage
+     * Requirements: 19.3, 19.6
+     */
+    showPrivacyWarning(): void {
+        if (this.privacyWarning) {
+            this.privacyWarning.classList.remove('hidden');
+            return;
+        }
+
+        this.privacyWarning = document.createElement('div');
+        this.privacyWarning.className = 'privacy-warning';
+        this.privacyWarning.setAttribute('role', 'alert');
+
+        const icon = document.createElement('span');
+        icon.className = 'privacy-warning-icon';
+        icon.textContent = '⚠️';
+
+        const text = document.createElement('span');
+        text.className = 'privacy-warning-text';
+        text.textContent = 'External API Active: Your messages are being sent to an external service. For privacy, use a local provider.';
+
+        this.privacyWarning.appendChild(icon);
+        this.privacyWarning.appendChild(text);
+
+        // Insert before message list
+        this.container.insertBefore(this.privacyWarning, this.messageList);
+    }
+
+    /**
+     * Hide privacy warning
+     * Requirements: 19.3, 19.6
+     */
+    hidePrivacyWarning(): void {
+        if (this.privacyWarning) {
+            this.privacyWarning.classList.add('hidden');
+        }
     }
 
     /**
