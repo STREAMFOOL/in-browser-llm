@@ -149,6 +149,11 @@ export class LocalAIAssistant extends HTMLElement {
         console.log('Local AI Assistant disconnected');
         this.lifecycle.dispose();
     }
+
+    // Expose updateProviderIndicator for testing
+    updateProviderIndicator(provider: { name: string; type: 'local' | 'api'; description: string }): void {
+        this.core.updateProviderIndicator(provider as any);
+    }
 }
 
 if (!customElements.get('local-ai-assistant')) {

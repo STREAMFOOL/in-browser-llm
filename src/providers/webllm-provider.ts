@@ -60,8 +60,9 @@ export const WEBLLM_MODELS: WebLLMModelInfo[] = [
     }
 ];
 
-// TODO change dynamically from UI
-export const DEFAULT_WEBLLM_MODEL = WEBLLM_MODELS[0].id;
+// Default to Qwen 2.5 Coder 7B for production (best quality)
+// Tests can override this by passing modelId in config
+export const DEFAULT_WEBLLM_MODEL = WEBLLM_MODELS[0].id; // Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC
 
 
 
@@ -332,10 +333,10 @@ export class WebLLMProvider implements ModelProvider {
         }
 
         if (modelId !== this.currentModelId) {
-            // Need to reinitialize with new model
+            // Dispose current engine and reinitialize with new model
             await this.dispose();
             this.currentModelId = modelId;
-            await this.initialize();
+            // Don't auto-initialize here - let caller decide when to initialize
         }
     }
 

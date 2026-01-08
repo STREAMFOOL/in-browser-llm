@@ -86,6 +86,9 @@ export class ComponentLifecycle {
                 onResetApplication: async () => {
                     await this.resetApplication();
                 },
+                onWebLLMModelChange: async (modelId: string) => {
+                    await this.switchWebLLMModel(modelId);
+                },
                 onShowMessage: (message: Message) => {
                     if (this.chatUI) {
                         this.chatUI.addMessage(message);
@@ -147,6 +150,38 @@ export class ComponentLifecycle {
             }
         } catch (error) {
             console.error('Failed to switch provider:', error);
+            throw error;
+        }
+    }
+
+    private async switchWebLLMModel(modelId: string): Promise<void> {
+        try {
+            await this.providerManager.setWebLLMModel(modelId);
+
+            if (this.chatUI) {
+                const message = {
+                    id: `model-switch-${Date.now()}`,
+                    role: 'assistant' as const,
+                    content: `✅ **Model switched successfully**\n\nNow using: ${modelId}\n\nThe model has been downloaded and initialized. You can continue the conversation.`,
+                    timestamp: Date.now()
+                };
+                this.chatUI.addMessage(message);
+            }
+
+            if (this.settingsPanel) {
+                await this.settingsPanel.show();
+            }
+        } catch (error) {
+            console.error('Failed to switch WebLLM model:', error);
+            if (this.chatUI) {
+                const errorMessage = {
+                    id: `error-${Date.now()}`,
+                    role: 'assistant' as const,
+                    content: `⚠️ **Failed to switch model**: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    timestamp: Date.now()
+                };
+                this.chatUI.addMessage(errorMessage);
+            }
             throw error;
         }
     }

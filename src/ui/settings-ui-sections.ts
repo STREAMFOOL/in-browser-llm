@@ -416,6 +416,117 @@ export class SettingsSections {
         return item;
     }
 
+    renderWebLLMModelSection(activeProviderName: string | null): void {
+        // Only show if WebLLM provider is active
+        if (activeProviderName !== 'webllm') {
+            return;
+        }
+
+        const section = document.createElement('div');
+        section.className = 'settings-section webllm-model-section';
+
+        const title = document.createElement('div');
+        title.className = 'settings-section-title';
+        title.textContent = 'WebLLM Model Selection';
+
+        const description = document.createElement('div');
+        description.className = 'input-note';
+        description.textContent = 'Choose the AI model to run locally. Larger models provide better quality but require more VRAM and storage.';
+
+        // Import WebLLM models dynamically
+        import('../providers/webllm-provider.js').then(({ WEBLLM_MODELS }) => {
+            const modelList = document.createElement('div');
+            modelList.className = 'model-list';
+
+            // Get current model from provider if available
+            let currentModelId: string | null = null;
+            if (this.callbacks.onWebLLMModelChange) {
+                // We'll need to pass current model through render
+                currentModelId = (window as any).__currentWebLLMModel || WEBLLM_MODELS[0].id;
+            }
+
+            WEBLLM_MODELS.forEach(model => {
+                const modelCard = this.createModelCard(
+                    model,
+                    model.id === currentModelId,
+                    async () => {
+                        if (this.callbacks.onWebLLMModelChange) {
+                            try {
+                                await this.callbacks.onWebLLMModelChange(model.id);
+                                // Store for UI refresh
+                                (window as any).__currentWebLLMModel = model.id;
+                            } catch (error) {
+                                alert('Failed to switch model: ' + (error instanceof Error ? error.message : 'Unknown error'));
+                            }
+                        }
+                    }
+                );
+                modelList.appendChild(modelCard);
+            });
+
+            section.appendChild(title);
+            section.appendChild(description);
+            section.appendChild(modelList);
+            this.container.appendChild(section);
+        }).catch(error => {
+            console.error('Failed to load WebLLM models:', error);
+        });
+    }
+
+    private createModelCard(
+        model: { id: string; name: string; description: string; estimatedVRAM: number; contextLength: number },
+        isActive: boolean,
+        onSelect: () => Promise<void>
+    ): HTMLElement {
+        const card = document.createElement('div');
+        card.className = `model-card ${isActive ? 'active' : ''}`;
+
+        const header = document.createElement('div');
+        header.className = 'model-header';
+
+        const name = document.createElement('div');
+        name.className = 'model-name';
+        name.textContent = model.name;
+
+        const badge = document.createElement('div');
+        badge.className = 'model-badge';
+        badge.textContent = isActive ? '✓ Active' : 'Select';
+
+        header.appendChild(name);
+        header.appendChild(badge);
+
+        const description = document.createElement('div');
+        description.className = 'model-description';
+        description.textContent = model.description;
+
+        const specs = document.createElement('div');
+        specs.className = 'model-specs';
+        specs.innerHTML = `
+            <span class="model-spec">💾 ${model.estimatedVRAM}GB VRAM</span>
+            <span class="model-spec">📝 ${(model.contextLength / 1024).toFixed(0)}K context</span>
+        `;
+
+        card.appendChild(header);
+        card.appendChild(description);
+        card.appendChild(specs);
+
+        if (!isActive) {
+            card.style.cursor = 'pointer';
+            card.addEventListener('click', async () => {
+                card.style.opacity = '0.5';
+                card.style.pointerEvents = 'none';
+                try {
+                    await onSelect();
+                } finally {
+                    card.style.opacity = '1';
+                    card.style.pointerEvents = 'auto';
+                }
+            });
+        }
+
+        return card;
+    }
+
     renderApiConfigSection(activeProviderName: string | null): void {
         // Only show if API provider is active or available
         if (activeProviderName !== 'api') {

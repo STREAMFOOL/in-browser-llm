@@ -14,6 +14,7 @@ export interface SettingsCallbacks {
     onClearData: () => Promise<void>;
     onResetApplication: () => Promise<void>;
     onApiConfigChange?: (backend: string, modelId: string, apiKey: string, endpoint: string) => Promise<void>;
+    onWebLLMModelChange?: (modelId: string) => Promise<void>;
 }
 
 export class SettingsUI {
@@ -45,6 +46,7 @@ export class SettingsUI {
         this.sections.renderModelParametersSection();
         this.sections.renderFeaturesSection();
         this.sections.renderProviderSection(providers, activeProviderName);
+        this.sections.renderWebLLMModelSection(activeProviderName);
         this.sections.renderApiConfigSection(activeProviderName);
         this.sections.renderDataManagementSection();
     }

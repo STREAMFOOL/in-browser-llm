@@ -5,6 +5,7 @@ import { StorageManager } from '../storage/storage-manager';
 
 
 const PROVIDER_PREFERENCE_KEY = 'provider-preference';
+const WEBLLM_MODEL_PREFERENCE_KEY = 'webllm-model-preference';
 
 
 export const PROVIDER_PRIORITIES: Record<string, number> = {
@@ -85,7 +86,7 @@ export class ProviderManager {
     }
 
 
-    async setActiveProvider(providerName: string): Promise<void> {
+    async setActiveProvider(providerName: string, config?: { modelId?: string }): Promise<void> {
         const provider = this.providers.get(providerName);
         if (!provider) {
             throw new Error(`Provider "${providerName}" not found`);
@@ -106,8 +107,17 @@ export class ProviderManager {
             }
         }
 
+        // For WebLLM, load model preference if not specified
+        let initConfig = config;
+        if (providerName === 'webllm' && !config?.modelId) {
+            const preferredModel = await this.loadWebLLMModelPreference();
+            if (preferredModel) {
+                initConfig = { modelId: preferredModel };
+            }
+        }
+
         // Initialize the new provider
-        await provider.initialize();
+        await provider.initialize(initConfig);
         this.activeProvider = provider;
 
         // Persist preference
@@ -226,6 +236,53 @@ export class ProviderManager {
             } catch (error) {
                 console.error('Error in provider change callback:', error);
             }
+        }
+    }
+
+    async setWebLLMModel(modelId: string): Promise<void> {
+        const provider = this.activeProvider;
+        if (!provider || provider.name !== 'webllm') {
+            throw new Error('WebLLM provider is not active');
+        }
+
+        // Check if provider has setModel method
+        if ('setModel' in provider && typeof provider.setModel === 'function') {
+            await (provider as any).setModel(modelId);
+            await provider.initialize({ modelId });
+            await this.persistWebLLMModelPreference(modelId);
+            this.notifyProviderChange(provider);
+        } else {
+            throw new Error('Active provider does not support model switching');
+        }
+    }
+
+    async getWebLLMCurrentModel(): Promise<string | null> {
+        const provider = this.activeProvider;
+        if (!provider || provider.name !== 'webllm') {
+            return null;
+        }
+
+        if ('getCurrentModelId' in provider && typeof provider.getCurrentModelId === 'function') {
+            return (provider as any).getCurrentModelId();
+        }
+        return null;
+    }
+
+    private async persistWebLLMModelPreference(modelId: string): Promise<void> {
+        try {
+            await this.storageManager.saveSetting(WEBLLM_MODEL_PREFERENCE_KEY, modelId);
+        } catch (error) {
+            console.warn('Failed to persist WebLLM model preference:', error);
+        }
+    }
+
+    private async loadWebLLMModelPreference(): Promise<string | null> {
+        try {
+            const preference = await this.storageManager.loadSetting(WEBLLM_MODEL_PREFERENCE_KEY);
+            return typeof preference === 'string' ? preference : null;
+        } catch (error) {
+            console.warn('Failed to load WebLLM model preference:', error);
+            return null;
         }
     }
 }

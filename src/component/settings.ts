@@ -12,6 +12,7 @@ export interface SettingsPanelCallbacks {
     onClearData: () => Promise<void>;
     onResetApplication: () => Promise<void>;
     onApiConfigChange?: (backend: string, modelId: string, apiKey: string, endpoint: string) => Promise<void>;
+    onWebLLMModelChange?: (modelId: string) => Promise<void>;
     onShowMessage?: (message: Message) => void;
 }
 
@@ -116,13 +117,20 @@ export class SettingsPanel {
                         onResetApplication: async () => {
                             await this.callbacks.onResetApplication();
                         },
-                        onApiConfigChange: this.callbacks.onApiConfigChange
+                        onApiConfigChange: this.callbacks.onApiConfigChange,
+                        onWebLLMModelChange: this.callbacks.onWebLLMModelChange
                     },
                     this.currentSettings
                 );
             }
 
             const activeProvider = this.providerManager.getActiveProvider();
+
+            // Store current WebLLM model for UI
+            if (activeProvider?.name === 'webllm' && 'getCurrentModelId' in activeProvider) {
+                (window as any).__currentWebLLMModel = (activeProvider as any).getCurrentModelId();
+            }
+
             await this.settingsUI.render(providers, activeProvider?.name || null);
         } catch (error) {
             console.error('Failed to populate settings:', error);

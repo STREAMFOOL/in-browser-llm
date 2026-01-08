@@ -1,5 +1,5 @@
 export function getComponentStyles() {
-    return `
+  return `
       /* Header styles */
       .ai-assistant-header {
         padding: 1rem;
@@ -209,6 +209,79 @@ export function getComponentStyles() {
       .provider-status.active {
         background-color: #dbeafe;
         color: #1e40af;
+      }
+
+      /* Model selection styles */
+      .model-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-top: 1rem;
+      }
+
+      .model-card {
+        padding: 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.5rem;
+        transition: all 0.15s;
+        background-color: white;
+      }
+
+      .model-card:hover:not(.active) {
+        border-color: #6366f1;
+        background-color: #f9fafb;
+      }
+
+      .model-card.active {
+        border-color: #6366f1;
+        background-color: #eff6ff;
+      }
+
+      .model-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+
+      .model-name {
+        font-weight: 600;
+        color: #111827;
+        font-size: 1rem;
+      }
+
+      .model-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-weight: 500;
+        background-color: #dbeafe;
+        color: #1e40af;
+      }
+
+      .model-card:not(.active) .model-badge {
+        background-color: #f3f4f6;
+        color: #6b7280;
+      }
+
+      .model-description {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+        line-height: 1.4;
+      }
+
+      .model-specs {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.75rem;
+        color: #9ca3af;
+      }
+
+      .model-spec {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
       }
 
       /* Reset button styles */

@@ -33,6 +33,76 @@ describe('WebLLMProvider', () => {
         });
     });
 
+    describe('Model selection', () => {
+        it('should default to Qwen 2.5 Coder 7B', () => {
+            expect(DEFAULT_WEBLLM_MODEL).toBe('Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC');
+        });
+
+        it('should return current model ID', () => {
+            const modelId = provider.getCurrentModelId();
+            expect(modelId).toBe(DEFAULT_WEBLLM_MODEL);
+        });
+
+        it('should allow setting a valid model', async () => {
+            const newModel = WEBLLM_MODELS[4].id; // Llama 3.2 1B
+            await provider.setModel(newModel);
+            expect(provider.getCurrentModelId()).toBe(newModel);
+        });
+
+        it('should reject invalid model ID', async () => {
+            await expect(provider.setModel('invalid-model-id')).rejects.toThrow('Invalid model ID');
+        });
+
+        it('should accept model ID in initialize config', async () => {
+            const testModel = WEBLLM_MODELS[4].id; // Llama 3.2 1B (smallest for tests)
+
+            // Mock WebGPU for this test
+            const mockAdapter = {
+                limits: { maxBufferSize: 2 * 1024 * 1024 * 1024 } // 2GB
+            };
+
+            vi.stubGlobal('navigator', {
+                gpu: {
+                    requestAdapter: vi.fn().mockResolvedValue(mockAdapter)
+                }
+            });
+
+            const newProvider = new WebLLMProvider();
+
+            // Check availability first
+            const availability = await newProvider.checkAvailability();
+
+            if (availability.available) {
+                // Only test initialization if WebGPU is available
+                // In CI/test environment, this will be skipped
+                await newProvider.initialize({ modelId: testModel });
+                expect(newProvider.getCurrentModelId()).toBe(testModel);
+            }
+
+            await newProvider.dispose();
+            vi.unstubAllGlobals();
+        });
+
+        it('should list all available models', () => {
+            const models = WebLLMProvider.getAvailableModels();
+            expect(models).toHaveLength(5);
+            expect(models[0].id).toBe('Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC');
+            expect(models[4].id).toBe('Llama-3.2-1B-Instruct-q4f16_1-MLC');
+        });
+
+        it('should get model info by ID', () => {
+            const modelInfo = WebLLMProvider.getModelInfo('Llama-3.2-1B-Instruct-q4f16_1-MLC');
+            expect(modelInfo).toBeDefined();
+            expect(modelInfo?.name).toBe('Llama 3.2 1B');
+            expect(modelInfo?.estimatedVRAM).toBe(1.5);
+        });
+
+        it('should return undefined for invalid model ID', () => {
+            const modelInfo = WebLLMProvider.getModelInfo('invalid-model');
+            expect(modelInfo).toBeUndefined();
+        });
+    });
+
     describe('WebGPU detection (Requirement 18.2)', () => {
         it('should report unavailable when navigator.gpu is missing', async () => {
             // In jsdom, navigator.gpu is not available
@@ -168,9 +238,10 @@ describe('WebLLMProvider', () => {
                 config: { temperature: 0.7, topK: 40 }
             };
 
-            const generator = provider.promptStreaming(mockSession, 'test prompt');
+            const iterable = provider.promptStreaming(mockSession, 'test prompt');
+            const iterator = iterable[Symbol.asyncIterator]();
 
-            await expect(generator.next()).rejects.toThrow('not initialized');
+            await expect(iterator.next()).rejects.toThrow('not initialized');
         });
     });
 
@@ -214,21 +285,5 @@ describe('WEBLLM_MODELS constant', () => {
             // MLC model IDs typically end with -MLC
             expect(model.id).toMatch(/-MLC$/);
         }
-    });
-});
-
-describe('DEFAULT_WEBLLM_MODEL', () => {
-    it('should be a valid model ID', () => {
-        const validIds = WEBLLM_MODELS.map(m => m.id);
-
-        expect(validIds).toContain(DEFAULT_WEBLLM_MODEL);
-    });
-
-    it('should be a smaller model for faster initial experience', () => {
-        const defaultModel = WEBLLM_MODELS.find(m => m.id === DEFAULT_WEBLLM_MODEL);
-
-        expect(defaultModel).toBeDefined();
-        // Default should be a smaller model (< 3GB VRAM)
-        expect(defaultModel!.estimatedVRAM).toBeLessThanOrEqual(3);
     });
 });
