@@ -38,6 +38,59 @@ We use git as our main VCS. In order to preserve history if we are moving files 
   - Exception: Files may exceed limits if functionality is truly inseparable
   - Consider splitting by: UI components, business logic, utilities, types
 
+### Module Structure
+The codebase is organized into logical modules with clear responsibilities:
+
+- **component/** - Web component implementation and lifecycle
+- **ui/** - User interface components (chat, settings, thread list)
+- **styles/** - Styling system (base, component, theme, animations)
+- **providers/** - Model provider implementations (Chrome, WebLLM, API)
+- **storage/** - Data persistence layer (IndexedDB, OPFS)
+- **core/** - Core system functionality (context window, recovery)
+- **utils/** - Shared utilities (browser detection, error handling)
+
+### Import Conventions
+- Use relative imports within the same module: `import { X } from './sibling-file'`
+- Use relative imports across modules: `import { X } from '../ui/chat-ui'`
+- Group imports by module in this order:
+  1. External libraries (e.g., `fast-check`)
+  2. Component module imports
+  3. UI module imports
+  4. Styles module imports
+  5. Providers module imports
+  6. Storage module imports
+  7. Core module imports
+  8. Utils module imports
+
+### Example Import Pattern
+```typescript
+// External libraries
+import fc from 'fast-check';
+
+// Component imports
+import { SessionManager } from '../component/session-manager';
+
+// UI imports
+import { ChatUI } from '../ui/chat-ui';
+import { SettingsUI } from '../ui/settings-ui';
+
+// Styles imports
+import { styles } from '../styles';
+
+// Provider imports
+import { ProviderManager } from '../providers/provider-manager';
+import { ChromeProvider } from '../providers/chrome-provider';
+
+// Storage imports
+import { StorageManager } from '../storage/storage-manager';
+
+// Core imports
+import { ContextWindowManager } from '../core/context-window-manager';
+
+// Utils imports
+import { ErrorHandler } from '../utils/error-handler';
+```
+
 ### Monitoring File Sizes
 Use this command to check the 20 largest files in the project:
 ```bash

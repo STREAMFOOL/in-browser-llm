@@ -34,18 +34,45 @@ A privacy-first, browser-based conversational AI assistant that runs entirely on
 
 ```
 src/
-├── local-ai-assistant.ts   # Main web component
-├── chat-ui.ts              # Chat interface (messages, input, loading)
-├── markdown-renderer.ts    # Incremental markdown parsing
-├── gemini-controller.ts    # Chrome Gemini Nano integration
-├── provider-manager.ts     # Model provider detection/selection
-├── chrome-provider.ts      # Chrome built-in AI provider
-├── webllm-provider.ts      # WebLLM cross-browser provider
-├── storage-manager.ts      # IndexedDB operations
-├── opfs-manager.ts         # OPFS file operations
-├── context-window-manager.ts # Context window handling
-├── browser-compatibility.ts # Browser/hardware detection
-└── main.ts                 # Entry point
+├── main.ts                          # Entry point
+├── component/                       # Web component implementation
+│   ├── index.ts                    # Main component registration
+│   ├── component-core.ts           # Core rendering and DOM manipulation
+│   ├── component-lifecycle.ts      # Lifecycle hooks
+│   ├── session-manager.ts          # Session management
+│   ├── thread-manager.ts           # Thread management
+│   ├── settings.ts                 # Component settings
+│   ├── troubleshoot.ts             # Troubleshooting utilities
+│   └── utils.ts                    # Component utilities
+├── ui/                              # User interface components
+│   ├── chat-ui.ts                  # Chat interface (messages, input, loading)
+│   ├── settings-ui.ts              # Settings interface orchestration
+│   ├── settings-ui-sections.ts     # Individual settings sections
+│   ├── thread-list-ui.ts           # Thread list interface
+│   └── markdown-renderer.ts        # Incremental markdown parsing
+├── styles/                          # Styling modules
+│   ├── index.ts                    # Style exports
+│   ├── base-styles.ts              # Base/layout styles
+│   ├── component-styles.ts         # Component-specific styles
+│   ├── theme-styles.ts             # Theme/color styles
+│   └── animation-styles.ts         # Animation definitions
+├── providers/                       # Model providers
+│   ├── provider-manager.ts         # Provider detection/selection
+│   ├── model-provider.ts           # Provider interface
+│   ├── chrome-provider.ts          # Chrome built-in AI provider
+│   ├── webllm-provider.ts          # WebLLM cross-browser provider
+│   ├── api-provider.ts             # External API provider
+│   └── gemini-controller.ts        # Chrome Gemini Nano integration
+├── storage/                         # Data persistence
+│   ├── storage-manager.ts          # IndexedDB operations
+│   └── opfs-manager.ts             # OPFS file operations
+├── core/                            # Core system modules
+│   ├── context-window-manager.ts   # Context window handling
+│   └── recovery-manager.ts         # Error recovery
+└── utils/                           # Utilities
+    ├── browser-compatibility.ts    # Browser/hardware detection
+    ├── hardware-diagnostics.ts     # Hardware checks
+    └── error-handler.ts            # Error handling
 ```
 
 ## Browser Requirements
@@ -59,3 +86,4 @@ src/
 
 - `.kiro/specs/local-ai-assistant/` - Core assistant functionality
 - `.kiro/specs/tailwind-css-conversion/` - CSS to Tailwind migration
+- `.kiro/specs/code-reorganization/` - Codebase modular reorganization
