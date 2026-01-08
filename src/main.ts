@@ -1,6 +1,6 @@
 
 
-export { LocalAIAssistant } from './local-ai-assistant/index';
+export { LocalAIAssistant } from './component/index';
 
 // Auto-register the component when imported
-import './local-ai-assistant/index';
+import './component/index';
