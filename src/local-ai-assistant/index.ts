@@ -1,7 +1,7 @@
 
 
 import { ChatUI, type Message } from '../chat-ui';
-import { GeminiController, type InitStep, type DetailedAvailability } from '../gemini-controller';
+import { GeminiController } from '../gemini-controller';
 import { ProviderManager } from '../provider-manager';
 import { ChromeProvider } from '../chrome-provider';
 import { WebLLMProvider } from '../webllm-provider';
@@ -11,28 +11,23 @@ import { RecoveryManager } from '../recovery-manager';
 import { type SettingsConfig } from '../settings-ui';
 import { StorageManager } from '../storage-manager';
 import { HardwareDiagnostics, type HardwareProfile, type Feature } from '../hardware-diagnostics';
-import { ThreadListUI } from '../thread-list-ui';
-import { getTroubleshootingGuide } from './troubleshoot';
-import { generateThreadTitle } from './utils';
 import { getMainStyles } from './styles';
 import { SettingsPanel } from './settings';
+import { ThreadManager } from './thread-manager';
+import { SessionManager } from './session-manager';
 
 export class LocalAIAssistant extends HTMLElement {
   private shadow: ShadowRoot;
   private chatUI: ChatUI | null = null;
   private settingsPanel: SettingsPanel | null = null;
-  private threadListUI: ThreadListUI | null = null;
+  private threadManager: ThreadManager | null = null;
+  private sessionManager: SessionManager | null = null;
   private geminiController: GeminiController;
   private providerManager: ProviderManager;
   private recoveryManager: RecoveryManager;
   private storageManager: StorageManager;
-  private activeProvider: ModelProvider | null = null;
-  private currentSession: ChatSession | null = null;
   private abortController: AbortController | null = null;
   private messageIdCounter = 0;
-  private initMessageId: string | null = null;
-  private hardwareProfile: HardwareProfile | null = null;
-  private currentThreadId: string | null = null;
   private headerText: HTMLElement | null = null;
   private currentSettings: SettingsConfig = {
     temperature: 0.7,
@@ -62,6 +57,21 @@ export class LocalAIAssistant extends HTMLElement {
         await this.handleApplicationReset();
       }
     });
+
+    // Initialize session manager
+    this.sessionManager = new SessionManager(
+      this.geminiController,
+      this.providerManager,
+      {
+        onInitMessage: (message) => this.handleInitMessage(message),
+        onUpdateInitMessage: (messageId, content) => this.handleUpdateInitMessage(messageId, content),
+        onProviderReady: (provider) => this.handleProviderReady(provider),
+        onSessionCreated: (session) => this.handleSessionCreated(session),
+        onHardwareProfileDetected: (profile) => this.handleHardwareProfileDetected(profile),
+        onFeaturesFiltered: (supported, unsupported) => this.handleFeaturesFiltered(supported, unsupported)
+      },
+      this.messageIdCounter
+    );
 
     this.initializeComponent();
   }
@@ -148,7 +158,7 @@ export class LocalAIAssistant extends HTMLElement {
         }
       },
       this.currentSettings,
-      this.hardwareProfile
+      this.sessionManager?.getHardwareProfile() || null
     );
 
     // Create settings panel DOM
@@ -159,12 +169,14 @@ export class LocalAIAssistant extends HTMLElement {
     threadListSidebar.className = 'thread-list-sidebar';
     threadListSidebar.setAttribute('data-thread-list', 'true');
 
-    // Initialize thread list UI
-    this.threadListUI = new ThreadListUI(threadListSidebar, {
-      onThreadSelect: (threadId) => this.handleThreadSelect(threadId),
-      onThreadDelete: (threadId) => this.handleThreadDelete(threadId),
-      onNewThread: () => this.handleNewThread()
+    // Initialize thread manager
+    this.threadManager = new ThreadManager(this.storageManager, {
+      onThreadSwitch: (threadId, messages) => this.handleThreadSwitch(threadId, messages),
+      onThreadDelete: (threadId) => this.handleThreadDeleteCallback(threadId),
+      onNewThread: () => this.handleNewThreadCallback(),
+      onThreadCreated: (threadId) => this.handleThreadCreated(threadId)
     });
+    this.threadManager.initializeUI(threadListSidebar);
 
     // Create footer
     const footer = document.createElement('div');
@@ -182,7 +194,13 @@ export class LocalAIAssistant extends HTMLElement {
     this.shadow.appendChild(container);
 
     // Initialize session
-    this.initializeSession();
+    if (this.sessionManager) {
+      this.sessionManager.initialize({
+        temperature: this.currentSettings.temperature,
+        topK: this.currentSettings.topK,
+        enabledFeatures: this.currentSettings.enabledFeatures
+      });
+    }
   }
 
   private toggleSettings(): void {
@@ -191,64 +209,55 @@ export class LocalAIAssistant extends HTMLElement {
     }
   }
 
+  private async toggleThreadList(): Promise<void> {
+    if (this.threadManager) {
+      await this.threadManager.toggleThreadList();
+    }
+  }
+
   private async switchProvider(providerName: string): Promise<void> {
     try {
-      // Destroy current session
-      if (this.currentSession && this.activeProvider) {
-        await this.activeProvider.destroySession(this.currentSession);
-        this.currentSession = null;
-      }
+      if (!this.sessionManager) return;
 
-      // Switch provider
-      await this.providerManager.setActiveProvider(providerName);
-      this.activeProvider = this.providerManager.getActiveProvider();
+      await this.sessionManager.switchProvider(providerName, {
+        temperature: this.currentSettings.temperature,
+        topK: this.currentSettings.topK,
+        enabledFeatures: this.currentSettings.enabledFeatures
+      });
 
-      // Create new session with current settings
-      if (this.activeProvider) {
-        this.currentSession = await this.activeProvider.createSession({
-          temperature: this.currentSettings.temperature,
-          topK: this.currentSettings.topK
-        });
-
-        // Update provider indicator
-        this.updateProviderIndicator(this.activeProvider);
-
-        // Add system message about provider switch
-        if (this.chatUI) {
-          const switchMessage: Message = {
-            id: `msg-${this.messageIdCounter++}`,
-            role: 'assistant',
-            content: `✅ Switched to **${this.activeProvider.description}**. All future messages will use this provider.`,
-            timestamp: Date.now()
-          };
-          this.chatUI.addMessage(switchMessage);
-        }
+      const provider = this.sessionManager.getActiveProvider();
+      if (provider && this.chatUI) {
+        const switchMessage: Message = {
+          id: `msg-${this.messageIdCounter++}`,
+          role: 'assistant',
+          content: `✅ Switched to **${provider.description}**. All future messages will use this provider.`,
+          timestamp: Date.now()
+        };
+        this.chatUI.addMessage(switchMessage);
       }
     } catch (error) {
       console.error('Failed to switch provider:', error);
-      throw error; // Re-throw to let SettingsPanel handle the error display
+      throw error;
     }
   }
 
   private async handleSettingsChange(config: SettingsConfig): Promise<void> {
     console.log('Settings changed:', config);
 
-    // Validate enabled features against hardware capabilities
-    if (this.hardwareProfile) {
+    const hardwareProfile = this.sessionManager?.getHardwareProfile();
+    if (hardwareProfile) {
       const invalidFeatures: Feature[] = [];
       for (const feature of config.enabledFeatures) {
-        if (!HardwareDiagnostics.canSupport(feature, this.hardwareProfile)) {
+        if (!HardwareDiagnostics.canSupport(feature, hardwareProfile)) {
           invalidFeatures.push(feature);
         }
       }
 
-      // Remove features that don't meet hardware requirements
       if (invalidFeatures.length > 0) {
         config.enabledFeatures = config.enabledFeatures.filter(
           f => !invalidFeatures.includes(f)
         );
 
-        // Show warning message
         if (this.chatUI) {
           const warningMessage: Message = {
             id: `msg-${this.messageIdCounter++}`,
@@ -263,26 +272,22 @@ export class LocalAIAssistant extends HTMLElement {
 
     this.currentSettings = config;
 
-    // Update settings panel
     if (this.settingsPanel) {
       this.settingsPanel.updateSettings(config);
     }
 
-    // Recreate session with new parameters if provider is active
-    if (this.activeProvider && this.currentSession) {
+    if (this.sessionManager) {
       try {
-        await this.activeProvider.destroySession(this.currentSession);
-        this.currentSession = await this.activeProvider.createSession({
+        await this.sessionManager.recreateSession({
           temperature: config.temperature,
-          topK: config.topK
+          topK: config.topK,
+          enabledFeatures: config.enabledFeatures
         });
-        console.log('Session recreated with new settings');
       } catch (error) {
         console.error('Failed to apply settings:', error);
       }
     }
 
-    // Persist settings to storage
     try {
       await this.storageManager.saveSetting('modelParameters', {
         temperature: config.temperature,
@@ -323,412 +328,6 @@ export class LocalAIAssistant extends HTMLElement {
     }
   }
 
-  private async initializeSession(): Promise<void> {
-    if (!this.chatUI) return;
-
-    // Detect hardware capabilities first
-    try {
-      this.hardwareProfile = await HardwareDiagnostics.detectCapabilities();
-      console.log('Hardware profile detected:', this.hardwareProfile);
-
-      // Filter enabled features based on hardware
-      const supportedFeatures = this.currentSettings.enabledFeatures.filter(
-        feature => HardwareDiagnostics.canSupport(feature, this.hardwareProfile!)
-      );
-
-      if (supportedFeatures.length < this.currentSettings.enabledFeatures.length) {
-        const unsupportedFeatures = this.currentSettings.enabledFeatures.filter(
-          f => !supportedFeatures.includes(f)
-        );
-        console.warn('Some features disabled due to hardware limitations:', unsupportedFeatures);
-        this.currentSettings.enabledFeatures = supportedFeatures;
-      }
-    } catch (error) {
-      console.error('Failed to detect hardware capabilities:', error);
-    }
-
-    // Show initialization message with steps
-    this.initMessageId = `msg-${this.messageIdCounter++}`;
-    const initMessage: Message = {
-      id: this.initMessageId,
-      role: 'assistant',
-      content: this.renderInitializationStatus([], 'checking'),
-      timestamp: Date.now()
-    };
-    this.chatUI.addMessage(initMessage);
-
-    try {
-      // First try Chrome's built-in AI
-      const availability = await this.geminiController.checkDetailedAvailability();
-
-      if (availability.status === 'readily') {
-        // Chrome AI is ready - use it directly
-        this.chatUI.updateMessage(
-          this.initMessageId,
-          this.renderInitializationStatus(availability.steps, 'success', availability),
-          true
-        );
-
-        // Use provider manager to get Chrome provider
-        this.activeProvider = await this.providerManager.autoSelectProvider();
-        if (this.activeProvider) {
-          this.currentSession = await this.activeProvider.createSession({
-            temperature: 0.7,
-            topK: 40
-          });
-          console.log('Chrome Gemini session initialized');
-
-          // Update provider indicator
-          this.updateProviderIndicator(this.activeProvider);
-
-          this.chatUI.updateMessage(
-            this.initMessageId,
-            '👋 Hello! I\'m your local AI assistant powered by Chrome\'s built-in AI. All processing happens on your device for complete privacy. How can I help you today?',
-            true
-          );
-        }
-      } else if (availability.status === 'after-download') {
-        console.warn('Gemini model downloading');
-        this.startModelDownload();
-      } else {
-        // Chrome AI not available - try WebLLM fallback
-        console.warn('Chrome AI not available:', availability.reason, '- trying WebLLM fallback');
-        await this.tryWebLLMFallback(availability);
-      }
-    } catch (error) {
-      console.error('Failed to initialize session:', error);
-      // Try WebLLM as fallback on any error
-      await this.tryWebLLMFallback();
-    }
-  }
-
-  private async tryWebLLMFallback(chromeAvailability?: DetailedAvailability): Promise<void> {
-    console.debug('enter tryWebLLMFallback, chromeAvailability=', chromeAvailability);
-    if (!this.chatUI || !this.initMessageId) return;
-
-    // 
-    console.debug('show that we trying WebLLM');
-    const fallbackSteps: InitStep[] = [
-      { id: 'chrome', label: 'Chrome AI not available', status: 'failed', error: chromeAvailability?.errorMessage || 'Not supported' },
-      { id: 'webllm', label: 'Trying WebLLM fallback...', status: 'running' },
-    ];
-
-    console.debug('updateMessage checking fallback=', fallbackSteps);
-    this.chatUI.updateMessage(
-      this.initMessageId,
-      this.renderFallbackStatus(fallbackSteps, 'checking'),
-      true
-    );
-
-    try {
-      console.debug('check webllm provider');
-      const webllmProvider = this.providerManager.getProvider('webllm');
-      if (!webllmProvider) {
-        throw new Error('WebLLM provider not registered');
-      }
-
-      console.debug('check webllm availability');
-      const webllmAvailability = await webllmProvider.checkAvailability();
-      console.log('WebLLM availability check result:', webllmAvailability);
-
-      if (!webllmAvailability.available) {
-        fallbackSteps[1] = { id: 'webllm', label: 'WebLLM not available', status: 'failed', error: webllmAvailability.reason };
-        this.chatUI.updateMessage(
-          this.initMessageId,
-          this.renderFallbackStatus(fallbackSteps, 'failed', chromeAvailability),
-          true
-        );
-        console.warn('WebLLM unavailable. Reason:', webllmAvailability.reason);
-        return;
-      }
-
-      console.debug('initialize WebLLM with progress monitoring');
-      fallbackSteps[1] = { id: 'webllm', label: 'Initializing WebLLM...', status: 'running' };
-      this.chatUI.updateMessage(
-        this.initMessageId,
-        this.renderFallbackStatus(fallbackSteps, 'downloading'),
-        true
-      );
-
-      const timestamp = Date.now()
-      const progressInterval = setInterval(() => {
-        let timespan = Date.now() - timestamp
-        console.debug(`${timespan} millis monitoring WebLLM initialization`);
-        if (!this.chatUI || !this.initMessageId) {
-          clearInterval(progressInterval);
-          return;
-        }
-
-        const progress = webllmProvider.getProgress();
-        if (progress) {
-          const percentage = progress.percentage || 0;
-          const phase = progress.phase || 'downloading';
-          const currentFile = progress.currentFile || '';
-
-          fallbackSteps[1] = {
-            id: 'webllm',
-            label: `${phase === 'downloading' ? 'Downloading' : 'Loading'} WebLLM model... ${percentage}%`,
-            status: 'running',
-            error: currentFile
-          };
-
-          this.chatUI.updateMessage(
-            this.initMessageId,
-            this.renderFallbackStatus(fallbackSteps, 'downloading'),
-            true
-          );
-        }
-      }, 500);
-
-      try {
-        console.debug('initializing WebLLM');
-        await webllmProvider.initialize();
-        clearInterval(progressInterval);
-
-        this.activeProvider = webllmProvider;
-        this.currentSession = await webllmProvider.createSession({
-          temperature: 0.7,
-          topK: 40
-        });
-
-        fallbackSteps[1] = { id: 'webllm', label: 'WebLLM ready', status: 'passed' };
-      } catch (initError) {
-        console.error(initError, 'ERROR while initializing WebLLM');
-        clearInterval(progressInterval);
-        throw initError;
-      }
-
-      console.debug('Update provider indicator');
-      this.updateProviderIndicator(this.activeProvider);
-
-      console.log('WebLLM session initialized as fallback');
-      this.chatUI.updateMessage(
-        this.initMessageId,
-        '👋 Hello! I\'m your local AI assistant powered by WebLLM. Chrome\'s built-in AI wasn\'t available, so I\'m using WebGPU instead. All processing still happens on your device for complete privacy. How can I help you today?',
-        true
-      );
-    } catch (error) {
-      console.error('WebLLM fallback failed:', error);
-      fallbackSteps[1] = {
-        id: 'webllm',
-        label: 'WebLLM initialization failed',
-        status: 'failed',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-      this.chatUI.updateMessage(
-        this.initMessageId,
-        this.renderFallbackStatus(fallbackSteps, 'failed', chromeAvailability),
-        true
-      );
-    }
-  }
-
-  private renderFallbackStatus(
-    steps: InitStep[],
-    status: 'checking' | 'downloading' | 'failed',
-    chromeAvailability?: DetailedAvailability
-  ): string {
-    const statusIcons: Record<InitStep['status'], string> = {
-      pending: '⏳',
-      running: '🔄',
-      passed: '✅',
-      failed: '❌',
-      skipped: '⏭️'
-    };
-
-    let header = '🔄 **Trying Alternative AI Provider**';
-    if (status === 'failed') {
-      header = '⚠️ **No AI Provider Available**';
-    } else if (status === 'downloading') {
-      header = '📥 **Downloading WebLLM Model**';
-    }
-
-    const stepsList = steps.map(step => {
-      const icon = statusIcons[step.status];
-      let line = `- ${icon} ${step.label}`;
-      if (step.error) {
-        line += ` — _${step.error}_`;
-      }
-      return line;
-    }).join('\n');
-
-    let content = `${header}\n\n${stepsList}`;
-
-    if (status === 'failed') {
-      content += '\n\n---\n\n';
-      content += this.getNoProviderGuide(chromeAvailability?.reason);
-    }
-
-    return content;
-  }
-
-  private getNoProviderGuide(chromeReason?: DetailedAvailability['reason']): string {
-    let guide = `**No AI Provider Available**\n\n`;
-    guide += `Neither Chrome's built-in AI nor WebLLM could be initialized.\n\n`;
-
-    // Detect browser
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isChrome = userAgent.includes('chrome') && !userAgent.includes('edg') && !userAgent.includes('brave');
-    const isBrave = userAgent.includes('brave') || (navigator as any).brave !== undefined;
-    const isFirefox = userAgent.includes('firefox');
-    const isEdge = userAgent.includes('edg');
-    const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome');
-
-    // Browser-specific instructions
-    if (isChrome) {
-      guide += `**You're using Chrome - Enable Built-in AI**\n\n`;
-      if (chromeReason === 'api-not-available' || chromeReason === 'flags-disabled') {
-        guide += `1. Open \`chrome://flags\` in Chrome\n`;
-        guide += `2. Enable \`#optimization-guide-on-device-model\` → **Enabled BypassPerfRequirement**\n`;
-        guide += `3. Enable \`#prompt-api-for-gemini-nano\` → **Enabled**\n`;
-        guide += `4. Click **Relaunch** to restart Chrome\n\n`;
-      } else {
-        guide += `Requires Google Chrome 138+ with experimental flags enabled.\n`;
-        guide += `Visit \`chrome://flags\` to enable the required flags.\n\n`;
-      }
-    } else if (isBrave || isFirefox || isEdge) {
-      const browserName = isBrave ? 'Brave' : isFirefox ? 'Firefox' : 'Edge';
-      guide += `**You're using ${browserName} - Enable WebGPU**\n\n`;
-      guide += `WebLLM requires WebGPU support:\n\n`;
-
-      if (isBrave) {
-        guide += `1. Open \`brave://flags\` in Brave\n`;
-        guide += `2. Search for "WebGPU"\n`;
-        guide += `3. Enable \`#enable-unsafe-webgpu\` → **Enabled**\n`;
-        guide += `4. Click **Relaunch** to restart Brave\n\n`;
-      } else if (isFirefox) {
-        guide += `1. Open \`about:config\` in Firefox\n`;
-        guide += `2. Search for "dom.webgpu.enabled"\n`;
-        guide += `3. Set it to **true**\n`;
-        guide += `4. Restart Firefox\n\n`;
-        guide += `Note: WebGPU support in Firefox is experimental.\n\n`;
-      } else if (isEdge) {
-        guide += `1. Open \`edge://flags\` in Edge\n`;
-        guide += `2. Search for "WebGPU"\n`;
-        guide += `3. Enable \`#enable-unsafe-webgpu\` → **Enabled**\n`;
-        guide += `4. Click **Restart** to restart Edge\n\n`;
-      }
-
-      guide += `**Alternative: Use Chrome**\n\n`;
-      guide += `For the best experience, use Google Chrome 138+ with built-in AI enabled.\n\n`;
-    } else if (isSafari) {
-      guide += `**Safari is not currently supported**\n\n`;
-      guide += `Safari does not support the required APIs for local AI inference.\n\n`;
-      guide += `**Recommended Browsers:**\n`;
-      guide += `- **Google Chrome 138+** (with built-in AI)\n`;
-      guide += `- **Brave** (with WebGPU enabled)\n`;
-      guide += `- **Firefox** (with WebGPU enabled)\n`;
-      guide += `- **Microsoft Edge** (with WebGPU enabled)\n\n`;
-    } else {
-      guide += `**Browser Not Recognized**\n\n`;
-      guide += `This browser may not support the required APIs.\n\n`;
-      guide += `**Recommended Browsers:**\n`;
-      guide += `- **Google Chrome 138+** (with built-in AI)\n`;
-      guide += `- **Brave** (with WebGPU enabled)\n`;
-      guide += `- **Firefox** (with WebGPU enabled)\n`;
-      guide += `- **Microsoft Edge** (with WebGPU enabled)\n\n`;
-    }
-
-    guide += `**System Requirements:**\n`;
-    guide += `- At least 22GB free disk space\n`;
-    guide += `- WebGPU-capable GPU (for WebLLM)\n`;
-    guide += `- Up-to-date GPU drivers\n`;
-
-    return guide;
-  }
-
-  private async startModelDownload(): Promise<void> {
-    if (!this.chatUI || !this.initMessageId) return;
-
-    try {
-      // Use provider manager to get Chrome provider and create session
-      this.activeProvider = await this.providerManager.autoSelectProvider();
-      if (this.activeProvider) {
-        this.currentSession = await this.activeProvider.createSession({
-          temperature: 0.7,
-          topK: 40
-        });
-
-        // Update provider indicator
-        this.updateProviderIndicator(this.activeProvider);
-
-        // Download complete, show welcome
-        this.chatUI.updateMessage(
-          this.initMessageId,
-          '👋 Hello! I\'m your local AI assistant. All processing happens on your device for complete privacy. How can I help you today?',
-          true
-        );
-      } else {
-        // Chrome download failed, try WebLLM
-        await this.tryWebLLMFallback();
-      }
-    } catch (error) {
-      console.error('Failed to download model:', error);
-      // Try WebLLM as fallback
-      await this.tryWebLLMFallback();
-    }
-  }
-
-  private renderInitializationStatus(
-    steps: InitStep[],
-    status: 'checking' | 'success' | 'failed' | 'downloading',
-    availability?: DetailedAvailability,
-    downloadPercent?: number
-  ): string {
-    const statusIcons: Record<InitStep['status'], string> = {
-      pending: '⏳',
-      running: '🔄',
-      passed: '✅',
-      failed: '❌',
-      skipped: '⏭️'
-    };
-
-    // Default steps for initial checking state
-    const displaySteps = steps.length > 0 ? steps : [
-      { id: 'browser', label: 'Checking browser compatibility', status: 'running' as const },
-      { id: 'api', label: 'Checking Prompt API availability', status: 'pending' as const },
-      { id: 'flags', label: 'Verifying Chrome flags enabled', status: 'pending' as const },
-      { id: 'model', label: 'Checking model status', status: 'pending' as const },
-    ];
-
-    let header = '🔧 **Initializing AI Assistant**';
-    if (status === 'success') {
-      header = '✅ **Initialization Complete**';
-    } else if (status === 'failed') {
-      header = '⚠️ **Initialization Failed**';
-    } else if (status === 'downloading') {
-      header = '📥 **Downloading AI Model**';
-    }
-
-    // Render steps as markdown list items (use - for proper list rendering)
-    const stepsList = displaySteps.map(step => {
-      const icon = statusIcons[step.status];
-      let line = `- ${icon} ${step.label}`;
-      if (step.error) {
-        line += ` — _${step.error}_`;
-      }
-      return line;
-    }).join('\n');
-
-    let content = `${header}\n\n${stepsList}`;
-
-    // Add progress bar for downloading
-    if (status === 'downloading' && downloadPercent !== undefined) {
-      const filled = Math.round(downloadPercent / 5);
-      const empty = 20 - filled;
-      const progressBar = `\n\n**Progress:** ${'█'.repeat(filled)}${'░'.repeat(empty)} ${downloadPercent}%`;
-      content += progressBar;
-    }
-
-    // Add troubleshooting info for failures
-    if (status === 'failed' && availability) {
-      content += '\n\n---\n\n';
-      content += getTroubleshootingGuide(availability.reason);
-    }
-
-    return content;
-  }
-
   private updateProviderIndicator(provider: ModelProvider): void {
     const indicator = this.shadow.querySelector('[data-provider-indicator]') as HTMLElement;
     if (!indicator) return;
@@ -767,6 +366,37 @@ export class LocalAIAssistant extends HTMLElement {
     }
   }
 
+  private handleInitMessage(message: Message): void {
+    if (this.chatUI) {
+      this.chatUI.addMessage(message);
+    }
+  }
+
+  private handleUpdateInitMessage(messageId: string, content: string): void {
+    if (this.chatUI) {
+      this.chatUI.updateMessage(messageId, content, true);
+    }
+  }
+
+  private handleProviderReady(provider: ModelProvider): void {
+    this.updateProviderIndicator(provider);
+  }
+
+  private handleSessionCreated(session: ChatSession): void {
+    console.log('Session created:', session);
+  }
+
+  private handleHardwareProfileDetected(profile: HardwareProfile): void {
+    console.log('Hardware profile detected:', profile);
+  }
+
+  private handleFeaturesFiltered(supported: Feature[], _unsupported: Feature[]): void {
+    this.currentSettings.enabledFeatures = supported;
+    if (this.settingsPanel) {
+      this.settingsPanel.updateSettings(this.currentSettings);
+    }
+  }
+
   private async handleSendMessage(content: string): Promise<void> {
     if (!this.chatUI) {
       console.error('Chat UI not initialized');
@@ -781,9 +411,19 @@ export class LocalAIAssistant extends HTMLElement {
     };
     this.chatUI.addMessage(userMessage);
 
-    await this.saveMessageToThread(userMessage);
+    if (this.threadManager) {
+      await this.threadManager.saveMessageToThread(userMessage, {
+        temperature: this.currentSettings.temperature,
+        topK: this.currentSettings.topK,
+        systemPrompt: '',
+        enabledFeatures: this.currentSettings.enabledFeatures
+      });
+    }
 
-    if (!this.currentSession || !this.activeProvider) {
+    const currentSession = this.sessionManager?.getCurrentSession();
+    const activeProvider = this.sessionManager?.getActiveProvider();
+
+    if (!currentSession || !activeProvider) {
       const errorMessage: Message = {
         id: `msg-${this.messageIdCounter++}`,
         role: 'assistant',
@@ -791,7 +431,14 @@ export class LocalAIAssistant extends HTMLElement {
         timestamp: Date.now()
       };
       this.chatUI.addMessage(errorMessage);
-      await this.saveMessageToThread(errorMessage);
+      if (this.threadManager) {
+        await this.threadManager.saveMessageToThread(errorMessage, {
+          temperature: this.currentSettings.temperature,
+          topK: this.currentSettings.topK,
+          systemPrompt: '',
+          enabledFeatures: this.currentSettings.enabledFeatures
+        });
+      }
       return;
     }
 
@@ -810,15 +457,14 @@ export class LocalAIAssistant extends HTMLElement {
 
     try {
       let fullResponse = '';
-      const stream = this.activeProvider.promptStreaming(
-        this.currentSession,
+      const stream = activeProvider.promptStreaming(
+        currentSession,
         content,
         this.abortController.signal
       );
 
       for await (const chunk of stream) {
-        // Chrome provider returns full text each time, WebLLM returns deltas
-        if (this.activeProvider.name === 'chrome-gemini') {
+        if (activeProvider.name === 'chrome-gemini') {
           fullResponse = chunk;
         } else {
           fullResponse += chunk;
@@ -830,7 +476,14 @@ export class LocalAIAssistant extends HTMLElement {
 
       assistantMessage.content = fullResponse;
       assistantMessage.isStreaming = false;
-      await this.saveMessageToThread(assistantMessage);
+      if (this.threadManager) {
+        await this.threadManager.saveMessageToThread(assistantMessage, {
+          temperature: this.currentSettings.temperature,
+          topK: this.currentSettings.topK,
+          systemPrompt: '',
+          enabledFeatures: this.currentSettings.enabledFeatures
+        });
+      }
 
       this.chatUI.hideLoading();
     } catch (error) {
@@ -845,7 +498,14 @@ export class LocalAIAssistant extends HTMLElement {
         );
         assistantMessage.content = cancelledContent;
         assistantMessage.isStreaming = false;
-        await this.saveMessageToThread(assistantMessage);
+        if (this.threadManager) {
+          await this.threadManager.saveMessageToThread(assistantMessage, {
+            temperature: this.currentSettings.temperature,
+            topK: this.currentSettings.topK,
+            systemPrompt: '',
+            enabledFeatures: this.currentSettings.enabledFeatures
+          });
+        }
       } else {
         const category = ErrorHandler.detectErrorCategory(error);
         const errorContext = ErrorHandler.handleError(error, category);
@@ -859,7 +519,14 @@ export class LocalAIAssistant extends HTMLElement {
 
         assistantMessage.content = errorMessage;
         assistantMessage.isStreaming = false;
-        await this.saveMessageToThread(assistantMessage);
+        if (this.threadManager) {
+          await this.threadManager.saveMessageToThread(assistantMessage, {
+            temperature: this.currentSettings.temperature,
+            topK: this.currentSettings.topK,
+            systemPrompt: '',
+            enabledFeatures: this.currentSettings.enabledFeatures
+          });
+        }
 
         if (category === ErrorCategory.GPU_CONTEXT_LOSS) {
           await this.recoveryManager.handleGPUContextLoss('inference-error');
@@ -891,14 +558,16 @@ export class LocalAIAssistant extends HTMLElement {
     this.chatUI.addMessage(recoveryMessage);
 
     try {
-      if (this.activeProvider && this.activeProvider.name === 'webllm') {
-        await this.activeProvider.dispose();
-        await this.activeProvider.initialize({});
+      const activeProvider = this.sessionManager?.getActiveProvider();
+      if (activeProvider && activeProvider.name === 'webllm') {
+        await activeProvider.dispose();
+        await activeProvider.initialize({});
 
-        if (this.currentSession) {
-          this.currentSession = await this.activeProvider.createSession({
-            temperature: 0.7,
-            topK: 40
+        if (this.sessionManager) {
+          await this.sessionManager.recreateSession({
+            temperature: this.currentSettings.temperature,
+            topK: this.currentSettings.topK,
+            enabledFeatures: this.currentSettings.enabledFeatures
           });
         }
       }
@@ -936,69 +605,8 @@ export class LocalAIAssistant extends HTMLElement {
   }
 
 
-  private generateThreadId(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  }
-
-  private async createNewThread(firstMessage?: string): Promise<string> {
-    const threadId = this.generateThreadId();
-    const now = Date.now();
-
-    const thread: import('../storage-manager').Thread = {
-      id: threadId,
-      title: firstMessage ? generateThreadTitle(firstMessage) : 'New Conversation',
-      createdAt: now,
-      updatedAt: now,
-      messageCount: 0,
-      settings: {
-        temperature: this.currentSettings.temperature,
-        topK: this.currentSettings.topK,
-        systemPrompt: '',
-        enabledFeatures: this.currentSettings.enabledFeatures
-      }
-    };
-
-    await this.storageManager.createThread(thread);
-    this.currentThreadId = threadId;
-
-    console.log('Created new thread:', threadId);
-    return threadId;
-  }
-
-  private async saveMessageToThread(message: Message): Promise<void> {
-    if (!this.currentThreadId) {
-      await this.createNewThread(message.role === 'user' ? message.content : undefined);
-    }
-
-    const storageMessage: import('../storage-manager').Message = {
-      id: message.id,
-      threadId: this.currentThreadId!,
-      role: message.role,
-      content: message.content,
-      timestamp: message.timestamp,
-      attachments: [],
-      metadata: {}
-    };
-
-    await this.storageManager.saveMessage(this.currentThreadId!, storageMessage);
-  }
-
-  private async toggleThreadList(): Promise<void> {
-    if (!this.threadListUI) return;
-
-    const threads = await this.storageManager.listThreads();
-    this.threadListUI.render(threads, this.currentThreadId);
-    this.threadListUI.toggle();
-  }
-
-  private async handleThreadSelect(threadId: string): Promise<void> {
-    if (!this.chatUI || !this.threadListUI) return;
-
-    this.threadListUI.close();
+  private async handleThreadSwitch(threadId: string, messages: Message[]): Promise<void> {
+    if (!this.chatUI) return;
 
     const thread = await this.storageManager.getThread(threadId);
 
@@ -1006,73 +614,35 @@ export class LocalAIAssistant extends HTMLElement {
       this.headerText.textContent = thread.title;
     }
 
-    const messages = await this.storageManager.loadThread(threadId);
     this.chatUI.clearMessages();
-
-    messages.forEach(msg => {
-      if (msg.role === 'system') return;
-
-      const chatMessage: Message = {
-        id: msg.id,
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-        timestamp: msg.timestamp
-      };
-      this.chatUI!.addMessage(chatMessage);
-    });
-
-    this.currentThreadId = threadId;
-    console.log('Loaded thread:', threadId, 'with', messages.length, 'messages');
+    messages.forEach(msg => this.chatUI!.addMessage(msg));
   }
 
-  private async handleThreadDelete(threadId: string): Promise<void> {
-    if (!this.chatUI || !this.threadListUI) return;
+  private handleThreadDeleteCallback(threadId: string): void {
+    if (!this.chatUI) return;
 
-    try {
-      await this.storageManager.deleteThread(threadId);
+    const currentThreadId = this.threadManager?.getCurrentThreadId();
+    if (threadId === currentThreadId) {
+      this.chatUI.clearMessages();
 
-      if (threadId === this.currentThreadId) {
-        this.chatUI.clearMessages();
-        this.currentThreadId = null;
-
-        if (this.headerText) {
-          this.headerText.textContent = 'Ask Ai Assistant Locally';
-        }
-
-        const welcomeMessage: Message = {
-          id: `msg-${this.messageIdCounter++}`,
-          role: 'assistant',
-          content: '👋 Hello! I\'m your local AI assistant. How can I help you today?',
-          timestamp: Date.now()
-        };
-        this.chatUI.addMessage(welcomeMessage);
+      if (this.headerText) {
+        this.headerText.textContent = 'Ask Ai Assistant Locally';
       }
 
-      const threads = await this.storageManager.listThreads();
-      this.threadListUI.render(threads, this.currentThreadId);
-
-      console.log('Deleted thread:', threadId);
-    } catch (error) {
-      console.error('Failed to delete thread:', error);
-
-      if (this.chatUI) {
-        const errorMessage: Message = {
-          id: `msg-${this.messageIdCounter++}`,
-          role: 'assistant',
-          content: `⚠️ **Failed to delete conversation**: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          timestamp: Date.now()
-        };
-        this.chatUI.addMessage(errorMessage);
-      }
+      const welcomeMessage: Message = {
+        id: `msg-${this.messageIdCounter++}`,
+        role: 'assistant',
+        content: '👋 Hello! I\'m your local AI assistant. How can I help you today?',
+        timestamp: Date.now()
+      };
+      this.chatUI.addMessage(welcomeMessage);
     }
   }
 
-  private async handleNewThread(): Promise<void> {
-    if (!this.chatUI || !this.threadListUI) return;
+  private handleNewThreadCallback(): void {
+    if (!this.chatUI) return;
 
-    this.threadListUI.close();
     this.chatUI.clearMessages();
-    this.currentThreadId = null;
 
     if (this.headerText) {
       this.headerText.textContent = 'Ask Ai Assistant Locally';
@@ -1085,8 +655,10 @@ export class LocalAIAssistant extends HTMLElement {
       timestamp: Date.now()
     };
     this.chatUI.addMessage(welcomeMessage);
+  }
 
-    console.log('Started new thread');
+  private handleThreadCreated(threadId: string): void {
+    console.log('Thread created:', threadId);
   }
 
   connectedCallback(): void {
@@ -1096,11 +668,15 @@ export class LocalAIAssistant extends HTMLElement {
   disconnectedCallback(): void {
     console.log('Local AI Assistant disconnected');
 
-    if (this.currentSession && this.activeProvider) {
-      this.activeProvider.destroySession(this.currentSession);
+    if (this.sessionManager) {
+      this.sessionManager.dispose();
     }
 
     this.providerManager.dispose();
+
+    if (this.threadManager) {
+      this.threadManager.dispose();
+    }
   }
 }
 
