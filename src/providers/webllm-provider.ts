@@ -24,18 +24,11 @@ export interface WebLLMModelInfo {
 
 export const WEBLLM_MODELS: WebLLMModelInfo[] = [
     {
-        id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC',
-        name: 'Llama 3.2 1B',
-        description: 'Compact Llama model, good for most tasks',
-        estimatedVRAM: 1.5,
-        contextLength: 4096
-    },
-    {
-        id: 'Llama-3.2-3B-Instruct-q4f16_1-MLC',
-        name: 'Llama 3.2 3B',
-        description: 'Larger Llama model, better quality',
-        estimatedVRAM: 3,
-        contextLength: 4096
+        id: 'Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC',
+        name: 'Qwen 2.5 Coder 7B',
+        description: 'Professional coding assistant with 32k context window.',
+        estimatedVRAM: 9.5, // ~5.5GB (Model) + ~4GB (Context)
+        contextLength: 32768
     },
     {
         id: 'Mistral-7B-Instruct-v0.3-q4f16_1-MLC',
@@ -45,15 +38,29 @@ export const WEBLLM_MODELS: WebLLMModelInfo[] = [
         contextLength: 8192
     },
     {
+        id: 'Llama-3.2-3B-Instruct-q4f16_1-MLC',
+        name: 'Llama 3.2 3B',
+        description: 'Larger Llama model, better quality',
+        estimatedVRAM: 3,
+        contextLength: 4096
+    },
+    {
         id: 'Phi-3.5-mini-instruct-q4f16_1-MLC',
         name: 'Phi-3.5 Mini',
         description: 'Microsoft Phi model, efficient and capable',
         estimatedVRAM: 2.5,
         contextLength: 4096
+    },
+    {
+        id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+        name: 'Llama 3.2 1B',
+        description: 'Compact Llama model, good for most tasks',
+        estimatedVRAM: 1.5,
+        contextLength: 4096
     }
 ];
 
-
+// TODO change dynamically from UI
 export const DEFAULT_WEBLLM_MODEL = WEBLLM_MODELS[0].id;
 
 

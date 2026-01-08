@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
-import { LocalAIAssistant } from '../../src/local-ai-assistant/index';
+import { LocalAIAssistant } from '../../src/component';
 
 // Feature: local-ai-assistant, Property: Web Component Registration
 // Validates: Requirements 5.1, 5.2
+
+// Feature: code-reorganization, Property 8: Export API Preservation
+// Validates: Requirements 5.2
 
 describe('Web Component Structure Properties', () => {
     beforeEach(() => {
@@ -148,6 +151,114 @@ describe('Web Component Structure Properties', () => {
 
                     // Clean up
                     instances.forEach(el => el.remove());
+
+                    return true;
+                }
+            ),
+            { numRuns: 100 }
+        );
+    });
+
+    // Property 8: Export API Preservation
+    // Validates that LocalAIAssistant export is available after component split
+    it('should preserve LocalAIAssistant export from component module', () => {
+        // Property: For any attempt to import LocalAIAssistant from the component module,
+        // the export should be available and be the correct class
+
+        fc.assert(
+            fc.property(
+                fc.integer({ min: 1, max: 20 }), // Number of import verification attempts
+                (verificationCount) => {
+                    // Verify the export is available multiple times
+                    for (let i = 0; i < verificationCount; i++) {
+                        // Verify LocalAIAssistant is exported
+                        expect(LocalAIAssistant).toBeDefined();
+
+                        // Verify it's a constructor function (class)
+                        expect(typeof LocalAIAssistant).toBe('function');
+
+                        // Verify it extends HTMLElement
+                        expect(LocalAIAssistant.prototype).toBeInstanceOf(HTMLElement);
+
+                        // Verify we can instantiate it
+                        const instance = new LocalAIAssistant();
+                        expect(instance).toBeInstanceOf(LocalAIAssistant);
+                        expect(instance).toBeInstanceOf(HTMLElement);
+
+                        // Verify it has the expected methods from the split
+                        expect(typeof instance.connectedCallback).toBe('function');
+                        expect(typeof instance.disconnectedCallback).toBe('function');
+
+                        // Clean up
+                        if (instance.parentNode) {
+                            instance.remove();
+                        }
+                    }
+
+                    return true;
+                }
+            ),
+            { numRuns: 100 }
+        );
+    });
+
+    it('should maintain LocalAIAssistant export API consistency across component lifecycle', () => {
+        // Property: For any sequence of component creation and destruction,
+        // the export should remain consistent and functional
+
+        fc.assert(
+            fc.property(
+                fc.array(
+                    fc.record({
+                        action: fc.constantFrom('create', 'destroy', 'verify'),
+                        count: fc.integer({ min: 1, max: 3 })
+                    }),
+                    { minLength: 5, maxLength: 15 }
+                ),
+                (actions) => {
+                    const instances: LocalAIAssistant[] = [];
+
+                    for (const { action, count } of actions) {
+                        switch (action) {
+                            case 'create':
+                                for (let i = 0; i < count; i++) {
+                                    // Verify export is available before creation
+                                    expect(LocalAIAssistant).toBeDefined();
+
+                                    const instance = new LocalAIAssistant();
+                                    expect(instance).toBeInstanceOf(LocalAIAssistant);
+                                    instances.push(instance);
+                                }
+                                break;
+
+                            case 'destroy':
+                                for (let i = 0; i < count && instances.length > 0; i++) {
+                                    const instance = instances.pop();
+                                    if (instance && instance.parentNode) {
+                                        instance.remove();
+                                    }
+                                }
+                                break;
+
+                            case 'verify':
+                                // Verify export is still available
+                                expect(LocalAIAssistant).toBeDefined();
+                                expect(typeof LocalAIAssistant).toBe('function');
+
+                                // Verify all existing instances are still valid
+                                instances.forEach(instance => {
+                                    expect(instance).toBeInstanceOf(LocalAIAssistant);
+                                });
+                                break;
+                        }
+                    }
+
+                    // Clean up remaining instances
+                    instances.forEach(instance => {
+                        if (instance.parentNode) {
+                            instance.remove();
+                        }
+                    });
 
                     return true;
                 }
