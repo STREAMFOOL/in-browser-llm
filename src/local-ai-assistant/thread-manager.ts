@@ -1,6 +1,6 @@
 import { StorageManager, type Thread, type Message as StorageMessage } from '../storage/storage-manager';
-import { ThreadListUI } from '../thread-list-ui';
-import { type Message } from '../chat-ui';
+import { ThreadListUI } from '../ui/thread-list-ui';
+import { type Message } from '../ui/chat-ui';
 
 export interface ThreadManagerCallbacks {
     onThreadSwitch: (threadId: string, messages: Message[]) => void;

@@ -1,8 +1,8 @@
 import { GeminiController, type InitStep, type DetailedAvailability } from '../providers/gemini-controller';
-import { ProviderManager } from '../provider-manager';
+import { ProviderManager } from '../providers/provider-manager';
 import type { ModelProvider, ChatSession } from '../providers/model-provider';
 import { HardwareDiagnostics, type HardwareProfile, type Feature } from '../utils/hardware-diagnostics';
-import { type Message } from '../chat-ui';
+import { type Message } from '../ui/chat-ui';
 
 export interface SessionConfig {
     temperature: number;

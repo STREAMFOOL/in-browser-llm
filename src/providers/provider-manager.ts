@@ -1,7 +1,7 @@
 
 
-import type { ModelProvider, ProviderInfo, ProviderAvailability } from './providers/model-provider';
-import { StorageManager } from './storage/storage-manager';
+import type { ModelProvider, ProviderInfo, ProviderAvailability } from './model-provider';
+import { StorageManager } from '../storage/storage-manager';
 
 
 const PROVIDER_PREFERENCE_KEY = 'provider-preference';

@@ -2,7 +2,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ErrorHandler, ErrorCategory } from '../src/utils/error-handler';
-import { RecoveryManager } from '../src/recovery-manager';
+import { RecoveryManager } from '../src/core/recovery-manager';
 
 describe('ErrorHandler', () => {
     let consoleErrorSpy: any;

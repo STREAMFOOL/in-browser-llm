@@ -2,8 +2,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
-import { ChatUI, Message } from '../../src/chat-ui';
-import { MarkdownRenderer } from '../../src/ui/markdown-renderer';
+import { ChatUI, type Message } from '../../src/ui/chat-ui';
 
 describe('Streaming Incremental Rendering Properties', () => {
     let container: HTMLElement;

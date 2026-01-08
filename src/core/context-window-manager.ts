@@ -1,7 +1,7 @@
 
 
-import type { AISession } from './providers/gemini-controller';
-import type { Message } from './storage/storage-manager';
+import type { AISession } from '../providers/gemini-controller';
+import type { Message } from '../storage/storage-manager';
 
 export interface ContextWindowConfig {
     maxTokens: number;

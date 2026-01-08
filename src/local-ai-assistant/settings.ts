@@ -1,10 +1,10 @@
 
 
-import { SettingsUI, type SettingsConfig } from '../settings-ui';
-import type { ProviderManager } from '../provider-manager';
+import { SettingsUI, type SettingsConfig } from '../ui/settings-ui';
+import type { ProviderManager } from '../providers/provider-manager';
 import type { StorageManager } from '../storage/storage-manager';
 import type { HardwareProfile } from '../utils/hardware-diagnostics';
-import type { Message } from '../chat-ui';
+import type { Message } from '../ui/chat-ui';
 
 export interface SettingsPanelCallbacks {
     onProviderSwitch: (providerName: string) => Promise<void>;

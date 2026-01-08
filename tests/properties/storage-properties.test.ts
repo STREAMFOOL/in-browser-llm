@@ -2,7 +2,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fc from 'fast-check';
-import { StorageManager, Message, Thread, Document, Chunk } from '../../src/storage/storage-manager';
+import { StorageManager, type Message, type Thread, type Document, type Chunk } from '../../src/storage/storage-manager';
 
 describe('Storage Properties', () => {
     let storage: StorageManager;
@@ -176,8 +176,9 @@ describe('Storage Properties', () => {
                     fc.uuid(),
                     fc.uint8Array({ minLength: 1, maxLength: 1000 }),
                     async (assetId: string, data: Uint8Array) => {
-                        // Create blob from data
-                        const blob = new Blob([data], { type: 'application/octet-stream' });
+                        // Create blob from data - ensure proper ArrayBuffer type
+                        const arrayBuffer = new Uint8Array(data).buffer;
+                        const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
 
                         // Save asset
                         await storage.saveAsset(assetId, blob);

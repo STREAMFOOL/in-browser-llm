@@ -1,55 +1,34 @@
+import { HardwareDiagnostics, type HardwareProfile, type Feature } from '../utils/hardware-diagnostics';
+import type { ProviderInfo } from '../providers/model-provider';
+import type { SettingsConfig, SettingsCallbacks } from './settings-ui';
 
-
-import { HardwareDiagnostics, type HardwareProfile, type Feature } from './utils/hardware-diagnostics';
-import type { ProviderInfo } from './providers/model-provider';
-
-export interface SettingsConfig {
-    temperature: number;
-    topK: number;
-    enabledFeatures: Feature[];
-}
-
-export interface SettingsCallbacks {
-    onProviderSwitch: (providerName: string) => Promise<void>;
-    onSettingsChange: (config: SettingsConfig) => void;
-    onClearData: () => Promise<void>;
-    onResetApplication: () => Promise<void>;
-    onApiConfigChange?: (backend: string, modelId: string, apiKey: string, endpoint: string) => Promise<void>;
-}
-
-export class SettingsUI {
+export class SettingsSections {
     private container: HTMLElement;
     private callbacks: SettingsCallbacks;
-    private hardwareProfile: HardwareProfile | null = null;
+    private hardwareProfile: HardwareProfile | null;
     private currentConfig: SettingsConfig;
 
-    constructor(container: HTMLElement, callbacks: SettingsCallbacks, initialConfig: SettingsConfig) {
+    constructor(
+        container: HTMLElement,
+        callbacks: SettingsCallbacks,
+        hardwareProfile: HardwareProfile | null,
+        currentConfig: SettingsConfig
+    ) {
         this.container = container;
         this.callbacks = callbacks;
-        this.currentConfig = initialConfig;
+        this.hardwareProfile = hardwareProfile;
+        this.currentConfig = currentConfig;
     }
 
-
-    async render(providers: ProviderInfo[], activeProviderName: string | null): Promise<void> {
-        // Clear container
-        this.container.innerHTML = '';
-
-        // Detect hardware if not already done
-        if (!this.hardwareProfile) {
-            this.hardwareProfile = await HardwareDiagnostics.detectCapabilities();
-        }
-
-        // Create sections
-        this.renderHardwareSection();
-        this.renderModelParametersSection();
-        this.renderFeaturesSection();
-        this.renderProviderSection(providers, activeProviderName);
-        this.renderApiConfigSection(activeProviderName);
-        this.renderDataManagementSection();
+    updateConfig(config: SettingsConfig): void {
+        this.currentConfig = config;
     }
 
+    updateHardwareProfile(profile: HardwareProfile): void {
+        this.hardwareProfile = profile;
+    }
 
-    private renderHardwareSection(): void {
+    renderHardwareSection(): void {
         if (!this.hardwareProfile) return;
 
         const section = document.createElement('div');
@@ -120,7 +99,6 @@ export class SettingsUI {
         this.container.appendChild(section);
     }
 
-
     private createHardwareCard(icon: string, label: string, value: string, status: 'good' | 'warning' | 'poor'): HTMLElement {
         const card = document.createElement('div');
         card.className = `hardware-card ${status}`;
@@ -154,8 +132,7 @@ export class SettingsUI {
         return card;
     }
 
-
-    private renderModelParametersSection(): void {
+    renderModelParametersSection(): void {
         const section = document.createElement('div');
         section.className = 'settings-section';
 
@@ -197,7 +174,6 @@ export class SettingsUI {
 
         this.container.appendChild(section);
     }
-
 
     private createSliderControl(
         label: string,
@@ -250,8 +226,7 @@ export class SettingsUI {
         return control;
     }
 
-
-    private renderFeaturesSection(): void {
+    renderFeaturesSection(): void {
         if (!this.hardwareProfile) return;
 
         const section = document.createElement('div');
@@ -295,7 +270,6 @@ export class SettingsUI {
         section.insertBefore(title, section.firstChild);
         this.container.appendChild(section);
     }
-
 
     private createFeatureToggle(
         label: string,
@@ -359,8 +333,7 @@ export class SettingsUI {
         return toggle;
     }
 
-
-    private renderProviderSection(providers: ProviderInfo[], activeProviderName: string | null): void {
+    renderProviderSection(providers: ProviderInfo[], activeProviderName: string | null): void {
         const section = document.createElement('div');
         section.className = 'settings-section';
 
@@ -381,7 +354,6 @@ export class SettingsUI {
 
         this.container.appendChild(section);
     }
-
 
     private createProviderItem(provider: ProviderInfo, isActive: boolean): HTMLElement {
         const item = document.createElement('div');
@@ -444,8 +416,7 @@ export class SettingsUI {
         return item;
     }
 
-
-    private renderApiConfigSection(activeProviderName: string | null): void {
+    renderApiConfigSection(activeProviderName: string | null): void {
         // Only show if API provider is active or available
         if (activeProviderName !== 'api') {
             return;
@@ -584,8 +555,7 @@ export class SettingsUI {
         this.container.appendChild(section);
     }
 
-
-    private renderDataManagementSection(): void {
+    renderDataManagementSection(): void {
         const section = document.createElement('div');
         section.className = 'settings-section';
 
@@ -629,15 +599,5 @@ export class SettingsUI {
         section.appendChild(resetButton);
 
         this.container.appendChild(section);
-    }
-
-
-    updateConfig(config: SettingsConfig): void {
-        this.currentConfig = config;
-    }
-
-
-    getConfig(): SettingsConfig {
-        return { ...this.currentConfig };
     }
 }

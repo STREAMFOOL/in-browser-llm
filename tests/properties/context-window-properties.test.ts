@@ -2,8 +2,8 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
-import { ContextWindowManager } from '../../src/context-window-manager';
-import { GeminiController, type AISession } from '../../src/providers/gemini-controller';
+import { ContextWindowManager } from '../../src/core/context-window-manager';
+import { GeminiController } from '../../src/providers/gemini-controller';
 import type { Message } from '../../src/storage/storage-manager';
 
 describe('Context Window Manager Properties', () => {

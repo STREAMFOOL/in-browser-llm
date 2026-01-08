@@ -1,24 +1,5 @@
-export function getMainStyles() {
+export function getComponentStyles() {
     return `
-      :host {
-        display: block;
-        width: 100%;
-        height: 100%;
-        font-family: system-ui, -apple-system, sans-serif;
-      }
-
-      /* Container styles */
-      .ai-assistant-container {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-        height: 100%;
-        background-color: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 0.5rem;
-        overflow: hidden;
-      }
-
       /* Header styles */
       .ai-assistant-header {
         padding: 1rem;
@@ -556,85 +537,6 @@ export function getMainStyles() {
         color: #6b7280;
         line-height: 1.5;
         margin-top: 0.5rem;
-      }
-
-      /* Content area */
-      .ai-assistant-content {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      }
-
-      /* Footer styles */
-      .ai-assistant-footer {
-        padding: 0.75rem 1rem;
-        border-top: 1px solid #e5e7eb;
-        background-color: #f9fafb;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.75rem;
-        color: #6b7280;
-      }
-
-      .footer-icon {
-        font-size: 1rem;
-      }
-
-      /* Animations */
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      @keyframes blink {
-        0%, 100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.3;
-        }
-      }
-
-      @keyframes pulse {
-        0%, 100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.5;
-        }
-      }
-
-      @keyframes spin {
-        from {
-          transform: rotate(0deg);
-        }
-        to {
-          transform: rotate(360deg);
-        }
-      }
-
-      .animate-fadeIn {
-        animation: fadeIn 0.3s ease-in;
-      }
-
-      .animate-blink {
-        animation: blink 1.5s ease-in-out infinite;
-      }
-
-      .animate-pulse {
-        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-      }
-
-      .animate-spin {
-        animation: spin 1s linear infinite;
       }
 
       /* ChatUI styles - comprehensive CSS for all chat elements */
