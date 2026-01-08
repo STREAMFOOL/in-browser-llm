@@ -6,7 +6,7 @@ This plan reorganizes the Local AI Assistant codebase from a flat structure into
 
 ## Tasks
 
-- [ ] 1. Create target directory structure
+- [-] 1. Create target directory structure
   - Create all module directories: `src/component/`, `src/ui/`, `src/styles/`, `src/providers/`, `src/storage/`, `src/core/`, `src/utils/`
   - Create git checkpoint: "Phase 0: Directory structure created"
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 4.1_
