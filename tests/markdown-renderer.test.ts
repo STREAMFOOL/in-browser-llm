@@ -1,7 +1,7 @@
 
 
 import { describe, it, expect } from 'vitest';
-import { MarkdownRenderer } from '../src/markdown-renderer';
+import { MarkdownRenderer } from '../src/ui/markdown-renderer';
 
 describe('MarkdownRenderer', () => {
     describe('Incomplete Code Block Handling', () => {

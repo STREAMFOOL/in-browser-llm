@@ -6,68 +6,68 @@ This plan reorganizes the Local AI Assistant codebase from a flat structure into
 
 ## Tasks
 
-- [-] 1. Create target directory structure
+- [x] 1. Create target directory structure
   - Create all module directories: `src/component/`, `src/ui/`, `src/styles/`, `src/providers/`, `src/storage/`, `src/core/`, `src/utils/`
   - Create git checkpoint: "Phase 0: Directory structure created"
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 4.1_
 
-- [ ] 2. Phase 1: Migrate leaf node files (no dependencies)
-  - [ ] 2.1 Move model-provider.ts to providers/model-provider.ts
+- [x] 2. Phase 1: Migrate leaf node files (no dependencies)
+  - [x] 2.1 Move model-provider.ts to providers/model-provider.ts
     - Update any imports in dependent files
     - _Requirements: 2.1, 5.1_
   
-  - [ ] 2.2 Move opfs-manager.ts to storage/opfs-manager.ts
+  - [x] 2.2 Move opfs-manager.ts to storage/opfs-manager.ts
     - Update imports in storage-manager.ts
     - _Requirements: 2.3, 5.1_
   
-  - [ ] 2.3 Move browser-compatibility.ts to utils/browser-compatibility.ts
+  - [x] 2.3 Move browser-compatibility.ts to utils/browser-compatibility.ts
     - Update imports in provider-manager.ts and settings-ui.ts
     - _Requirements: 2.4, 5.1_
   
-  - [ ] 2.4 Move hardware-diagnostics.ts to utils/hardware-diagnostics.ts
+  - [x] 2.4 Move hardware-diagnostics.ts to utils/hardware-diagnostics.ts
     - Update imports in settings-ui.ts
     - _Requirements: 2.4, 5.1_
   
-  - [ ] 2.5 Move error-handler.ts to utils/error-handler.ts
+  - [x] 2.5 Move error-handler.ts to utils/error-handler.ts
     - Update imports in local-ai-assistant/index.ts
     - _Requirements: 2.4, 5.1_
   
-  - [ ] 2.6 Create git checkpoint and validate
+  - [x] 2.6 Create git checkpoint and validate
     - Commit: "Phase 1: Leaf node files migrated"
     - Run TypeScript compilation: `npx tsc --noEmit`
     - Verify no compilation errors
     - _Requirements: 6.2_
 
-- [ ] 3. Phase 2: Migrate mid-level modules
-  - [ ] 3.1 Move chrome-provider.ts to providers/chrome-provider.ts
+- [x] 3. Phase 2: Migrate mid-level modules
+  - [x] 3.1 Move chrome-provider.ts to providers/chrome-provider.ts
     - Update imports (model-provider from new location)
     - Update imports in provider-manager.ts
     - _Requirements: 2.1, 5.1_
   
-  - [ ] 3.2 Move webllm-provider.ts to providers/webllm-provider.ts
+  - [x] 3.2 Move webllm-provider.ts to providers/webllm-provider.ts
     - Update imports (model-provider from new location)
     - Update imports in provider-manager.ts
     - _Requirements: 2.1, 5.1_
   
-  - [ ] 3.3 Move api-provider.ts to providers/api-provider.ts
+  - [x] 3.3 Move api-provider.ts to providers/api-provider.ts
     - Update imports (model-provider from new location)
     - Update imports in provider-manager.ts
     - _Requirements: 2.1, 5.1_
   
-  - [ ] 3.4 Move gemini-controller.ts to providers/gemini-controller.ts
+  - [x] 3.4 Move gemini-controller.ts to providers/gemini-controller.ts
     - Update imports in chrome-provider.ts
     - _Requirements: 2.1, 5.1_
   
-  - [ ] 3.5 Move storage-manager.ts to storage/storage-manager.ts
+  - [x] 3.5 Move storage-manager.ts to storage/storage-manager.ts
     - Update imports (opfs-manager from new location)
     - Update imports in local-ai-assistant/index.ts, settings-ui.ts, thread-list-ui.ts, recovery-manager.ts
     - _Requirements: 2.3, 5.1_
   
-  - [ ] 3.6 Move markdown-renderer.ts to ui/markdown-renderer.ts
+  - [x] 3.6 Move markdown-renderer.ts to ui/markdown-renderer.ts
     - Update imports in chat-ui.ts
     - _Requirements: 2.2, 5.1_
   
-  - [ ] 3.7 Create git checkpoint and validate
+  - [x] 3.7 Create git checkpoint and validate
     - Commit: "Phase 2: Mid-level modules migrated"
     - Run TypeScript compilation: `npx tsc --noEmit`
     - Verify no compilation errors

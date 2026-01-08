@@ -5,7 +5,7 @@ import {
     WebLLMProvider,
     WEBLLM_MODELS,
     DEFAULT_WEBLLM_MODEL
-} from '../src/webllm-provider';
+} from '../src/providers/webllm-provider';
 
 describe('WebLLMProvider', () => {
     let provider: WebLLMProvider;

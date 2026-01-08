@@ -1,7 +1,7 @@
 
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { StorageManager } from '../src/storage-manager';
+import { StorageManager } from '../src/storage/storage-manager';
 
 describe('StorageManager Unit Tests', () => {
     let storage: StorageManager;

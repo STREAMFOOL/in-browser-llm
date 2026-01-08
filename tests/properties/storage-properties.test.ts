@@ -2,7 +2,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fc from 'fast-check';
-import { StorageManager, Message, Thread, Document, Chunk } from '../../src/storage-manager';
+import { StorageManager, Message, Thread, Document, Chunk } from '../../src/storage/storage-manager';
 
 describe('Storage Properties', () => {
     let storage: StorageManager;

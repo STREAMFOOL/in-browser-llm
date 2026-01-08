@@ -2,7 +2,7 @@
 
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
-import { ErrorHandler, ErrorCategory } from '../../src/error-handler';
+import { ErrorHandler, ErrorCategory } from '../../src/utils/error-handler';
 
 describe('Error Handling Properties', () => {
 

@@ -8,7 +8,7 @@ import type {
     SessionConfig,
     ChatSession,
     DownloadProgress
-} from '../../src/model-provider';
+} from '../../src/providers/model-provider';
 import { ProviderManager, PROVIDER_PRIORITIES } from '../../src/provider-manager';
 
 
@@ -363,7 +363,7 @@ describe('WebLLM Model Caching Properties', () => {
                 }),
                 async ({ modelId }) => {
                     // Import WebLLM provider types
-                    const { WEBLLM_MODELS } = await import('../../src/webllm-provider');
+                    const { WEBLLM_MODELS } = await import('../../src/providers/webllm-provider');
 
                     // Verify model exists in available models
                     const modelInfo = WEBLLM_MODELS.find(m => m.id === modelId);
@@ -386,7 +386,7 @@ describe('WebLLM Model Caching Properties', () => {
             fc.asyncProperty(
                 fc.integer({ min: 1, max: 5 }),
                 async (numCalls) => {
-                    const { WebLLMProvider, WEBLLM_MODELS } = await import('../../src/webllm-provider');
+                    const { WebLLMProvider, WEBLLM_MODELS } = await import('../../src/providers/webllm-provider');
 
                     // Get available models multiple times
                     const results: typeof WEBLLM_MODELS[] = [];

@@ -1,4 +1,4 @@
-import { StorageManager, type Thread, type Message as StorageMessage } from '../storage-manager';
+import { StorageManager, type Thread, type Message as StorageMessage } from '../storage/storage-manager';
 import { ThreadListUI } from '../thread-list-ui';
 import { type Message } from '../chat-ui';
 

@@ -7,7 +7,7 @@ import type {
     SessionConfig,
     ChatSession,
     DownloadProgress
-} from '../src/model-provider';
+} from '../src/providers/model-provider';
 import { ProviderManager, PROVIDER_PRIORITIES } from '../src/provider-manager';
 
 

@@ -1,8 +1,8 @@
 
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { APIProvider, API_BACKENDS } from '../src/api-provider';
-import { StorageManager } from '../src/storage-manager';
+import { APIProvider, API_BACKENDS } from '../src/providers/api-provider';
+import { StorageManager } from '../src/storage/storage-manager';
 
 describe('APIProvider', () => {
     let storage: StorageManager;

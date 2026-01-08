@@ -1,4 +1,4 @@
-import type { DetailedAvailability } from "../gemini-controller";
+import type { DetailedAvailability } from "../providers/gemini-controller";
 
 export function getTroubleshootingGuide(reason: DetailedAvailability['reason']): string {
     switch (reason) {

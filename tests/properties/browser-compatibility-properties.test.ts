@@ -2,7 +2,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as fc from 'fast-check';
-import { BrowserCompatibilityChecker } from '../../src/browser-compatibility';
+import { BrowserCompatibilityChecker } from '../../src/utils/browser-compatibility';
 
 describe('Browser Compatibility Properties', () => {
     beforeEach(() => {

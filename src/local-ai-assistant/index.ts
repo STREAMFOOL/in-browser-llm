@@ -1,16 +1,16 @@
 
 
 import { ChatUI, type Message } from '../chat-ui';
-import { GeminiController } from '../gemini-controller';
+import { GeminiController } from '../providers/gemini-controller';
 import { ProviderManager } from '../provider-manager';
-import { ChromeProvider } from '../chrome-provider';
-import { WebLLMProvider } from '../webllm-provider';
-import type { ModelProvider, ChatSession } from '../model-provider';
-import { ErrorHandler, ErrorCategory } from '../error-handler';
+import { ChromeProvider } from '../providers/chrome-provider';
+import { WebLLMProvider } from '../providers/webllm-provider';
+import type { ModelProvider, ChatSession } from '../providers/model-provider';
+import { ErrorHandler, ErrorCategory } from '../utils/error-handler';
 import { RecoveryManager } from '../recovery-manager';
 import { type SettingsConfig } from '../settings-ui';
-import { StorageManager } from '../storage-manager';
-import { HardwareDiagnostics, type HardwareProfile, type Feature } from '../hardware-diagnostics';
+import { StorageManager } from '../storage/storage-manager';
+import { HardwareDiagnostics, type HardwareProfile, type Feature } from '../utils/hardware-diagnostics';
 import { getMainStyles } from './styles';
 import { SettingsPanel } from './settings';
 import { ThreadManager } from './thread-manager';

@@ -1,7 +1,7 @@
 
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ErrorHandler, ErrorCategory } from '../src/error-handler';
+import { ErrorHandler, ErrorCategory } from '../src/utils/error-handler';
 import { RecoveryManager } from '../src/recovery-manager';
 
 describe('ErrorHandler', () => {

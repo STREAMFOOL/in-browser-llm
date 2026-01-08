@@ -1,6 +1,6 @@
 
 
-import { MarkdownRenderer } from './markdown-renderer';
+import { MarkdownRenderer } from './ui/markdown-renderer';
 
 export interface Message {
     id: string;

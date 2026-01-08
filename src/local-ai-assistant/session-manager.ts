@@ -1,7 +1,7 @@
-import { GeminiController, type InitStep, type DetailedAvailability } from '../gemini-controller';
+import { GeminiController, type InitStep, type DetailedAvailability } from '../providers/gemini-controller';
 import { ProviderManager } from '../provider-manager';
-import type { ModelProvider, ChatSession } from '../model-provider';
-import { HardwareDiagnostics, type HardwareProfile, type Feature } from '../hardware-diagnostics';
+import type { ModelProvider, ChatSession } from '../providers/model-provider';
+import { HardwareDiagnostics, type HardwareProfile, type Feature } from '../utils/hardware-diagnostics';
 import { type Message } from '../chat-ui';
 
 export interface SessionConfig {

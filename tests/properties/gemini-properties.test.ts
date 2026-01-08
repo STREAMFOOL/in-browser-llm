@@ -2,7 +2,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fc from 'fast-check';
-import { GeminiController, type SessionConfig, type AISession } from '../../src/gemini-controller';
+import { GeminiController, type SessionConfig, type AISession } from '../../src/providers/gemini-controller';
 
 describe('Gemini Controller Properties', () => {
     let controller: GeminiController;

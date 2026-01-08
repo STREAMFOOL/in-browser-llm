@@ -2,8 +2,8 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fc from 'fast-check';
-import { APIProvider } from '../../src/api-provider';
-import { StorageManager } from '../../src/storage-manager';
+import { APIProvider } from '../../src/providers/api-provider';
+import { StorageManager } from '../../src/storage/storage-manager';
 
 describe('API Provider Properties', () => {
     let storage: StorageManager;

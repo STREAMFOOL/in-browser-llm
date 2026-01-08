@@ -1,7 +1,7 @@
 
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { BrowserCompatibilityChecker } from '../src/browser-compatibility';
+import { BrowserCompatibilityChecker } from '../src/utils/browser-compatibility';
 
 describe('BrowserCompatibilityChecker', () => {
     beforeEach(() => {

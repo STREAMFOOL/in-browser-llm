@@ -2,8 +2,8 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fc from 'fast-check';
-import { StorageManager } from '../../src/storage-manager';
-import type { Message, Thread } from '../../src/storage-manager';
+import { StorageManager } from '../../src/storage/storage-manager';
+import type { Message, Thread } from '../../src/storage/storage-manager';
 
 describe('Thread Management Properties', () => {
     let storage: StorageManager;

@@ -2,8 +2,8 @@
 
 import { SettingsUI, type SettingsConfig } from '../settings-ui';
 import type { ProviderManager } from '../provider-manager';
-import type { StorageManager } from '../storage-manager';
-import type { HardwareProfile } from '../hardware-diagnostics';
+import type { StorageManager } from '../storage/storage-manager';
+import type { HardwareProfile } from '../utils/hardware-diagnostics';
 import type { Message } from '../chat-ui';
 
 export interface SettingsPanelCallbacks {

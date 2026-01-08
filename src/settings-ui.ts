@@ -1,7 +1,7 @@
 
 
-import { HardwareDiagnostics, type HardwareProfile, type Feature } from './hardware-diagnostics';
-import type { ProviderInfo } from './model-provider';
+import { HardwareDiagnostics, type HardwareProfile, type Feature } from './utils/hardware-diagnostics';
+import type { ProviderInfo } from './providers/model-provider';
 
 export interface SettingsConfig {
     temperature: number;

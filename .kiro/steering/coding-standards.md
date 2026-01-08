@@ -4,6 +4,14 @@ inclusion: always
 
 # Coding Standards
 
+## Making changes
+
+Code changes should be made dirrectly, unless user prompt posed a question. If user asks something in their prompt, then no changes should be made and direct answer should be given in chat.
+
+### History
+
+We use git as our main VCS. In order to preserve history if we are moving files between folders, we should be using 'git mv [-v] [-f] [-n] [-k] <source> <destination>' command. It is also much more efficient in terms of tomen consumption.
+
 ## TypeScript Guidelines
 
 ### Type Safety

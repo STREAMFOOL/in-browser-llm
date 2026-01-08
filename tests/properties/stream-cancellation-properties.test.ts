@@ -2,7 +2,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as fc from 'fast-check';
-import { GeminiController, AISession } from '../../src/gemini-controller';
+import { GeminiController, AISession } from '../../src/providers/gemini-controller';
 
 describe('Stream Cancellation Properties', () => {
     let controller: GeminiController;

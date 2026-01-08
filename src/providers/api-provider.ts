@@ -9,7 +9,7 @@ import type {
     DownloadProgress
 } from './model-provider';
 import { generateSessionId } from './model-provider';
-import { StorageManager } from './storage-manager';
+import { StorageManager } from '../storage/storage-manager';
 
 
 export type APIBackend = 'openai' | 'anthropic' | 'ollama';

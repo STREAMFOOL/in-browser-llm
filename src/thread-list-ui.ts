@@ -1,6 +1,6 @@
 
 
-import type { ThreadMetadata } from './storage-manager';
+import type { ThreadMetadata } from './storage/storage-manager';
 
 export interface ThreadListCallbacks {
     onThreadSelect: (threadId: string) => void;
