@@ -23,10 +23,19 @@ inclusion: always
 - One class per file (with related interfaces in same file)
 - Group imports: external libraries, then internal modules
 - Export interfaces alongside their implementations
-- **File size limit**: Keep files under 300 lines when possible
+- **File size limits** (excluding test files):
+  - **Hard limit**: 500 lines maximum
+  - **Target**: Keep files under 200 lines ideally
   - Extract related functionality into separate modules when files grow large
-  - Exception: Files may exceed 300 lines if functionality is truly inseparable
+  - Exception: Files may exceed limits if functionality is truly inseparable
   - Consider splitting by: UI components, business logic, utilities, types
+
+### Monitoring File Sizes
+Use this command to check the 20 largest files in the project:
+```bash
+find . -type f \( -name "*.ts" -o -name "*.css" -o -name "*.js" -o -name "*.html" \) -not -path "./node_modules/*" -not -path "./dist/*" -not -path "./.git/*" -exec wc -l {} + | sort -rn | head -21
+```
+Review output regularly to identify files that need refactoring.
 
 ## Styling with Tailwind CSS
 

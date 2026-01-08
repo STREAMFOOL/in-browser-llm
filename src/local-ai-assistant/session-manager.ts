@@ -407,7 +407,7 @@ export class SessionManager {
 
     private getTroubleshootingGuide(reason?: DetailedAvailability['reason']): string {
         // Import from troubleshoot.ts would be better, but keeping inline for now
-        return `**Troubleshooting Guide**\n\nPlease check the browser requirements and try again.`;
+        return `**Troubleshooting Guide**\n\nPlease check the browser requirements and try again.\n\nReason='${reason}'`;
     }
 
     private getNoProviderGuide(chromeReason?: DetailedAvailability['reason']): string {
