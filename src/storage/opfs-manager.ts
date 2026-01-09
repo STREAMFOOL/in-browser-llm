@@ -81,7 +81,7 @@ export class OPFSManager {
 
             return assets;
         } catch (error) {
-            console.error('Failed to list assets from OPFS:', error);
+            // console.error('Failed to list assets from OPFS:', error);
             return [];
         }
     }

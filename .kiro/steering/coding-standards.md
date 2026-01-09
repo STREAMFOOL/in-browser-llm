@@ -6,7 +6,7 @@ inclusion: always
 
 ## Making changes
 
-Code changes should be made dirrectly, unless user prompt posed a question. If user asks something in their prompt, then no changes should be made and direct answer should be given in chat.
+Code changes should be made directly, unless user prompt posed a question. If user asks something in their prompt, then no changes should be made. All questions should be answered and confirmed by the user before we proceed to coding.
 
 ### History
 
@@ -62,34 +62,6 @@ The codebase is organized into logical modules with clear responsibilities:
   7. Core module imports
   8. Utils module imports
 
-### Example Import Pattern
-```typescript
-// External libraries
-import fc from 'fast-check';
-
-// Component imports
-import { SessionManager } from '../component/session-manager';
-
-// UI imports
-import { ChatUI } from '../ui/chat-ui';
-import { SettingsUI } from '../ui/settings-ui';
-
-// Styles imports
-import { styles } from '../styles';
-
-// Provider imports
-import { ProviderManager } from '../providers/provider-manager';
-import { ChromeProvider } from '../providers/chrome-provider';
-
-// Storage imports
-import { StorageManager } from '../storage/storage-manager';
-
-// Core imports
-import { ContextWindowManager } from '../core/context-window-manager';
-
-// Utils imports
-import { ErrorHandler } from '../utils/error-handler';
-```
 
 ### Monitoring File Sizes
 Use this command to check the 20 largest files in the project:
@@ -181,6 +153,11 @@ button.textContent = 'Click me';
 - Never expose stack traces to users
 
 ## Testing
+
+Run tests using `npm test --silent` by default.
+- `--silent` is important to manage context size
+- running specific sub-set of tests should be prefered, 
+    example: `npm test -- tests/properties/worker-properties.test --silent`
 
 ### Property-Based Tests
 - Use fast-check for property testing
