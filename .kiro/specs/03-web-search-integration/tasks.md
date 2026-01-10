@@ -6,21 +6,21 @@ This implementation plan adds web search capabilities to the Local AI Assistant.
 
 ## Tasks
 
-- [ ] 1. Implement Search API Client
-  - [ ] 1.1 Create SearchAPIClient interface
+- [x] 1. Implement Search API Client
+  - [x] 1.1 Create SearchAPIClient interface
     - Define interface for search operations
     - Define SearchOptions and SearchResponse types
     - Define APIUsageStats interface
     - _Requirements: 1.1, 1.2_
 
-  - [ ] 1.2 Implement BraveSearchClient
+  - [x] 1.2 Implement BraveSearchClient
     - Create Brave Search API client class
     - Implement search() method with query parameters
     - Handle API authentication with X-Subscription-Token header
     - Parse and transform API responses
     - _Requirements: 1.1_
 
-  - [ ]* 1.3 Write unit tests for BraveSearchClient
+  - [x] 1.3 Write unit tests for BraveSearchClient
     - Test request formatting
     - Test response parsing
     - Test error handling

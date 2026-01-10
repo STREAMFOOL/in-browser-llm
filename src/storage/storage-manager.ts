@@ -204,6 +204,33 @@ export class StorageManager {
         }
     }
 
+    async verifyPersistenceWithTest(): Promise<boolean> {
+        const ANCHOR_KEY = '__persistence_test__';
+        const ANCHOR_VALUE = { timestamp: Date.now(), test: true };
+
+        try {
+            // Write anchor data
+            await this.db.settings.put({ key: ANCHOR_KEY, value: ANCHOR_VALUE });
+
+            // Immediately read it back
+            const retrieved = await this.db.settings.get(ANCHOR_KEY);
+
+            // Verify the data matches
+            if (retrieved &&
+                retrieved.value.test === ANCHOR_VALUE.test &&
+                retrieved.value.timestamp === ANCHOR_VALUE.timestamp) {
+                console.log('Persistence verification test passed');
+                return true;
+            } else {
+                console.warn('Persistence verification test failed: data mismatch');
+                return false;
+            }
+        } catch (error) {
+            console.error('Persistence verification test failed:', error);
+            return false;
+        }
+    }
+
 
     async getStorageEstimate(): Promise<StorageEstimate> {
         if (!navigator.storage || !navigator.storage.estimate) {

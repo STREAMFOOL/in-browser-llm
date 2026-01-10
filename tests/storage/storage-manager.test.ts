@@ -32,6 +32,16 @@ describe('StorageManager Unit Tests', () => {
             expect(typeof result1).toBe('boolean');
             expect(typeof result2).toBe('boolean');
         });
+
+        it('should verify persistence by writing and reading test data', async () => {
+            const canPersist = await storage.verifyPersistenceWithTest();
+
+            // Should return a boolean
+            expect(typeof canPersist).toBe('boolean');
+
+            // In a working environment, should be true
+            expect(canPersist).toBe(true);
+        });
     });
 
     describe('Storage Quota Handling', () => {

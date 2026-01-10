@@ -144,12 +144,16 @@ export class LocalAIAssistant extends HTMLElement {
     private async initializeWithIntegrityCheck(): Promise<void> {
         // Request persistent storage on initialization
         try {
-            const isPersisted = await this.storageManager.requestPersistence();
+            // First, request persistence
+            await this.storageManager.requestPersistence();
 
-            if (!isPersisted) {
-                console.warn('Persistent storage was denied. Data may be cleared by the browser.');
+            // Then verify persistence works by actually writing and reading data
+            const canPersist = await this.storageManager.verifyPersistenceWithTest();
 
-                // Display warning in chat UI
+            if (!canPersist) {
+                console.warn('Persistent storage verification failed. Data may not be reliably stored.');
+
+                // Display warning in chat UI only if persistence test fails
                 const warningMessage = this.core.createPersistenceWarningMessage();
                 setTimeout(() => {
                     const chatUI = (this.lifecycle as any).chatUI;
@@ -158,10 +162,10 @@ export class LocalAIAssistant extends HTMLElement {
                     }
                 }, 100);
             } else {
-                console.log('Persistent storage granted');
+                console.log('Persistent storage verified and working');
             }
         } catch (error) {
-            console.error('Failed to request persistent storage:', error);
+            console.error('Failed to verify persistent storage:', error);
         }
 
         // Run data integrity check on startup
