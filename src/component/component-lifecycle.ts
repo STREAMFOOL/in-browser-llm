@@ -57,6 +57,11 @@ export class ComponentLifecycle {
             return await this.clearDataOperation.getDataSize();
         };
 
+        // Set up quota warning callback
+        this.storageManager.setQuotaWarningCallback((usage, quota) => {
+            this.handleQuotaWarning(usage, quota);
+        });
+
         // Initialize session manager
         this.sessionManager = new SessionManager(
             this.geminiController,
@@ -131,6 +136,9 @@ export class ComponentLifecycle {
                 enabledFeatures: this.currentSettings.enabledFeatures
             });
         }
+
+        // Start storage quota monitoring (check every minute)
+        this.storageManager.startQuotaMonitoring(60000);
     }
 
     toggleSettings(): void {
@@ -516,7 +524,26 @@ export class ComponentLifecycle {
         console.log('Thread created:', threadId);
     }
 
+    private handleQuotaWarning(usage: number, quota: number): void {
+        if (!this.chatUI) return;
+
+        const usagePercent = ((usage / quota) * 100).toFixed(1);
+        const usageGB = (usage / (1024 ** 3)).toFixed(2);
+        const quotaGB = (quota / (1024 ** 3)).toFixed(2);
+
+        const warningMessage = this.core.createQuotaWarningMessage(
+            usagePercent,
+            usageGB,
+            quotaGB
+        );
+
+        this.chatUI.addMessage(warningMessage);
+    }
+
     async dispose(): Promise<void> {
+        // Stop quota monitoring
+        this.storageManager.stopQuotaMonitoring();
+
         if (this.sessionManager) {
             await this.sessionManager.dispose();
         }

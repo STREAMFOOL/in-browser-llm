@@ -137,8 +137,63 @@ export class LocalAIAssistant extends HTMLElement {
         this.shadow.appendChild(style);
         this.shadow.appendChild(container);
 
+        // Initialize session and run integrity check
+        this.initializeWithIntegrityCheck();
+    }
+
+    private async initializeWithIntegrityCheck(): Promise<void> {
+        // Request persistent storage on initialization
+        try {
+            const isPersisted = await this.storageManager.requestPersistence();
+
+            if (!isPersisted) {
+                console.warn('Persistent storage was denied. Data may be cleared by the browser.');
+
+                // Display warning in chat UI
+                const warningMessage = this.core.createPersistenceWarningMessage();
+                setTimeout(() => {
+                    const chatUI = (this.lifecycle as any).chatUI;
+                    if (chatUI) {
+                        chatUI.addMessage(warningMessage);
+                    }
+                }, 100);
+            } else {
+                console.log('Persistent storage granted');
+            }
+        } catch (error) {
+            console.error('Failed to request persistent storage:', error);
+        }
+
+        // Run data integrity check on startup
+        try {
+            const integrityReport = await this.storageManager.verifyDataIntegrity();
+
+            if (!integrityReport.valid) {
+                console.warn('Data integrity issues detected:', integrityReport);
+
+                // Display warning in chat UI if there are errors
+                if (integrityReport.errors.length > 0) {
+                    const errorMessage = this.core.createIntegrityErrorMessage(integrityReport);
+                    // Wait a bit for chat UI to be ready
+                    setTimeout(() => {
+                        const chatContent = this.shadow.querySelector('.ai-assistant-content');
+                        if (chatContent) {
+                            const chatUI = (this.lifecycle as any).chatUI;
+                            if (chatUI) {
+                                chatUI.addMessage(errorMessage);
+                            }
+                        }
+                    }, 100);
+                }
+            } else if (integrityReport.warnings.length > 0) {
+                console.warn('Data integrity warnings:', integrityReport.warnings);
+            }
+        } catch (error) {
+            console.error('Failed to verify data integrity:', error);
+        }
+
         // Initialize session
-        this.lifecycle.initializeSession();
+        await this.lifecycle.initializeSession();
     }
 
     connectedCallback(): void {

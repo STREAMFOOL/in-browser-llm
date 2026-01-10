@@ -157,55 +157,55 @@ This implementation plan adds comprehensive data management capabilities to the 
     - Test clear operation trigger
     - _Requirements: 1.5, 1.6_
 
-- [ ] 7. Implement Data Integrity Verification
-  - [ ] 7.1 Implement verifyDataIntegrity() method
+- [x] 7. Implement Data Integrity Verification
+  - [x] 7.1 Implement verifyDataIntegrity() method
     - Check message-thread consistency
     - Check for orphaned messages
     - Check for corrupted data
     - Return IntegrityReport
     - _Requirements: 2.1, 2.2_
 
-  - [ ] 7.2 Add integrity check to initialization
+  - [x] 7.2 Add integrity check to initialization
     - Run integrity check on startup
     - Display warnings if issues found
     - Offer to repair or clear corrupted data
     - _Requirements: 2.1, 2.2_
 
-  - [ ] 7.3 Write unit tests for integrity verification
+  - [x] 7.3 Write unit tests for integrity verification
     - Test with valid data
     - Test with orphaned messages
     - Test with corrupted data
     - _Requirements: 2.1, 2.2_
 
-- [ ] 8. Implement Storage Persistence Request
-  - [ ] 8.1 Call navigator.storage.persist() on initialization
+- [x] 8. Implement Storage Persistence Request
+  - [x] 8.1 Call navigator.storage.persist() on initialization
     - Request persistent storage
     - Handle permission grant/deny
     - Display warning if denied
     - _Requirements: 2.3_
 
-  - [ ] 8.2 Implement storage quota monitoring
+  - [x] 8.2 Implement storage quota monitoring
     - Check storage estimate periodically
     - Display warning when quota is low
     - Offer to clear old data
     - _Requirements: 2.6_
 
-  - [ ]* 8.3 Write unit tests for persistence request
+  - [ ] 8.3 Write unit tests for persistence request
     - Test persist() call
     - Test quota monitoring
     - Test warning display
     - _Requirements: 2.3, 2.6_
 
 - [ ] 9. Property Tests for Data Integrity
-  - [ ]* 9.1 Write property test for storage round-trip consistency
+  - [ ] 9.1 Write property test for storage round-trip consistency
     - **Property 1: Storage Round-Trip Consistency**
     - **Validates: Requirements 1.3, 1.4, 2.1, 2.2**
 
-  - [ ]* 9.2 Write property test for stream completion persistence
+  - [ ] 9.2 Write property test for stream completion persistence
     - **Property 3: Stream Completion Persistence**
     - **Validates: Requirements 3.6**
 
-  - [ ]* 9.3 Write property test for thread message ordering
+  - [ ] 9.3 Write property test for thread message ordering
     - **Property 5: Thread Message Ordering**
     - **Validates: Requirements 2.5**
 

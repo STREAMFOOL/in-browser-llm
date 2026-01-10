@@ -93,6 +93,148 @@ describe('StorageManager Unit Tests', () => {
         });
     });
 
+    describe('Data Integrity Verification', () => {
+        // Requirements: 2.1, 2.2
+        it('should pass integrity check with valid data', async () => {
+            // Create valid thread and message
+            const thread = {
+                id: 'test-thread',
+                title: 'Test Thread',
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+                messageCount: 1
+            };
+            await storage.createThread(thread);
+
+            const message = {
+                id: 'test-message',
+                threadId: 'test-thread',
+                role: 'user' as const,
+                content: 'Test message',
+                timestamp: Date.now()
+            };
+            await storage.saveMessage('test-thread', message);
+
+            const report = await storage.verifyDataIntegrity();
+
+            expect(report.valid).toBe(true);
+            expect(report.errors).toHaveLength(0);
+        });
+
+        it('should detect orphaned messages', async () => {
+            // Create message without corresponding thread
+            const message = {
+                id: 'orphaned-message',
+                threadId: 'non-existent-thread',
+                role: 'user' as const,
+                content: 'Orphaned message',
+                timestamp: Date.now()
+            };
+            await storage.saveMessage('non-existent-thread', message);
+
+            const report = await storage.verifyDataIntegrity();
+
+            expect(report.valid).toBe(false);
+            expect(report.errors.length).toBeGreaterThan(0);
+            expect(report.errors[0]).toContain('Orphaned message');
+            expect(report.errors[0]).toContain('non-existent-thread');
+        });
+
+        it('should detect corrupted data with missing required fields', async () => {
+            // Create thread first
+            const thread = {
+                id: 'test-thread',
+                title: 'Test Thread',
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+                messageCount: 1
+            };
+            await storage.createThread(thread);
+
+            // Manually insert corrupted message (missing required fields)
+            const corruptedMessage = {
+                id: 'corrupted-message',
+                threadId: 'test-thread',
+                // Missing role, content, timestamp
+            };
+
+            // Access the internal db to insert corrupted data
+            const storageAny = storage as any;
+            await storageAny.db.messages.put(corruptedMessage);
+
+            const report = await storage.verifyDataIntegrity();
+
+            expect(report.valid).toBe(false);
+            expect(report.errors.length).toBeGreaterThan(0);
+            expect(report.errors.some(e => e.includes('missing required fields'))).toBe(true);
+        });
+
+        it('should warn about incorrect message counts', async () => {
+            // Create thread with incorrect message count
+            const thread = {
+                id: 'test-thread',
+                title: 'Test Thread',
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+                messageCount: 5 // Incorrect count
+            };
+            await storage.createThread(thread);
+
+            // Add only 2 messages
+            const message1 = {
+                id: 'message-1',
+                threadId: 'test-thread',
+                role: 'user' as const,
+                content: 'Message 1',
+                timestamp: Date.now()
+            };
+            const message2 = {
+                id: 'message-2',
+                threadId: 'test-thread',
+                role: 'assistant' as const,
+                content: 'Message 2',
+                timestamp: Date.now()
+            };
+
+            // Manually insert messages without updating thread count
+            const storageAny = storage as any;
+            await storageAny.db.messages.put(message1);
+            await storageAny.db.messages.put(message2);
+
+            const report = await storage.verifyDataIntegrity();
+
+            // Should have warnings about message count mismatch
+            expect(report.warnings.length).toBeGreaterThan(0);
+            expect(report.warnings.some(w => w.includes('messageCount'))).toBe(true);
+        });
+
+        it('should detect orphaned chunks', async () => {
+            // Create chunk without corresponding document
+            const chunk = {
+                id: 'orphaned-chunk',
+                documentId: 'non-existent-document',
+                content: 'Orphaned chunk content',
+                startOffset: 0,
+                endOffset: 100
+            };
+            await storage.saveChunk(chunk);
+
+            const report = await storage.verifyDataIntegrity();
+
+            expect(report.valid).toBe(false);
+            expect(report.errors.length).toBeGreaterThan(0);
+            expect(report.errors.some(e => e.includes('Orphaned chunk'))).toBe(true);
+        });
+
+        it('should handle empty database gracefully', async () => {
+            const report = await storage.verifyDataIntegrity();
+
+            expect(report.valid).toBe(true);
+            expect(report.errors).toHaveLength(0);
+            expect(report.warnings).toHaveLength(0);
+        });
+    });
+
     describe('clearStore() method', () => {
         // Requirements: 1.6
         it('should clear specific object store', async () => {

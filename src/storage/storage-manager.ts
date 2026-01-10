@@ -127,10 +127,60 @@ export class StorageManager {
     private db: LocalAIDatabase;
     private opfs: OPFSManager;
     private persistenceRequested: boolean = false;
+    private quotaMonitorInterval: number | null = null;
+    private quotaWarningThreshold: number = 0.9; // Warn at 90% usage
+    private onQuotaWarning?: (usage: number, quota: number) => void;
 
     constructor() {
         this.db = new LocalAIDatabase();
         this.opfs = new OPFSManager();
+    }
+
+    setQuotaWarningCallback(callback: (usage: number, quota: number) => void): void {
+        this.onQuotaWarning = callback;
+    }
+
+    startQuotaMonitoring(intervalMs: number = 60000): void {
+        if (this.quotaMonitorInterval !== null) {
+            return; // Already monitoring
+        }
+
+        // Check immediately
+        this.checkStorageQuota();
+
+        // Then check periodically
+        this.quotaMonitorInterval = window.setInterval(() => {
+            this.checkStorageQuota();
+        }, intervalMs);
+    }
+
+    stopQuotaMonitoring(): void {
+        if (this.quotaMonitorInterval !== null) {
+            window.clearInterval(this.quotaMonitorInterval);
+            this.quotaMonitorInterval = null;
+        }
+    }
+
+    private async checkStorageQuota(): Promise<void> {
+        try {
+            const estimate = await this.getStorageEstimate();
+
+            if (estimate.quota === 0) {
+                return; // Storage API not available
+            }
+
+            const usageRatio = estimate.usage / estimate.quota;
+
+            if (usageRatio >= this.quotaWarningThreshold) {
+                console.warn(`Storage quota warning: ${(usageRatio * 100).toFixed(1)}% used (${estimate.usage} / ${estimate.quota} bytes)`);
+
+                if (this.onQuotaWarning) {
+                    this.onQuotaWarning(estimate.usage, estimate.quota);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to check storage quota:', error);
+        }
     }
 
 

@@ -2,6 +2,7 @@ import type { Message } from '../ui/chat-ui';
 import type { ModelProvider } from '../providers/model-provider';
 import type { SettingsConfig } from '../ui/settings-ui';
 import type { HardwareProfile, Feature } from '../utils/hardware-diagnostics';
+import type { IntegrityReport } from '../storage/storage-manager';
 import { HardwareDiagnostics } from '../utils/hardware-diagnostics';
 
 export class ComponentCore {
@@ -175,6 +176,38 @@ export class ComponentCore {
             id: `msg-${this.messageIdCounter++}`,
             role: 'assistant',
             content: '⚠️ **GPU Recovery Failed**\n\nThe GPU could not be reinitialized. You may need to reset the application or restart your browser.',
+            timestamp: Date.now()
+        };
+    }
+
+    createIntegrityErrorMessage(report: IntegrityReport): Message {
+        const errorList = report.errors.map(e => `- ${e}`).join('\n');
+        const warningList = report.warnings.length > 0
+            ? `\n\n**Warnings:**\n${report.warnings.map(w => `- ${w}`).join('\n')}`
+            : '';
+
+        return {
+            id: `msg-${this.messageIdCounter++}`,
+            role: 'assistant',
+            content: `⚠️ **Data Integrity Issues Detected**\n\nSome issues were found with your stored data:\n\n**Errors:**\n${errorList}${warningList}\n\n**Recommended Actions:**\n- You can continue using the assistant, but some data may be corrupted\n- Consider clearing all data from Settings if issues persist\n- Orphaned messages will not appear in conversations`,
+            timestamp: Date.now()
+        };
+    }
+
+    createPersistenceWarningMessage(): Message {
+        return {
+            id: `msg-${this.messageIdCounter++}`,
+            role: 'assistant',
+            content: `⚠️ **Persistent Storage Not Available**\n\nYour browser denied persistent storage permission. This means:\n\n- Your conversations and settings may be cleared by the browser\n- Data could be lost when storage quota is low\n- The browser may delete data during cleanup\n\n**Recommendation:** Grant persistent storage permission in your browser settings to ensure your data is preserved.`,
+            timestamp: Date.now()
+        };
+    }
+
+    createQuotaWarningMessage(usagePercent: string, usageGB: string, quotaGB: string): Message {
+        return {
+            id: `msg-${this.messageIdCounter++}`,
+            role: 'assistant',
+            content: `⚠️ **Storage Quota Warning**\n\nYour storage usage is getting high:\n\n- **Usage:** ${usageGB} GB / ${quotaGB} GB (${usagePercent}%)\n- **Status:** Running low on space\n\n**Recommended Actions:**\n- Clear old conversations from the thread list\n- Use the "Clear All Data" option in Settings to free up space\n- Delete unused cached models\n\nIf storage fills up completely, the browser may delete data automatically.`,
             timestamp: Date.now()
         };
     }
