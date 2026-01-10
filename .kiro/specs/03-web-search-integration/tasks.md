@@ -27,26 +27,26 @@ This implementation plan adds web search capabilities to the Local AI Assistant.
     - Mock API responses
     - _Requirements: 1.1_
 
-- [ ] 2. Implement Snippet Extraction
-  - [ ] 2.1 Create SnippetExtractor
+- [x] 2. Implement Snippet Extraction
+  - [x] 2.1 Create SnippetExtractor
     - Implement extractSnippets() method
     - Implement relevance scoring algorithm
     - Implement snippet truncation with sentence boundaries
     - Remove HTML tags and formatting
     - _Requirements: 1.2_
 
-  - [ ] 2.2 Implement deduplication logic
+  - [x] 2.2 Implement deduplication logic
     - Detect and remove duplicate snippets
     - Compare snippets by content similarity
     - _Requirements: 1.2_
 
-  - [ ]* 2.3 Write unit tests for SnippetExtractor
+  - [x] 2.3 Write unit tests for SnippetExtractor
     - Test relevance scoring
     - Test truncation logic
     - Test deduplication
     - _Requirements: 1.2_
 
-  - [ ]* 2.4 Write property test for snippet length constraint
+  - [x] 2.4 Write property test for snippet length constraint
     - **Property 6: Snippet Length Constraint**
     - **Validates: Design requirement**
 
