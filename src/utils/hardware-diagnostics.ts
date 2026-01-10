@@ -167,6 +167,11 @@ export class HardwareDiagnostics {
         }
 
         try {
+            // Request persistent storage to potentially increase quota
+            if (navigator.storage.persist) {
+                await navigator.storage.persist();
+            }
+
             const estimate = await navigator.storage.estimate();
             const availableBytes = (estimate.quota || 0) - (estimate.usage || 0);
             return availableBytes / (1024 ** 3); // Convert to GB

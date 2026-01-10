@@ -176,7 +176,7 @@ export class ChromeProvider implements ModelProvider {
             default:
                 return {
                     available: false,
-                    reason: 'Chrome Gemini Nano is not available. Ensure you are using Chrome 127+ with the Prompt API enabled.'
+                    reason: 'Chrome Gemini Nano is only available in Chrome 127 or later with the Prompt API enabled.'
                 };
         }
     }

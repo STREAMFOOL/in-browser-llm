@@ -6,6 +6,8 @@ import { ErrorHandler, ErrorCategory } from '../utils/error-handler';
 import { RecoveryManager } from '../core/recovery-manager';
 import { type SettingsConfig } from '../ui/settings-ui';
 import { StorageManager } from '../storage/storage-manager';
+import { OPFSManager } from '../storage/opfs-manager';
+import { ClearDataOperation } from '../storage/clear-data-operation';
 import type { HardwareProfile, Feature } from '../utils/hardware-diagnostics';
 import { SettingsPanel } from './settings';
 import { ThreadManager } from './thread-manager';
@@ -23,6 +25,7 @@ export class ComponentLifecycle {
     private providerManager: ProviderManager;
     private recoveryManager: RecoveryManager;
     private storageManager: StorageManager;
+    private clearDataOperation: ClearDataOperation;
     private abortController: AbortController | null = null;
     private currentSettings: SettingsConfig = {
         temperature: 0.7,
@@ -44,6 +47,15 @@ export class ComponentLifecycle {
         this.providerManager = providerManager;
         this.storageManager = storageManager;
         this.recoveryManager = recoveryManager;
+
+        // Initialize ClearDataOperation
+        const opfsManager = new OPFSManager();
+        this.clearDataOperation = new ClearDataOperation(this.storageManager, opfsManager);
+
+        // Expose getDataSize for UI
+        (window as any).__getDataSize = async () => {
+            return await this.clearDataOperation.getDataSize();
+        };
 
         // Initialize session manager
         this.sessionManager = new SessionManager(
@@ -229,12 +241,50 @@ export class ComponentLifecycle {
     private async clearAllData(): Promise<void> {
         try {
             console.log('Clearing all data...');
-            await this.storageManager.clearAllData();
 
+            // Show progress message
             if (this.chatUI) {
-                const successMessage = this.core.createDataClearedMessage();
-                this.chatUI.addMessage(successMessage);
+                const progressMessage: Message = {
+                    id: `progress-${Date.now()}`,
+                    role: 'assistant',
+                    content: '🔄 **Clearing data...**\n\nPlease wait while we delete all conversations, settings, and cached data.',
+                    timestamp: Date.now()
+                };
+                this.chatUI.addMessage(progressMessage);
             }
+
+            // Call ClearDataOperation to clear all data
+            const result = await this.clearDataOperation.clearAll();
+
+            // Clear chat UI first
+            if (this.chatUI) {
+                this.chatUI.clearMessages();
+            }
+
+            // Reset header
+            this.core.updateHeaderText('Ask Ai Assistant Locally');
+
+            // Show result message
+            if (this.chatUI) {
+                if (result.success) {
+                    const successMessage: Message = {
+                        id: `success-${Date.now()}`,
+                        role: 'assistant',
+                        content: `✅ **All data cleared successfully**\n\n**Cleared:**\n- ${result.clearedStores.join(', ')}\n- ${result.clearedFiles} files deleted\n\nAll conversations, cached models, and settings have been deleted.`,
+                        timestamp: Date.now()
+                    };
+                    this.chatUI.addMessage(successMessage);
+                } else {
+                    const errorMessage: Message = {
+                        id: `error-${Date.now()}`,
+                        role: 'assistant',
+                        content: `⚠️ **Data clearing completed with errors**\n\n**Cleared:**\n- ${result.clearedStores.join(', ')}\n- ${result.clearedFiles} files deleted\n\n**Errors:**\n${result.errors.map(e => `- ${e}`).join('\n')}`,
+                        timestamp: Date.now()
+                    };
+                    this.chatUI.addMessage(errorMessage);
+                }
+            }
+
         } catch (error) {
             console.error('Failed to clear data:', error);
 

@@ -58,11 +58,12 @@ export class SettingsSections {
         );
 
         // Storage
+        const storageStatus = this.hardwareProfile.storageAvailable >= 22 ? 'good' : this.hardwareProfile.storageAvailable >= 10 ? 'warning' : 'poor';
         const storageCard = this.createHardwareCard(
             '💿',
             'Available Storage',
             `${this.hardwareProfile.storageAvailable.toFixed(1)} GB`,
-            this.hardwareProfile.storageAvailable >= 22 ? 'good' : this.hardwareProfile.storageAvailable >= 10 ? 'warning' : 'poor'
+            storageStatus
         );
 
         // GPU VRAM
@@ -80,6 +81,34 @@ export class SettingsSections {
         grid.appendChild(storageCard);
         grid.appendChild(vramCard);
 
+        // Storage quota info message
+        if (this.hardwareProfile.storageAvailable < 22) {
+            const storageInfo = document.createElement('div');
+            storageInfo.className = 'p-3 mt-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-900 leading-relaxed';
+
+            if (this.hardwareProfile.storageAvailable < 10) {
+                storageInfo.innerHTML = `
+                    <div class="font-semibold mb-1">⚠️ Limited Storage Available</div>
+                    <div>Your browser has allocated ${this.hardwareProfile.storageAvailable.toFixed(1)} GB for this site. 
+                    Chrome typically provides more storage than other browsers. For the best experience with local AI models, 
+                    we recommend using Chrome.</div>
+                `;
+            } else {
+                storageInfo.innerHTML = `
+                    <div class="font-semibold mb-1">ℹ️ Storage Notice</div>
+                    <div>You have ${this.hardwareProfile.storageAvailable.toFixed(1)} GB available. 
+                    Local AI models work best with 22+ GB of storage. Chrome typically provides larger storage quotas than other browsers.</div>
+                `;
+            }
+
+            section.appendChild(title);
+            section.appendChild(grid);
+            section.appendChild(storageInfo);
+        } else {
+            section.appendChild(title);
+            section.appendChild(grid);
+        }
+
         // Performance score
         if (this.hardwareProfile.webGPUSupported && this.hardwareProfile.gpuPerformanceScore > 0) {
             const perfInfo = document.createElement('div');
@@ -88,12 +117,7 @@ export class SettingsSections {
                 <span class="perf-label">GPU Performance Score:</span>
                 <span class="perf-score">${this.hardwareProfile.gpuPerformanceScore}/100</span>
             `;
-            section.appendChild(title);
-            section.appendChild(grid);
             section.appendChild(perfInfo);
-        } else {
-            section.appendChild(title);
-            section.appendChild(grid);
         }
 
         this.container.appendChild(section);
@@ -674,14 +698,42 @@ export class SettingsSections {
         title.className = 'settings-section-title';
         title.textContent = 'Data Management';
 
+        // Data size display container
+        const dataSizeContainer = document.createElement('div');
+        dataSizeContainer.className = 'data-size-container';
+        dataSizeContainer.style.cssText = `
+            margin: 16px 0;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+        `;
+
+        const dataSizeTitle = document.createElement('div');
+        dataSizeTitle.style.cssText = `
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #333;
+        `;
+        dataSizeTitle.textContent = '📊 Current Storage Usage';
+
+        const dataSizeContent = document.createElement('div');
+        dataSizeContent.id = 'data-size-content';
+        dataSizeContent.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        `;
+        dataSizeContent.innerHTML = '<div style="color: #666;">Loading storage information...</div>';
+
+        dataSizeContainer.appendChild(dataSizeTitle);
+        dataSizeContainer.appendChild(dataSizeContent);
+
         // Clear data button
         const clearButton = document.createElement('button');
         clearButton.className = 'action-button secondary';
         clearButton.textContent = '🗑️ Clear All Data';
         clearButton.addEventListener('click', async () => {
-            if (confirm('Are you sure you want to clear all data? This will delete all conversations and cached models.')) {
-                await this.callbacks.onClearData();
-            }
+            await this.showClearDataDialog();
         });
 
         const clearDescription = document.createElement('div');
@@ -703,6 +755,7 @@ export class SettingsSections {
         resetDescription.textContent = 'Clear all data and reset the application to its initial state. The page will reload.';
 
         section.appendChild(title);
+        section.appendChild(dataSizeContainer);
         section.appendChild(clearDescription);
         section.appendChild(clearButton);
         section.appendChild(document.createElement('br'));
@@ -710,5 +763,235 @@ export class SettingsSections {
         section.appendChild(resetButton);
 
         this.container.appendChild(section);
+
+        // Load and display data size
+        this.updateDataSizeDisplay();
+    }
+
+    private async showClearDataDialog(): Promise<void> {
+        // Create modal overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        `;
+
+        // Create dialog
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        `;
+
+        const dialogTitle = document.createElement('h3');
+        dialogTitle.style.cssText = `
+            margin: 0 0 16px 0;
+            font-size: 20px;
+            color: #d32f2f;
+        `;
+        dialogTitle.textContent = '⚠️ Clear All Data';
+
+        const dialogMessage = document.createElement('p');
+        dialogMessage.style.cssText = `
+            margin: 0 0 16px 0;
+            color: #666;
+            line-height: 1.5;
+        `;
+        dialogMessage.textContent = 'This will permanently delete:';
+
+        const dataList = document.createElement('ul');
+        dataList.style.cssText = `
+            margin: 0 0 16px 0;
+            padding-left: 24px;
+            color: #666;
+        `;
+        dataList.innerHTML = `
+            <li>All conversation threads and messages</li>
+            <li>All settings and preferences</li>
+            <li>All cached models and assets</li>
+        `;
+
+        const dataSizeInfo = document.createElement('div');
+        dataSizeInfo.style.cssText = `
+            margin: 16px 0;
+            padding: 12px;
+            background: rgba(211, 47, 47, 0.1);
+            border-radius: 8px;
+            font-weight: 600;
+            color: #d32f2f;
+        `;
+        dataSizeInfo.innerHTML = '<div>Loading data size...</div>';
+
+        const warningText = document.createElement('p');
+        warningText.style.cssText = `
+            margin: 16px 0;
+            color: #d32f2f;
+            font-weight: 600;
+        `;
+        warningText.textContent = 'This action cannot be undone!';
+
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = `
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        `;
+
+        const cancelButton = document.createElement('button');
+        cancelButton.style.cssText = `
+            padding: 10px 20px;
+            border: 1px solid #ccc;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        `;
+        cancelButton.textContent = 'Cancel';
+        cancelButton.addEventListener('click', () => {
+            document.body.removeChild(overlay);
+        });
+
+        const confirmButton = document.createElement('button');
+        confirmButton.style.cssText = `
+            padding: 10px 20px;
+            border: none;
+            background: #d32f2f;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        `;
+        confirmButton.textContent = 'Clear All Data';
+        confirmButton.addEventListener('click', async () => {
+            confirmButton.disabled = true;
+            confirmButton.textContent = 'Clearing...';
+            confirmButton.style.opacity = '0.6';
+
+            try {
+                await this.callbacks.onClearData();
+                document.body.removeChild(overlay);
+                // Update data size display after clearing
+                this.updateDataSizeDisplay();
+            } catch (error) {
+                alert('Failed to clear data: ' + (error instanceof Error ? error.message : 'Unknown error'));
+                confirmButton.disabled = false;
+                confirmButton.textContent = 'Clear All Data';
+                confirmButton.style.opacity = '1';
+            }
+        });
+
+        buttonContainer.appendChild(cancelButton);
+        buttonContainer.appendChild(confirmButton);
+
+        dialog.appendChild(dialogTitle);
+        dialog.appendChild(dialogMessage);
+        dialog.appendChild(dataList);
+        dialog.appendChild(dataSizeInfo);
+        dialog.appendChild(warningText);
+        dialog.appendChild(buttonContainer);
+
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+
+        // Load data size for dialog
+        try {
+            const dataSize = await this.getDataSize();
+            dataSizeInfo.innerHTML = `
+                <div style="font-size: 16px;">Total Storage: ${this.formatBytes(dataSize.total)}</div>
+                <div style="font-size: 14px; margin-top: 4px; font-weight: normal;">
+                    Conversations: ${this.formatBytes(dataSize.conversations)} | 
+                    Settings: ${this.formatBytes(dataSize.settings)} | 
+                    Assets: ${this.formatBytes(dataSize.assets)}
+                </div>
+            `;
+        } catch (error) {
+            dataSizeInfo.innerHTML = '<div>Unable to calculate data size</div>';
+        }
+    }
+
+    private async updateDataSizeDisplay(): Promise<void> {
+        const contentElement = document.getElementById('data-size-content');
+        if (!contentElement) return;
+
+        try {
+            const dataSize = await this.getDataSize();
+
+            contentElement.innerHTML = `
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(0, 0, 0, 0.1);">
+                    <span style="color: #666;">💬 Conversations:</span>
+                    <span style="font-weight: 600; color: #333;">${this.formatBytes(dataSize.conversations)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(0, 0, 0, 0.1);">
+                    <span style="color: #666;">⚙️ Settings:</span>
+                    <span style="font-weight: 600; color: #333;">${this.formatBytes(dataSize.settings)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(0, 0, 0, 0.1);">
+                    <span style="color: #666;">📁 Assets:</span>
+                    <span style="font-weight: 600; color: #333;">${this.formatBytes(dataSize.assets)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(0, 0, 0, 0.1);">
+                    <span style="color: #666;">🗄️ Model Cache:</span>
+                    <span style="font-weight: 600; color: #333;">${this.formatBytes(dataSize.modelCache)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 12px 0 0 0; margin-top: 8px; border-top: 2px solid rgba(0, 0, 0, 0.2);">
+                    <span style="font-weight: 600; color: #333;">Total Storage:</span>
+                    <span style="font-weight: 700; color: #1976d2; font-size: 16px;">${this.formatBytes(dataSize.total)}</span>
+                </div>
+            `;
+        } catch (error) {
+            contentElement.innerHTML = '<div style="color: #d32f2f;">Failed to load storage information</div>';
+            console.error('Failed to get data size:', error);
+        }
+    }
+
+    private async getDataSize(): Promise<{ conversations: number; settings: number; assets: number; modelCache: number; total: number }> {
+        // This will be implemented by calling the ClearDataOperation.getDataSize() method
+        // For now, we'll use a placeholder that will be wired up in the component
+        if ((window as any).__getDataSize) {
+            return await (window as any).__getDataSize();
+        }
+
+        // Fallback to storage estimate
+        if (navigator.storage && navigator.storage.estimate) {
+            const estimate = await navigator.storage.estimate();
+            return {
+                conversations: 0,
+                settings: 0,
+                assets: 0,
+                modelCache: 0,
+                total: estimate.usage || 0
+            };
+        }
+
+        return {
+            conversations: 0,
+            settings: 0,
+            assets: 0,
+            modelCache: 0,
+            total: 0
+        };
+    }
+
+    private formatBytes(bytes: number): string {
+        if (bytes === 0) return '0 Bytes';
+
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+        return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
     }
 }
