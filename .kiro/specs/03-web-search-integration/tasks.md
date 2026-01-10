@@ -50,8 +50,8 @@ This implementation plan adds web search capabilities to the Local AI Assistant.
     - **Property 6: Snippet Length Constraint**
     - **Validates: Design requirement**
 
-- [ ] 3. Implement Citation Formatting
-  - [ ] 3.1 Create CitationFormatter
+- [-] 3. Implement Citation Formatting
+  - [x] 3.1 Create CitationFormatter
     - Implement formatCitations() method
     - Generate numbered citation markers
     - Extract domain from URLs
