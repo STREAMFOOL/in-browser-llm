@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { LocalAIAssistant } from '../src/component';
+import { LocalAIAssistant } from '../../src/component';
 
 describe('LocalAIAssistant Web Component', () => {
     beforeEach(() => {

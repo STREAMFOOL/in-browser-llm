@@ -2,7 +2,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as fc from 'fast-check';
-import { GeminiController, AISession } from '../../src/providers/gemini-controller';
+import { GeminiController, type AISession } from '../../src/providers/gemini-controller';
 
 describe('Stream Cancellation Properties', () => {
     let controller: GeminiController;
@@ -59,7 +59,7 @@ describe('Stream Cancellation Properties', () => {
                     let caughtError = false;
 
                     try {
-                        for await (const chunk of stream) {
+                        for await (const _chunk of stream) {
                             receivedChunks++;
 
                             // Cancel after receiving some chunks (but not all)
@@ -131,7 +131,7 @@ describe('Stream Cancellation Properties', () => {
                     let caughtError = false;
 
                     try {
-                        for await (const chunk of stream) {
+                        for await (const _chunk of stream) {
                             receivedChunks++;
                         }
                     } catch (error) {
@@ -194,7 +194,7 @@ describe('Stream Cancellation Properties', () => {
                     let errors = 0;
 
                     try {
-                        for await (const chunk of stream) {
+                        for await (const _chunk of stream) {
                             receivedChunks++;
 
                             if (receivedChunks === 1) {

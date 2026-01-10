@@ -11,6 +11,7 @@ export interface Message {
     role: 'user' | 'assistant' | 'system';
     content: string;
     timestamp: number;
+    complete?: boolean;
     attachments?: Attachment[];
     metadata?: MessageMetadata;
 }
@@ -116,6 +117,12 @@ export interface StorageEstimate {
     quota: number;
 }
 
+export interface IntegrityReport {
+    valid: boolean;
+    errors: string[];
+    warnings: string[];
+}
+
 export class StorageManager {
     private db: LocalAIDatabase;
     private opfs: OPFSManager;
@@ -216,6 +223,14 @@ export class StorageManager {
         await this.db.threads.delete(threadId);
     }
 
+    async updateMessageComplete(messageId: string, complete: boolean): Promise<void> {
+        const message = await this.db.messages.get(messageId);
+        if (message) {
+            message.complete = complete;
+            await this.db.messages.put(message);
+        }
+    }
+
     // Document Operations
 
 
@@ -260,6 +275,121 @@ export class StorageManager {
         await this.db.chunks.clear();
         await this.db.settings.clear();
         await this.opfs.clearAllAssets();
+    }
+
+    async clearStore(storeName: string): Promise<void> {
+        switch (storeName) {
+            case 'threads':
+                await this.db.threads.clear();
+                break;
+            case 'messages':
+                await this.db.messages.clear();
+                break;
+            case 'documents':
+                await this.db.documents.clear();
+                break;
+            case 'chunks':
+                await this.db.chunks.clear();
+                break;
+            case 'settings':
+                await this.db.settings.clear();
+                break;
+            default:
+                throw new Error(`Unknown store: ${storeName}`);
+        }
+    }
+
+    async getStoreSize(storeName: string): Promise<number> {
+        let size = 0;
+
+        try {
+            let items: any[] = [];
+
+            switch (storeName) {
+                case 'threads':
+                    items = await this.db.threads.toArray();
+                    break;
+                case 'messages':
+                    items = await this.db.messages.toArray();
+                    break;
+                case 'documents':
+                    items = await this.db.documents.toArray();
+                    break;
+                case 'chunks':
+                    items = await this.db.chunks.toArray();
+                    break;
+                case 'settings':
+                    items = await this.db.settings.toArray();
+                    break;
+                default:
+                    return 0;
+            }
+
+            for (const item of items) {
+                const serialized = JSON.stringify(item);
+                size += serialized.length;
+            }
+        } catch (error) {
+            console.error(`Failed to calculate size for store ${storeName}:`, error);
+        }
+
+        return size;
+    }
+
+    async verifyDataIntegrity(): Promise<IntegrityReport> {
+        const report: IntegrityReport = {
+            valid: true,
+            errors: [],
+            warnings: []
+        };
+
+        try {
+            // Check message-thread consistency
+            const messages = await this.db.messages.toArray();
+            const threads = await this.db.threads.toArray();
+            const threadIds = new Set(threads.map(t => t.id));
+
+            for (const message of messages) {
+                if (!threadIds.has(message.threadId)) {
+                    report.valid = false;
+                    report.errors.push(`Orphaned message ${message.id} references non-existent thread ${message.threadId}`);
+                }
+            }
+
+            // Check for corrupted data (messages without required fields)
+            for (const message of messages) {
+                if (!message.id || !message.threadId || !message.role || !message.content || !message.timestamp) {
+                    report.valid = false;
+                    report.errors.push(`Message ${message.id || 'unknown'} is missing required fields`);
+                }
+            }
+
+            // Check thread message counts
+            for (const thread of threads) {
+                const actualCount = await this.db.messages.where('threadId').equals(thread.id).count();
+                if (thread.messageCount !== actualCount) {
+                    report.warnings.push(`Thread ${thread.id} has messageCount=${thread.messageCount} but actual count is ${actualCount}`);
+                }
+            }
+
+            // Check chunk-document consistency
+            const chunks = await this.db.chunks.toArray();
+            const documents = await this.db.documents.toArray();
+            const documentIds = new Set(documents.map(d => d.id));
+
+            for (const chunk of chunks) {
+                if (!documentIds.has(chunk.documentId)) {
+                    report.valid = false;
+                    report.errors.push(`Orphaned chunk ${chunk.id} references non-existent document ${chunk.documentId}`);
+                }
+            }
+
+        } catch (error) {
+            report.valid = false;
+            report.errors.push(`Integrity check failed: ${error instanceof Error ? error.message : String(error)}`);
+        }
+
+        return report;
     }
 
     // Asset Operations (OPFS)

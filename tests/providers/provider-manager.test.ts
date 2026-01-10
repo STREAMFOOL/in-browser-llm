@@ -7,8 +7,8 @@ import type {
     SessionConfig,
     ChatSession,
     DownloadProgress
-} from '../src/providers/model-provider';
-import { ProviderManager, PROVIDER_PRIORITIES } from '../src/providers/provider-manager';
+} from '../../src/providers/model-provider';
+import { ProviderManager, PROVIDER_PRIORITIES } from '../../src/providers/provider-manager';
 
 
 function createMockProvider(

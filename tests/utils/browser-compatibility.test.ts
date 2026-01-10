@@ -1,7 +1,7 @@
 
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { BrowserCompatibilityChecker } from '../src/utils/browser-compatibility';
+import { BrowserCompatibilityChecker } from '../../src/utils/browser-compatibility';
 
 describe('BrowserCompatibilityChecker', () => {
     beforeEach(() => {
@@ -204,8 +204,9 @@ describe('BrowserCompatibilityChecker', () => {
             const result = BrowserCompatibilityChecker.detectHardware();
 
             // deviceMemory may or may not be available in test environment
-            if (navigator.deviceMemory) {
-                expect(result.ram).toBe(navigator.deviceMemory);
+            const nav = navigator as Navigator & { deviceMemory?: number };
+            if (nav.deviceMemory) {
+                expect(result.ram).toBe(nav.deviceMemory);
             } else {
                 expect(result.ram).toBe(null);
             }

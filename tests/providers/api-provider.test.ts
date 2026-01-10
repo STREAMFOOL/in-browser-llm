@@ -1,8 +1,8 @@
 
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { APIProvider, API_BACKENDS } from '../src/providers/api-provider';
-import { StorageManager } from '../src/storage/storage-manager';
+import { APIProvider } from '../../src/providers/api-provider';
+import { StorageManager } from '../../src/storage/storage-manager';
 
 describe('APIProvider', () => {
     let storage: StorageManager;
@@ -95,7 +95,7 @@ describe('APIProvider', () => {
 
         it('should parse OpenAI Server-Sent Events correctly', async () => {
             // Mock fetch for OpenAI streaming
-            global.fetch = vi.fn().mockResolvedValue({
+            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
                 ok: true,
                 body: {
                     getReader: () => {
@@ -121,7 +121,7 @@ describe('APIProvider', () => {
                         };
                     }
                 }
-            } as any);
+            } as any));
 
             await provider.setBackend('openai');
             await provider.setApiKey('sk-test-key');
@@ -143,7 +143,7 @@ describe('APIProvider', () => {
 
         it('should parse Anthropic Server-Sent Events correctly', async () => {
             // Mock fetch for Anthropic streaming
-            global.fetch = vi.fn().mockResolvedValue({
+            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
                 ok: true,
                 body: {
                     getReader: () => {
@@ -169,7 +169,7 @@ describe('APIProvider', () => {
                         };
                     }
                 }
-            } as any);
+            } as any));
 
             await provider.setBackend('anthropic');
             await provider.setApiKey('sk-ant-test-key');
@@ -191,7 +191,7 @@ describe('APIProvider', () => {
 
         it('should parse Ollama streaming format correctly', async () => {
             // Mock fetch for Ollama streaming
-            global.fetch = vi.fn().mockResolvedValue({
+            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
                 ok: true,
                 body: {
                     getReader: () => {
@@ -217,7 +217,7 @@ describe('APIProvider', () => {
                         };
                     }
                 }
-            } as any);
+            } as any));
 
             await provider.setBackend('ollama');
             await provider.initialize();

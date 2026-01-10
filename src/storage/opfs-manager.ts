@@ -81,7 +81,7 @@ export class OPFSManager {
 
             return assets;
         } catch (error) {
-            // console.error('Failed to list assets from OPFS:', error);
+            console.error('Failed to list assets from OPFS:', error);
             return [];
         }
     }
@@ -100,6 +100,30 @@ export class OPFSManager {
             }
             console.error('Failed to clear assets from OPFS:', error);
             throw new Error(`Failed to clear assets: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+
+    async getTotalSize(): Promise<number> {
+        try {
+            const root = await this.getRoot();
+            let totalSize = 0;
+
+            // @ts-ignore - TypeScript doesn't have full OPFS types yet
+            for await (const entry of root.values()) {
+                if (entry.kind === 'file') {
+                    const file = await entry.getFile();
+                    totalSize += file.size;
+                }
+            }
+
+            return totalSize;
+        } catch (error) {
+            // Return 0 if OPFS is not supported
+            if (error instanceof Error && error.message.includes('OPFS not supported')) {
+                return 0;
+            }
+            console.error('Failed to calculate OPFS size:', error);
+            return 0;
         }
     }
 }

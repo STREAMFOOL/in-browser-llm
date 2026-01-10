@@ -1,7 +1,7 @@
 
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { GeminiController } from '../src/providers/gemini-controller';
+import { GeminiController } from '../../src/providers/gemini-controller';
 
 describe('GeminiController - Model Availability States', () => {
     let controller: GeminiController;
