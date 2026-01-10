@@ -68,21 +68,21 @@ This implementation plan adds web search capabilities to the Local AI Assistant.
     - **Property 7: Citation Format Validity**
     - **Validates: Requirements 1.3**
 
-- [ ] 4. Implement Search Controller
-  - [ ] 4.1 Create SearchController class
+- [x] 4. Implement Search Controller
+  - [x] 4.1 Create SearchController class
     - Implement isSearchEnabled() and setSearchEnabled()
     - Implement shouldSearch() heuristics
     - Implement search() orchestration method
     - Integrate SearchAPIClient, SnippetExtractor, CitationFormatter
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-  - [ ] 4.2 Implement search result caching
+  - [x] 4.2 Implement search result caching
     - Create in-memory cache with LRU eviction
     - Set 5-minute expiration
     - Limit to 10 cached queries
     - _Requirements: 1.1_
 
-  - [ ] 4.3 Implement error handling
+  - [x] 4.3 Implement error handling
     - Handle API key missing
     - Handle rate limiting (HTTP 429)
     - Handle network timeouts
