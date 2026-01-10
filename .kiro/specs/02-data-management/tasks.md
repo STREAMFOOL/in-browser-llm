@@ -56,46 +56,46 @@ This implementation plan adds comprehensive data management capabilities to the 
     - **Property 6: Clear Data Idempotence**
     - **Validates: Requirements 1.6**
 
-- [-] 3. Enhance IndexedDBManager
-  - [ ] 3.1 Implement clearStore() method
+- [x] 3. Enhance IndexedDBManager
+  - [x] 3.1 Implement clearStore() method
     - Clear specific object store
     - Handle transaction errors
     - _Requirements: 1.6_
 
-  - [ ] 3.2 Implement getStoreSize() method
+  - [x] 3.2 Implement getStoreSize() method
     - Calculate store size in bytes
     - Iterate through all records
     - _Requirements: 1.6_
 
-  - [ ] 3.3 Implement updateMessageComplete() method
+  - [x] 3.3 Implement updateMessageComplete() method
     - Update message complete flag
     - Use atomic transaction
     - _Requirements: 3.6_
 
-  - [ ]* 3.4 Write unit tests for IndexedDBManager enhancements
+  - [x] 3.4 Write unit tests for IndexedDBManager enhancements
     - Test store clearing
     - Test size calculation
     - Test message complete update
     - _Requirements: 1.6, 3.6_
 
-- [ ] 4. Enhance OPFSManager
-  - [ ] 4.1 Implement clearAllFiles() method
+- [x] 4. Enhance OPFSManager
+  - [x] 4.1 Implement clearAllFiles() method
     - Recursively delete all files
     - Delete all directories
     - Return count of deleted files
     - _Requirements: 1.6_
 
-  - [ ] 4.2 Implement getTotalSize() method
+  - [x] 4.2 Implement getTotalSize() method
     - Calculate total OPFS usage
     - Recursively sum file sizes
     - _Requirements: 1.6_
 
-  - [ ] 4.3 Implement deleteDirectoryRecursive() helper
+  - [x] 4.3 Implement deleteDirectoryRecursive() helper
     - Recursively delete directory contents
     - Handle nested directories
     - _Requirements: 1.6_
 
-  - [ ]* 4.4 Write unit tests for OPFSManager enhancements
+  - [x] 4.4 Write unit tests for OPFSManager enhancements
     - Test clearAllFiles()
     - Test getTotalSize()
     - Test recursive deletion
@@ -120,7 +120,7 @@ This implementation plan adds comprehensive data management capabilities to the 
     - Emit events when settings change
     - _Requirements: 1.3_
 
-  - [ ]* 5.4 Write unit tests for SettingsManager
+  - [ ] 5.4 Write unit tests for SettingsManager
     - Test get/set operations
     - Test persistence
     - Test defaults

@@ -103,20 +103,38 @@ export class OPFSManager {
         }
     }
 
-    async getTotalSize(): Promise<number> {
+    async clearAllFiles(): Promise<number> {
         try {
             const root = await this.getRoot();
-            let totalSize = 0;
+            let fileCount = 0;
 
             // @ts-ignore - TypeScript doesn't have full OPFS types yet
             for await (const entry of root.values()) {
                 if (entry.kind === 'file') {
-                    const file = await entry.getFile();
-                    totalSize += file.size;
+                    await root.removeEntry(entry.name);
+                    fileCount++;
+                } else if (entry.kind === 'directory') {
+                    const count = await this.deleteDirectoryRecursive(entry);
+                    fileCount += count;
+                    await root.removeEntry(entry.name, { recursive: true });
                 }
             }
 
-            return totalSize;
+            return fileCount;
+        } catch (error) {
+            // Return 0 if OPFS is not supported
+            if (error instanceof Error && error.message.includes('OPFS not supported')) {
+                return 0;
+            }
+            console.error('Failed to clear all files from OPFS:', error);
+            throw new Error(`Failed to clear all files: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+
+    async getTotalSize(): Promise<number> {
+        try {
+            const root = await this.getRoot();
+            return await this.calculateDirectorySize(root);
         } catch (error) {
             // Return 0 if OPFS is not supported
             if (error instanceof Error && error.message.includes('OPFS not supported')) {
@@ -125,5 +143,36 @@ export class OPFSManager {
             console.error('Failed to calculate OPFS size:', error);
             return 0;
         }
+    }
+
+    private async deleteDirectoryRecursive(dir: FileSystemDirectoryHandle): Promise<number> {
+        let count = 0;
+
+        // @ts-ignore - TypeScript doesn't have full OPFS types yet
+        for await (const entry of dir.values()) {
+            if (entry.kind === 'file') {
+                count++;
+            } else if (entry.kind === 'directory') {
+                count += await this.deleteDirectoryRecursive(entry);
+            }
+        }
+
+        return count;
+    }
+
+    private async calculateDirectorySize(dir: FileSystemDirectoryHandle): Promise<number> {
+        let size = 0;
+
+        // @ts-ignore - TypeScript doesn't have full OPFS types yet
+        for await (const entry of dir.values()) {
+            if (entry.kind === 'file') {
+                const file = await entry.getFile();
+                size += file.size;
+            } else if (entry.kind === 'directory') {
+                size += await this.calculateDirectorySize(entry);
+            }
+        }
+
+        return size;
     }
 }
