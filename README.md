@@ -5,10 +5,13 @@ A privacy-first, browser-based conversational AI system that runs entirely on th
 ## Features
 
 - 🔒 **Privacy-First**: All inference and data storage occur on your device
+  - *Tradeoff*: Limited to smaller models that fit on consumer hardware; no access to larger, more capable models
+  
 - 🚀 **Zero Latency**: No server round-trips for responses
+  - *Tradeoff*: Inference speed depends on local hardware; first response may take 5-30 seconds depending on GPU
+  
 - 📦 **Embeddable**: Web Component that works on any website
-- 🎨 **Style Isolated**: Uses Shadow DOM to prevent CSS conflicts
-- 🧪 **Well Tested**: Property-based testing with fast-check
+  - *Tradeoff*: Requires Chrome 127+ or WebGPU-capable browser; not compatible with older browsers or Safari (no Gemini or WebGPU support)
 
 ## Requirements
 
