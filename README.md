@@ -113,7 +113,3 @@ The assistant is built as a Web Component with:
 ├── tsconfig.json                  # TypeScript config
 └── tsconfig.build.json            # Build-specific TS config
 ```
-
-## License
-
-MIT
