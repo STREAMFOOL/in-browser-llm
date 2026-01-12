@@ -172,6 +172,32 @@ export class SearchController {
     }
 
     /**
+     * Format search context for injection into model prompt
+     * Ensures context fits within token limits and adds clear markers
+     */
+    formatContextForPrompt(contextText: string, maxTokens: number = 500): string {
+        if (!contextText || contextText.trim().length === 0) {
+            return '';
+        }
+
+        // Rough estimate: 1 token ≈ 4 characters
+        const maxChars = maxTokens * 4;
+        let formattedContext = contextText;
+
+        // Truncate if necessary
+        if (formattedContext.length > maxChars) {
+            formattedContext = formattedContext.substring(0, maxChars).trim();
+            // Add ellipsis if truncated
+            if (!formattedContext.endsWith('\n')) {
+                formattedContext += '\n...';
+            }
+        }
+
+        // Add clear markers for search context
+        return `\n\n---\n**Web Search Context:**\n${formattedContext}\n---\n`;
+    }
+
+    /**
      * Execute search with timeout protection
      */
     private async executeSearchWithTimeout(query: string): Promise<SearchResult[]> {

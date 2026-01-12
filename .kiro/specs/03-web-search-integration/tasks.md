@@ -137,15 +137,15 @@ This implementation plan adds web search capabilities to the Local AI Assistant.
     - **Property 5: Search Indicator Visibility**
     - **Validates: Requirements 1.6**
 
-- [ ] 6. Integrate Search with Message Flow
-  - [ ] 6.1 Modify message handler to use SearchController
+- [x] 6. Integrate Search with Message Flow
+  - [x] 6.1 Modify message handler to use SearchController
     - Check if search is enabled before sending to model
     - Call SearchController.search() for eligible queries
     - Inject search context into model prompt
     - Append citations to model response
     - _Requirements: 1.1, 1.2, 1.3_
 
-  - [ ] 6.2 Implement context injection formatting
+  - [x] 6.2 Implement context injection formatting
     - Format search snippets for model prompt
     - Add clear markers for search context
     - Ensure context fits within token limits

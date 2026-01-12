@@ -13,6 +13,11 @@ import { SettingsPanel } from './settings';
 import { ThreadManager } from './thread-manager';
 import { SessionManager } from './session-manager';
 import { ComponentCore } from './component-core';
+import { SearchController } from '../providers/search-controller';
+import { BraveSearchClient } from '../providers/brave-search-client';
+import { SnippetExtractor } from '../providers/snippet-extractor';
+import { CitationFormatter } from '../providers/citation-formatter';
+import { SettingsManager } from '../storage/settings-manager';
 
 export class ComponentLifecycle {
     private shadow: ShadowRoot;
@@ -26,6 +31,8 @@ export class ComponentLifecycle {
     private recoveryManager: RecoveryManager;
     private storageManager: StorageManager;
     private clearDataOperation: ClearDataOperation;
+    private searchController: SearchController | null = null;
+    private settingsManager: SettingsManager;
     private abortController: AbortController | null = null;
     private currentSettings: SettingsConfig = {
         temperature: 0.7,
@@ -48,9 +55,23 @@ export class ComponentLifecycle {
         this.storageManager = storageManager;
         this.recoveryManager = recoveryManager;
 
+        // Initialize SettingsManager for search
+        this.settingsManager = new SettingsManager(storageManager);
+
         // Initialize ClearDataOperation
         const opfsManager = new OPFSManager();
         this.clearDataOperation = new ClearDataOperation(this.storageManager, opfsManager);
+
+        // Initialize SearchController with empty API key (will be loaded from settings)
+        const searchClient = new BraveSearchClient('');
+        const snippetExtractor = new SnippetExtractor();
+        const citationFormatter = new CitationFormatter();
+        this.searchController = new SearchController(
+            searchClient,
+            snippetExtractor,
+            citationFormatter,
+            this.settingsManager
+        );
 
         // Expose getDataSize for UI
         (window as any).__getDataSize = async () => {
@@ -403,10 +424,40 @@ export class ComponentLifecycle {
         this.abortController = new AbortController();
 
         try {
+            // Check if search should be performed
+            let searchContext = '';
+            let citationsText = '';
+            let searchSources: any[] = [];
+
+            if (this.searchController && this.searchController.shouldSearch(content)) {
+                this.chatUI.showSearchIndicator();
+                try {
+                    const searchResult = await this.searchController.search(content);
+                    searchContext = searchResult.contextText;
+                    searchSources = searchResult.sources;
+
+                    // Format citations if we have search results
+                    if (searchSources.length > 0) {
+                        citationsText = '\n\n' + this.searchController.formatCitations(searchSources);
+                    }
+                } catch (error) {
+                    console.error('Search failed, continuing without search context:', error);
+                } finally {
+                    this.chatUI.hideSearchIndicator();
+                }
+            }
+
+            // Inject search context into the prompt with clear markers and token limits
+            let promptWithContext = content;
+            if (searchContext && this.searchController) {
+                const formattedContext = this.searchController.formatContextForPrompt(searchContext, 500);
+                promptWithContext = content + formattedContext;
+            }
+
             let fullResponse = '';
             const stream = activeProvider.promptStreaming(
                 currentSession,
-                content,
+                promptWithContext,
                 this.abortController.signal
             );
 
@@ -419,9 +470,11 @@ export class ComponentLifecycle {
                 this.chatUI.updateMessage(assistantMessage.id, fullResponse, true);
             }
 
-            this.chatUI.updateMessage(assistantMessage.id, fullResponse, true);
+            // Append citations to the response
+            const finalResponse = fullResponse + citationsText;
+            this.chatUI.updateMessage(assistantMessage.id, finalResponse, true);
 
-            assistantMessage.content = fullResponse;
+            assistantMessage.content = finalResponse;
             assistantMessage.isStreaming = false;
             if (this.threadManager) {
                 await this.threadManager.saveMessageToThread(assistantMessage, {
@@ -435,6 +488,7 @@ export class ComponentLifecycle {
             this.chatUI.hideLoading();
         } catch (error) {
             this.chatUI.hideLoading();
+            this.chatUI.hideSearchIndicator();
 
             if (error instanceof Error && error.message === 'Stream cancelled') {
                 const cancelledContent = assistantMessage.content || '⚠️ _Message cancelled by user_';

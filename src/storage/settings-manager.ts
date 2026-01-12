@@ -79,15 +79,15 @@ export class SettingsManager {
      * Get all settings with defaults
      */
     async getAll(): Promise<Settings> {
-        const settings: Settings = { ...DEFAULT_SETTINGS };
+        const settings: Partial<Settings> = { ...DEFAULT_SETTINGS };
 
         // Load each setting from storage or use default
         for (const key of Object.keys(DEFAULT_SETTINGS) as Array<keyof Settings>) {
             const value = await this.get(key, DEFAULT_SETTINGS[key]);
-            settings[key] = value as any;
+            (settings as any)[key] = value;
         }
 
-        return settings;
+        return settings as Settings;
     }
 
     /**

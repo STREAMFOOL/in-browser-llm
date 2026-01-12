@@ -3,7 +3,7 @@
  * Processes search results to extract relevant text snippets for context injection
  */
 
-import { SearchResult } from './search-api-client';
+import type { SearchResult } from './search-api-client';
 
 export interface ExtractedSnippet {
     text: string;

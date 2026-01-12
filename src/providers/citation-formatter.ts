@@ -3,7 +3,7 @@
  * Formats source citations for inclusion in model responses
  */
 
-import { SearchResult } from './search-api-client';
+import type { SearchResult } from './search-api-client';
 
 export interface FormattedCitation {
     index: number;

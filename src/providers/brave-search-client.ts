@@ -3,7 +3,7 @@
  * Concrete implementation of SearchAPIClient for Brave Search API
  */
 
-import {
+import type {
     SearchAPIClient,
     SearchOptions,
     SearchResponse,
