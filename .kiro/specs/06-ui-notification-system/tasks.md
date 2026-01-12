@@ -6,7 +6,7 @@ This plan implements a toast-style notification system with persistent logging a
 
 ## Tasks
 
-- [ ] 1. Create notification types and interfaces
+- [x] 1. Create notification types and interfaces
   - Create `src/ui/notification-types.ts` with all TypeScript interfaces
   - Define NotificationType, NotificationOptions, Notification, StorageInfo
   - Define LoggedNotification for persistence
