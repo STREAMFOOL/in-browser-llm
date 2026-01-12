@@ -8,6 +8,7 @@ export interface Settings {
     enableImageGeneration: boolean;
     enableSpeech: boolean;
     enableWebSearch: boolean;
+    searchApiKey: string;
     theme: 'light' | 'dark' | 'auto';
     preferredProvider: 'chrome' | 'webllm' | 'api' | 'auto';
 }
@@ -20,6 +21,7 @@ export const DEFAULT_SETTINGS: Settings = {
     enableImageGeneration: false,
     enableSpeech: false,
     enableWebSearch: false,
+    searchApiKey: '',
     theme: 'auto',
     preferredProvider: 'auto',
 };

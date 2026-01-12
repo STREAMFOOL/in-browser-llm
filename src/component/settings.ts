@@ -13,6 +13,8 @@ export interface SettingsPanelCallbacks {
     onResetApplication: () => Promise<void>;
     onApiConfigChange?: (backend: string, modelId: string, apiKey: string, endpoint: string) => Promise<void>;
     onWebLLMModelChange?: (modelId: string) => Promise<void>;
+    onSearchToggle?: (enabled: boolean) => Promise<void>;
+    onSearchApiKeyChange?: (apiKey: string) => Promise<void>;
     onShowMessage?: (message: Message) => void;
 }
 
@@ -118,7 +120,9 @@ export class SettingsPanel {
                             await this.callbacks.onResetApplication();
                         },
                         onApiConfigChange: this.callbacks.onApiConfigChange,
-                        onWebLLMModelChange: this.callbacks.onWebLLMModelChange
+                        onWebLLMModelChange: this.callbacks.onWebLLMModelChange,
+                        onSearchToggle: this.callbacks.onSearchToggle,
+                        onSearchApiKeyChange: this.callbacks.onSearchApiKeyChange
                     },
                     this.currentSettings
                 );

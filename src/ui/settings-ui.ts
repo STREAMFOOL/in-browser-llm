@@ -15,6 +15,8 @@ export interface SettingsCallbacks {
     onResetApplication: () => Promise<void>;
     onApiConfigChange?: (backend: string, modelId: string, apiKey: string, endpoint: string) => Promise<void>;
     onWebLLMModelChange?: (modelId: string) => Promise<void>;
+    onSearchToggle?: (enabled: boolean) => Promise<void>;
+    onSearchApiKeyChange?: (apiKey: string) => Promise<void>;
 }
 
 export class SettingsUI {
@@ -48,6 +50,7 @@ export class SettingsUI {
         this.sections.renderProviderSection(providers, activeProviderName);
         this.sections.renderWebLLMModelSection(activeProviderName);
         this.sections.renderApiConfigSection(activeProviderName);
+        this.sections.renderSearchSection();
         this.sections.renderDataManagementSection();
     }
 

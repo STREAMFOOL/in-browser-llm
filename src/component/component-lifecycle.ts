@@ -57,6 +57,15 @@ export class ComponentLifecycle {
             return await this.clearDataOperation.getDataSize();
         };
 
+        // Expose search state getters for UI
+        (window as any).__getSearchEnabled = async () => {
+            return await this.storageManager.loadSetting('enableWebSearch') ?? false;
+        };
+
+        (window as any).__getSearchApiKey = async () => {
+            return await this.storageManager.loadSetting('searchApiKey') ?? '';
+        };
+
         // Set up quota warning callback
         this.storageManager.setQuotaWarningCallback((usage, quota) => {
             this.handleQuotaWarning(usage, quota);
@@ -105,6 +114,12 @@ export class ComponentLifecycle {
                 },
                 onWebLLMModelChange: async (modelId: string) => {
                     await this.switchWebLLMModel(modelId);
+                },
+                onSearchToggle: async (enabled: boolean) => {
+                    await this.handleSearchToggle(enabled);
+                },
+                onSearchApiKeyChange: async (apiKey: string) => {
+                    await this.handleSearchApiKeyChange(apiKey);
                 },
                 onShowMessage: (message: Message) => {
                     if (this.chatUI) {
@@ -538,6 +553,34 @@ export class ComponentLifecycle {
         );
 
         this.chatUI.addMessage(warningMessage);
+    }
+
+    private async handleSearchToggle(enabled: boolean): Promise<void> {
+        try {
+            await this.storageManager.saveSetting('enableWebSearch', enabled);
+
+            // Expose search state for UI
+            (window as any).__getSearchEnabled = async () => {
+                return await this.storageManager.loadSetting('enableWebSearch') ?? false;
+            };
+        } catch (error) {
+            console.error('Failed to toggle web search:', error);
+            throw error;
+        }
+    }
+
+    private async handleSearchApiKeyChange(apiKey: string): Promise<void> {
+        try {
+            await this.storageManager.saveSetting('searchApiKey', apiKey);
+
+            // Expose API key getter for UI
+            (window as any).__getSearchApiKey = async () => {
+                return await this.storageManager.loadSetting('searchApiKey') ?? '';
+            };
+        } catch (error) {
+            console.error('Failed to save search API key:', error);
+            throw error;
+        }
     }
 
     async dispose(): Promise<void> {

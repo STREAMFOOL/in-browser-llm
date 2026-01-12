@@ -690,6 +690,127 @@ export class SettingsSections {
         this.container.appendChild(section);
     }
 
+    renderSearchSection(): void {
+        const section = document.createElement('div');
+        section.className = 'settings-section';
+
+        const title = document.createElement('div');
+        title.className = 'settings-section-title';
+        title.textContent = 'Web Search';
+
+        // Search toggle
+        const toggleContainer = document.createElement('div');
+        toggleContainer.className = 'feature-toggle';
+
+        const toggleDetails = document.createElement('div');
+        toggleDetails.className = 'feature-details';
+
+        const toggleLabel = document.createElement('div');
+        toggleLabel.className = 'feature-label';
+        toggleLabel.textContent = 'Enable Web Search';
+
+        const toggleDesc = document.createElement('div');
+        toggleDesc.className = 'feature-description';
+        toggleDesc.textContent = 'Allow the assistant to search the web for current information when answering questions.';
+
+        toggleDetails.appendChild(toggleLabel);
+        toggleDetails.appendChild(toggleDesc);
+
+        const switchEl = document.createElement('label');
+        switchEl.className = 'switch';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = 'search-toggle';
+
+        // Load current search state
+        (async () => {
+            const enabled = await (window as any).__getSearchEnabled?.() ?? false;
+            checkbox.checked = enabled;
+        })();
+
+        checkbox.addEventListener('change', async () => {
+            if (this.callbacks.onSearchToggle) {
+                try {
+                    await this.callbacks.onSearchToggle(checkbox.checked);
+                } catch (error) {
+                    alert('Failed to update search setting: ' + (error instanceof Error ? error.message : 'Unknown error'));
+                    checkbox.checked = !checkbox.checked;
+                }
+            }
+        });
+
+        const slider = document.createElement('span');
+        slider.className = 'switch-slider';
+
+        switchEl.appendChild(checkbox);
+        switchEl.appendChild(slider);
+
+        toggleContainer.appendChild(toggleDetails);
+        toggleContainer.appendChild(switchEl);
+
+        // API Key configuration
+        const apiKeyContainer = document.createElement('div');
+        apiKeyContainer.className = 'input-container';
+        apiKeyContainer.style.marginTop = '16px';
+
+        const apiKeyLabel = document.createElement('label');
+        apiKeyLabel.className = 'input-label';
+        apiKeyLabel.textContent = 'Brave Search API Key';
+
+        const apiKeyInput = document.createElement('input');
+        apiKeyInput.type = 'password';
+        apiKeyInput.className = 'input-field';
+        apiKeyInput.placeholder = 'Enter your Brave Search API key';
+        apiKeyInput.id = 'search-api-key';
+
+        // Load current API key
+        (async () => {
+            const apiKey = await (window as any).__getSearchApiKey?.() ?? '';
+            apiKeyInput.value = apiKey;
+        })();
+
+        const apiKeyNote = document.createElement('div');
+        apiKeyNote.className = 'input-note';
+        apiKeyNote.innerHTML = `
+            🔒 API keys are stored securely in IndexedDB and never sent to external servers except Brave Search API.
+            <br><br>
+            <strong>Get a free API key:</strong> Visit <a href="https://api.search.brave.com/" target="_blank" rel="noopener noreferrer">api.search.brave.com</a>
+        `;
+
+        const saveApiKeyButton = document.createElement('button');
+        saveApiKeyButton.className = 'action-button primary';
+        saveApiKeyButton.textContent = '💾 Save API Key';
+        saveApiKeyButton.style.marginTop = '8px';
+        saveApiKeyButton.addEventListener('click', async () => {
+            const apiKey = apiKeyInput.value.trim();
+            if (!apiKey) {
+                alert('Please enter an API key');
+                return;
+            }
+
+            if (this.callbacks.onSearchApiKeyChange) {
+                try {
+                    await this.callbacks.onSearchApiKeyChange(apiKey);
+                    alert('✅ API key saved successfully!');
+                } catch (error) {
+                    alert('❌ Failed to save API key: ' + (error instanceof Error ? error.message : 'Unknown error'));
+                }
+            }
+        });
+
+        apiKeyContainer.appendChild(apiKeyLabel);
+        apiKeyContainer.appendChild(apiKeyInput);
+        apiKeyContainer.appendChild(apiKeyNote);
+        apiKeyContainer.appendChild(saveApiKeyButton);
+
+        section.appendChild(title);
+        section.appendChild(toggleContainer);
+        section.appendChild(apiKeyContainer);
+
+        this.container.appendChild(section);
+    }
+
     renderDataManagementSection(): void {
         const section = document.createElement('div');
         section.className = 'settings-section';

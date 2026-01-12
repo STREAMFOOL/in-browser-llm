@@ -1,6 +1,7 @@
 
 
 import { MarkdownRenderer } from './markdown-renderer';
+import { SearchIndicator } from './search-indicator';
 
 export interface Message {
     id: string;
@@ -21,6 +22,7 @@ export class ChatUI {
     private inputField: HTMLTextAreaElement;
     private sendButton: HTMLButtonElement;
     private loadingIndicator: HTMLElement;
+    private searchIndicator: SearchIndicator;
     private privacyWarning: HTMLElement | null = null;
     private callbacks: ChatUICallbacks;
     private isStreaming: boolean = false;
@@ -35,6 +37,7 @@ export class ChatUI {
         this.inputField = inputContainer.querySelector('textarea') as HTMLTextAreaElement;
         this.sendButton = inputContainer.querySelector('button') as HTMLButtonElement;
         this.loadingIndicator = this.createLoadingIndicator();
+        this.searchIndicator = new SearchIndicator(this.messageList);
 
         this.container.appendChild(this.messageList);
         this.container.appendChild(this.loadingIndicator);
@@ -280,6 +283,26 @@ export class ChatUI {
         }
     }
 
+    /**
+     * Show the search indicator during active search
+     */
+    showSearchIndicator(): void {
+        this.searchIndicator.show();
+    }
+
+    /**
+     * Hide the search indicator when search completes
+     */
+    hideSearchIndicator(): void {
+        this.searchIndicator.hide();
+    }
+
+    /**
+     * Check if search indicator is visible
+     */
+    isSearchIndicatorVisible(): boolean {
+        return this.searchIndicator.isVisible();
+    }
 
     private formatTimestamp(timestamp: number): string {
         const date = new Date(timestamp);

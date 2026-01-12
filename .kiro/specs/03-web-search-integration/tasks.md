@@ -104,26 +104,26 @@ This implementation plan adds web search capabilities to the Local AI Assistant.
     - **Property 2: Context Injection Completeness**
     - **Validates: Requirements 1.2**
 
-- [ ] 5. Implement Search UI Controls
-  - [ ] 5.1 Create search toggle in settings UI
+- [x] 5. Implement Search UI Controls
+  - [x] 5.1 Create search toggle in settings UI
     - Add toggle switch for web search
     - Wire toggle to SearchController.setSearchEnabled()
     - Display current search state
     - _Requirements: 1.4_
 
-  - [ ] 5.2 Create search indicator component
+  - [x] 5.2 Create search indicator component
     - Design visual indicator (e.g., animated icon)
     - Show indicator during active search
     - Hide indicator when search completes
     - _Requirements: 1.6_
 
-  - [ ] 5.3 Add API key configuration UI
+  - [x] 5.3 Add API key configuration UI
     - Add input field for Brave Search API key
     - Store API key securely in IndexedDB
     - Display setup instructions when key is missing
     - _Requirements: 1.1_
 
-  - [ ]* 5.4 Write unit tests for search UI controls
+  - [x] 5.4 Write unit tests for search UI controls
     - Test toggle state changes
     - Test indicator visibility
     - Test API key storage
