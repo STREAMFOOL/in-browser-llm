@@ -9,6 +9,9 @@ export interface Settings {
     enableSpeech: boolean;
     enableWebSearch: boolean;
     searchApiKey: string;
+    searchProvider: 'brave' | 'google';
+    googleSearchApiKey: string;
+    googleSearchEngineId: string;
     theme: 'light' | 'dark' | 'auto';
     preferredProvider: 'chrome' | 'webllm' | 'api' | 'auto';
 }
@@ -22,6 +25,9 @@ export const DEFAULT_SETTINGS: Settings = {
     enableSpeech: false,
     enableWebSearch: false,
     searchApiKey: '',
+    searchProvider: 'brave',
+    googleSearchApiKey: '',
+    googleSearchEngineId: '',
     theme: 'auto',
     preferredProvider: 'auto',
 };

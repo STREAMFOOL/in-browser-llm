@@ -14,7 +14,6 @@ import { ThreadManager } from './thread-manager';
 import { SessionManager } from './session-manager';
 import { ComponentCore } from './component-core';
 import { SearchController } from '../providers/search-controller';
-import { BraveSearchClient } from '../providers/brave-search-client';
 import { SnippetExtractor } from '../providers/snippet-extractor';
 import { CitationFormatter } from '../providers/citation-formatter';
 import { SettingsManager } from '../storage/settings-manager';
@@ -63,11 +62,9 @@ export class ComponentLifecycle {
         this.clearDataOperation = new ClearDataOperation(this.storageManager, opfsManager);
 
         // Initialize SearchController with SettingsManager for dynamic API key loading
-        const searchClient = new BraveSearchClient(this.settingsManager);
         const snippetExtractor = new SnippetExtractor();
         const citationFormatter = new CitationFormatter();
         this.searchController = new SearchController(
-            searchClient,
             snippetExtractor,
             citationFormatter,
             this.settingsManager
@@ -85,6 +82,27 @@ export class ComponentLifecycle {
 
         (window as any).__getSearchApiKey = async () => {
             return await this.storageManager.loadSetting('searchApiKey') ?? '';
+        };
+
+        (window as any).__getSearchProvider = async () => {
+            return await this.storageManager.loadSetting('searchProvider') ?? 'brave';
+        };
+
+        (window as any).__setSearchProvider = async (provider: 'brave' | 'google') => {
+            await this.storageManager.saveSetting('searchProvider', provider);
+        };
+
+        (window as any).__getGoogleSearchApiKey = async () => {
+            return await this.storageManager.loadSetting('googleSearchApiKey') ?? '';
+        };
+
+        (window as any).__getGoogleSearchEngineId = async () => {
+            return await this.storageManager.loadSetting('googleSearchEngineId') ?? '';
+        };
+
+        (window as any).__setGoogleSearchCredentials = async (apiKey: string, cx: string) => {
+            await this.storageManager.saveSetting('googleSearchApiKey', apiKey);
+            await this.storageManager.saveSetting('googleSearchEngineId', cx);
         };
 
         // Set up quota warning callback
@@ -633,6 +651,27 @@ export class ComponentLifecycle {
             (window as any).__getSearchEnabled = async () => {
                 return await this.storageManager.loadSetting('enableWebSearch') ?? false;
             };
+
+            (window as any).__getSearchProvider = async () => {
+                return await this.storageManager.loadSetting('searchProvider') ?? 'brave';
+            };
+
+            (window as any).__setSearchProvider = async (provider: 'brave' | 'google') => {
+                await this.storageManager.saveSetting('searchProvider', provider);
+            };
+
+            (window as any).__getGoogleSearchApiKey = async () => {
+                return await this.storageManager.loadSetting('googleSearchApiKey') ?? '';
+            };
+
+            (window as any).__getGoogleSearchEngineId = async () => {
+                return await this.storageManager.loadSetting('googleSearchEngineId') ?? '';
+            };
+
+            (window as any).__setGoogleSearchCredentials = async (apiKey: string, cx: string) => {
+                await this.storageManager.saveSetting('googleSearchApiKey', apiKey);
+                await this.storageManager.saveSetting('googleSearchEngineId', cx);
+            };
         } catch (error) {
             console.error('Failed to toggle web search:', error);
             throw error;
@@ -646,6 +685,27 @@ export class ComponentLifecycle {
             // Expose API key getter for UI
             (window as any).__getSearchApiKey = async () => {
                 return await this.storageManager.loadSetting('searchApiKey') ?? '';
+            };
+
+            (window as any).__getSearchProvider = async () => {
+                return await this.storageManager.loadSetting('searchProvider') ?? 'brave';
+            };
+
+            (window as any).__setSearchProvider = async (provider: 'brave' | 'google') => {
+                await this.storageManager.saveSetting('searchProvider', provider);
+            };
+
+            (window as any).__getGoogleSearchApiKey = async () => {
+                return await this.storageManager.loadSetting('googleSearchApiKey') ?? '';
+            };
+
+            (window as any).__getGoogleSearchEngineId = async () => {
+                return await this.storageManager.loadSetting('googleSearchEngineId') ?? '';
+            };
+
+            (window as any).__setGoogleSearchCredentials = async (apiKey: string, cx: string) => {
+                await this.storageManager.saveSetting('googleSearchApiKey', apiKey);
+                await this.storageManager.saveSetting('googleSearchEngineId', cx);
             };
         } catch (error) {
             console.error('Failed to save search API key:', error);

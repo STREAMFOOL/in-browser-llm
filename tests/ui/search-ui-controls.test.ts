@@ -188,7 +188,8 @@ describe('Search UI Controls', () => {
             it('should render API key input field', () => {
                 settingsSections.renderSearchSection();
 
-                const apiKeyInput = container.querySelector('#search-api-key') as HTMLInputElement;
+                // By default, Brave provider is selected, so check for brave-api-key
+                const apiKeyInput = container.querySelector('#brave-api-key') as HTMLInputElement;
                 expect(apiKeyInput).toBeTruthy();
                 expect(apiKeyInput.type).toBe('password');
             });
@@ -196,11 +197,11 @@ describe('Search UI Controls', () => {
             it('should call onSearchApiKeyChange when save button is clicked', async () => {
                 settingsSections.renderSearchSection();
 
-                const apiKeyInput = container.querySelector('#search-api-key') as HTMLInputElement;
+                const apiKeyInput = container.querySelector('#brave-api-key') as HTMLInputElement;
                 apiKeyInput.value = 'test-api-key-123';
 
                 const saveButton = Array.from(container.querySelectorAll('button')).find(
-                    btn => btn.textContent?.includes('Save API Key')
+                    btn => btn.textContent?.includes('Save Brave API Key')
                 ) as HTMLButtonElement;
 
                 expect(saveButton).toBeTruthy();
@@ -215,11 +216,11 @@ describe('Search UI Controls', () => {
             it('should trim whitespace from API key', async () => {
                 settingsSections.renderSearchSection();
 
-                const apiKeyInput = container.querySelector('#search-api-key') as HTMLInputElement;
+                const apiKeyInput = container.querySelector('#brave-api-key') as HTMLInputElement;
                 apiKeyInput.value = '  test-api-key-123  ';
 
                 const saveButton = Array.from(container.querySelectorAll('button')).find(
-                    btn => btn.textContent?.includes('Save API Key')
+                    btn => btn.textContent?.includes('Save Brave API Key')
                 ) as HTMLButtonElement;
 
                 saveButton.click();
@@ -248,11 +249,11 @@ describe('Search UI Controls', () => {
             it('should not save empty API key', async () => {
                 settingsSections.renderSearchSection();
 
-                const apiKeyInput = container.querySelector('#search-api-key') as HTMLInputElement;
+                const apiKeyInput = container.querySelector('#brave-api-key') as HTMLInputElement;
                 apiKeyInput.value = '';
 
                 const saveButton = Array.from(container.querySelectorAll('button')).find(
-                    btn => btn.textContent?.includes('Save API Key')
+                    btn => btn.textContent?.includes('Save Brave API Key')
                 ) as HTMLButtonElement;
 
                 // Mock alert to prevent test output
@@ -274,11 +275,11 @@ describe('Search UI Controls', () => {
 
                 settingsSections.renderSearchSection();
 
-                const apiKeyInput = container.querySelector('#search-api-key') as HTMLInputElement;
+                const apiKeyInput = container.querySelector('#brave-api-key') as HTMLInputElement;
                 apiKeyInput.value = 'test-key';
 
                 const saveButton = Array.from(container.querySelectorAll('button')).find(
-                    btn => btn.textContent?.includes('Save API Key')
+                    btn => btn.textContent?.includes('Save Brave API Key')
                 ) as HTMLButtonElement;
 
                 const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { });

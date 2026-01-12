@@ -749,41 +749,66 @@ export class SettingsSections {
         toggleContainer.appendChild(toggleDetails);
         toggleContainer.appendChild(switchEl);
 
-        // API Key configuration
-        const apiKeyContainer = document.createElement('div');
-        apiKeyContainer.className = 'input-container';
-        apiKeyContainer.style.marginTop = '16px';
+        // Provider selection
+        const providerContainer = document.createElement('div');
+        providerContainer.className = 'input-container';
+        providerContainer.style.marginTop = '16px';
 
-        const apiKeyLabel = document.createElement('label');
-        apiKeyLabel.className = 'input-label';
-        apiKeyLabel.textContent = 'Brave Search API Key';
+        const providerLabel = document.createElement('label');
+        providerLabel.className = 'input-label';
+        providerLabel.textContent = 'Search Provider';
 
-        const apiKeyInput = document.createElement('input');
-        apiKeyInput.type = 'password';
-        apiKeyInput.className = 'input-field';
-        apiKeyInput.placeholder = 'Enter your Brave Search API key';
-        apiKeyInput.id = 'search-api-key';
+        const providerSelect = document.createElement('select');
+        providerSelect.className = 'input-select';
+        providerSelect.id = 'search-provider-select';
+        providerSelect.innerHTML = `
+            <option value="brave">Brave Search</option>
+            <option value="google">Google Custom Search</option>
+        `;
 
-        // Load current API key
+        const providerNote = document.createElement('div');
+        providerNote.className = 'input-note';
+        providerNote.textContent = 'Choose which search API to use for web searches.';
+
+        providerContainer.appendChild(providerLabel);
+        providerContainer.appendChild(providerSelect);
+        providerContainer.appendChild(providerNote);
+
+        // Brave Search fields
+        const braveFieldsContainer = document.createElement('div');
+        braveFieldsContainer.id = 'brave-fields';
+        braveFieldsContainer.style.marginTop = '16px';
+
+        const braveApiKeyLabel = document.createElement('label');
+        braveApiKeyLabel.className = 'input-label';
+        braveApiKeyLabel.textContent = 'Brave Search API Key';
+
+        const braveApiKeyInput = document.createElement('input');
+        braveApiKeyInput.type = 'password';
+        braveApiKeyInput.className = 'input-field';
+        braveApiKeyInput.placeholder = 'Enter your Brave Search API key';
+        braveApiKeyInput.id = 'brave-api-key';
+
+        // Load current Brave API key
         (async () => {
             const apiKey = await (window as any).__getSearchApiKey?.() ?? '';
-            apiKeyInput.value = apiKey;
+            braveApiKeyInput.value = apiKey;
         })();
 
-        const apiKeyNote = document.createElement('div');
-        apiKeyNote.className = 'input-note';
-        apiKeyNote.innerHTML = `
+        const braveApiKeyNote = document.createElement('div');
+        braveApiKeyNote.className = 'input-note';
+        braveApiKeyNote.innerHTML = `
             🔒 API keys are stored securely in IndexedDB and never sent to external servers except Brave Search API.
             <br><br>
             <strong>Get a free API key:</strong> Visit <a href="https://api.search.brave.com/" target="_blank" rel="noopener noreferrer">api.search.brave.com</a>
         `;
 
-        const saveApiKeyButton = document.createElement('button');
-        saveApiKeyButton.className = 'action-button primary';
-        saveApiKeyButton.textContent = '💾 Save API Key';
-        saveApiKeyButton.style.marginTop = '8px';
-        saveApiKeyButton.addEventListener('click', async () => {
-            const apiKey = apiKeyInput.value.trim();
+        const saveBraveKeyButton = document.createElement('button');
+        saveBraveKeyButton.className = 'action-button primary';
+        saveBraveKeyButton.textContent = '💾 Save Brave API Key';
+        saveBraveKeyButton.style.marginTop = '8px';
+        saveBraveKeyButton.addEventListener('click', async () => {
+            const apiKey = braveApiKeyInput.value.trim();
             if (!apiKey) {
                 alert('Please enter an API key');
                 return;
@@ -792,23 +817,142 @@ export class SettingsSections {
             if (this.callbacks.onSearchApiKeyChange) {
                 try {
                     await this.callbacks.onSearchApiKeyChange(apiKey);
-                    alert('✅ API key saved successfully!');
+                    alert('✅ Brave API key saved successfully!');
                 } catch (error) {
                     alert('❌ Failed to save API key: ' + (error instanceof Error ? error.message : 'Unknown error'));
                 }
             }
         });
 
-        apiKeyContainer.appendChild(apiKeyLabel);
-        apiKeyContainer.appendChild(apiKeyInput);
-        apiKeyContainer.appendChild(apiKeyNote);
-        apiKeyContainer.appendChild(saveApiKeyButton);
+        braveFieldsContainer.appendChild(braveApiKeyLabel);
+        braveFieldsContainer.appendChild(braveApiKeyInput);
+        braveFieldsContainer.appendChild(braveApiKeyNote);
+        braveFieldsContainer.appendChild(saveBraveKeyButton);
+
+        // Google Custom Search fields
+        const googleFieldsContainer = document.createElement('div');
+        googleFieldsContainer.id = 'google-fields';
+        googleFieldsContainer.style.marginTop = '16px';
+
+        const googleApiKeyLabel = document.createElement('label');
+        googleApiKeyLabel.className = 'input-label';
+        googleApiKeyLabel.textContent = 'Google API Key';
+
+        const googleApiKeyInput = document.createElement('input');
+        googleApiKeyInput.type = 'password';
+        googleApiKeyInput.className = 'input-field';
+        googleApiKeyInput.placeholder = 'Enter your Google API key';
+        googleApiKeyInput.id = 'google-api-key';
+
+        // Load current Google API key
+        (async () => {
+            const apiKey = await (window as any).__getGoogleSearchApiKey?.() ?? '';
+            googleApiKeyInput.value = apiKey;
+        })();
+
+        const googleCxLabel = document.createElement('label');
+        googleCxLabel.className = 'input-label';
+        googleCxLabel.textContent = 'Search Engine ID (cx)';
+        googleCxLabel.style.marginTop = '12px';
+
+        const googleCxInput = document.createElement('input');
+        googleCxInput.type = 'text';
+        googleCxInput.className = 'input-field';
+        googleCxInput.placeholder = 'Enter your Search Engine ID';
+        googleCxInput.id = 'google-cx';
+
+        // Load current Google Search Engine ID
+        (async () => {
+            const cx = await (window as any).__getGoogleSearchEngineId?.() ?? '';
+            googleCxInput.value = cx;
+        })();
+
+        const googleNote = document.createElement('div');
+        googleNote.className = 'input-note';
+        googleNote.innerHTML = `
+            🔒 Credentials are stored securely in IndexedDB and never sent to external servers except Google Custom Search API.
+            <br><br>
+            <strong>Setup Instructions:</strong>
+            <ol style="margin: 8px 0; padding-left: 20px;">
+                <li>Get an API key from <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">Google Cloud Console</a></li>
+                <li>Create a Programmable Search Engine at <a href="https://programmablesearchengine.google.com/" target="_blank" rel="noopener noreferrer">programmablesearchengine.google.com</a></li>
+                <li>Copy the Search Engine ID (cx parameter) from your search engine settings</li>
+            </ol>
+            <strong>Note:</strong> Free tier provides 100 queries/day. Additional queries cost $5 per 1000 queries (up to 10k/day).
+        `;
+
+        const saveGoogleCredsButton = document.createElement('button');
+        saveGoogleCredsButton.className = 'action-button primary';
+        saveGoogleCredsButton.textContent = '💾 Save Google Credentials';
+        saveGoogleCredsButton.style.marginTop = '8px';
+        saveGoogleCredsButton.addEventListener('click', async () => {
+            const apiKey = googleApiKeyInput.value.trim();
+            const cx = googleCxInput.value.trim();
+
+            if (!apiKey || !cx) {
+                alert('Please enter both API key and Search Engine ID');
+                return;
+            }
+
+            if ((window as any).__setGoogleSearchCredentials) {
+                try {
+                    await (window as any).__setGoogleSearchCredentials(apiKey, cx);
+                    alert('✅ Google credentials saved successfully!');
+                } catch (error) {
+                    alert('❌ Failed to save credentials: ' + (error instanceof Error ? error.message : 'Unknown error'));
+                }
+            }
+        });
+
+        googleFieldsContainer.appendChild(googleApiKeyLabel);
+        googleFieldsContainer.appendChild(googleApiKeyInput);
+        googleFieldsContainer.appendChild(googleCxLabel);
+        googleFieldsContainer.appendChild(googleCxInput);
+        googleFieldsContainer.appendChild(googleNote);
+        googleFieldsContainer.appendChild(saveGoogleCredsButton);
+
+        // Load current provider and update field visibility
+        (async () => {
+            const provider = await (window as any).__getSearchProvider?.() ?? 'brave';
+            providerSelect.value = provider;
+            this.updateProviderFields(provider, braveFieldsContainer, googleFieldsContainer);
+        })();
+
+        providerSelect.addEventListener('change', async () => {
+            const provider = providerSelect.value as 'brave' | 'google';
+            this.updateProviderFields(provider, braveFieldsContainer, googleFieldsContainer);
+
+            // Save provider preference
+            if ((window as any).__setSearchProvider) {
+                try {
+                    await (window as any).__setSearchProvider(provider);
+                } catch (error) {
+                    console.error('Failed to save provider preference:', error);
+                }
+            }
+        });
 
         section.appendChild(title);
         section.appendChild(toggleContainer);
-        section.appendChild(apiKeyContainer);
+        section.appendChild(providerContainer);
+        section.appendChild(braveFieldsContainer);
+        section.appendChild(googleFieldsContainer);
 
         this.container.appendChild(section);
+    }
+
+    private updateProviderFields(
+        provider: 'brave' | 'google',
+        braveContainer: HTMLElement,
+        googleContainer: HTMLElement
+    ): void {
+        if (provider === 'brave') {
+            braveContainer.style.display = 'block';
+            googleContainer.style.display = 'none';
+        } else {
+            braveContainer.style.display = 'none';
+            googleContainer.style.display = 'block';
+        }
     }
 
     renderDataManagementSection(): void {

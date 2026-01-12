@@ -27,29 +27,29 @@ This implementation plan adds web search capabilities to the Local AI Assistant.
     - Mock API responses
     - _Requirements: 1.1_
 
-- [ ] 1.5. Implement GoogleSearchClient
-  - [ ] 1.5.1 Create GoogleSearchClient class
+- [x] 1.5. Implement GoogleSearchClient
+  - [x] 1.5.1 Create GoogleSearchClient class
     - Implement SearchAPIClient interface
     - Handle API authentication with key and cx parameters
     - Parse Google Custom Search JSON responses
     - Transform to common SearchResponse format
     - _Requirements: 1.1, 1.7, 1.8_
 
-  - [ ] 1.5.2 Write unit tests for GoogleSearchClient
+  - [x] 1.5.2 Write unit tests for GoogleSearchClient
     - Test request formatting with key and cx parameters
     - Test response parsing from Google format
     - Test error handling
     - Mock Google API responses
     - _Requirements: 1.1, 1.7, 1.8_
 
-- [ ] 1.6. Update SearchController for provider selection
-  - [ ] 1.6.1 Add provider selection logic
+- [x] 1.6. Update SearchController for provider selection
+  - [x] 1.6.1 Add provider selection logic
     - Implement getSearchClient() method to return correct client
     - Support switching between Brave and Google providers
     - Load provider preference from settings
     - _Requirements: 1.7_
 
-  - [ ] 1.6.2 Write unit tests for provider selection
+  - [x] 1.6.2 Write unit tests for provider selection
     - Test provider switching
     - Test client instantiation for each provider
     - Test fallback behavior
@@ -151,13 +151,13 @@ This implementation plan adds web search capabilities to the Local AI Assistant.
     - Display setup instructions when key is missing
     - _Requirements: 1.1_
 
-  - [ ] 5.7 Add provider selection UI
+  - [x] 5.7 Add provider selection UI
     - Add dropdown/radio buttons to select search provider (Brave or Google)
     - Show provider-specific configuration fields
     - Display provider-specific setup instructions
     - _Requirements: 1.7_
 
-  - [ ] 5.8 Add Google Custom Search configuration UI
+  - [x] 5.8 Add Google Custom Search configuration UI
     - Add input field for Google API key
     - Add input field for Search Engine ID (cx parameter)
     - Store credentials securely in IndexedDB

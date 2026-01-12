@@ -4,6 +4,8 @@
  */
 
 import type { SearchAPIClient, SearchResult } from './search-api-client';
+import { BraveSearchClient } from './brave-search-client';
+import { GoogleSearchClient } from './google-search-client';
 import { SnippetExtractor } from './snippet-extractor';
 import type { ExtractedSnippet } from './snippet-extractor';
 import { CitationFormatter } from './citation-formatter';
@@ -35,7 +37,7 @@ interface CacheEntry {
 }
 
 export class SearchController {
-    private searchClient: SearchAPIClient;
+    private searchClient: SearchAPIClient | null = null;
     private snippetExtractor: SnippetExtractor;
     private citationFormatter: CitationFormatter;
     private settingsManager: SettingsManager;
@@ -45,15 +47,41 @@ export class SearchController {
     private readonly SEARCH_TIMEOUT_MS = 5000; // 5 seconds
 
     constructor(
-        searchClient: SearchAPIClient,
         snippetExtractor: SnippetExtractor,
         citationFormatter: CitationFormatter,
         settingsManager: SettingsManager
     ) {
-        this.searchClient = searchClient;
         this.snippetExtractor = snippetExtractor;
         this.citationFormatter = citationFormatter;
         this.settingsManager = settingsManager;
+    }
+
+    /**
+     * Get the appropriate search client based on provider preference
+     */
+    private async getSearchClient(): Promise<SearchAPIClient> {
+        const provider = await this.settingsManager.get('searchProvider', 'brave');
+
+        // Return cached client if provider hasn't changed
+        if (this.searchClient) {
+            // Check if current client matches the provider
+            const isBrave = this.searchClient instanceof BraveSearchClient;
+            const isGoogle = this.searchClient instanceof GoogleSearchClient;
+
+            if ((provider === 'brave' && isBrave) || (provider === 'google' && isGoogle)) {
+                return this.searchClient;
+            }
+        }
+
+        // Create new client based on provider
+        if (provider === 'google') {
+            this.searchClient = new GoogleSearchClient(this.settingsManager);
+        } else {
+            // Default to Brave
+            this.searchClient = new BraveSearchClient(this.settingsManager);
+        }
+
+        return this.searchClient;
     }
 
     /**
@@ -205,8 +233,9 @@ export class SearchController {
         const timeoutId = setTimeout(() => controller.abort(), this.SEARCH_TIMEOUT_MS);
 
         try {
+            const searchClient = await this.getSearchClient();
             const response = await Promise.race([
-                this.searchClient.search(query, { maxResults: 5 }),
+                searchClient.search(query, { maxResults: 5 }),
                 new Promise<never>((_, reject) =>
                     controller.signal.addEventListener('abort', () =>
                         reject(new Error('Search timeout'))

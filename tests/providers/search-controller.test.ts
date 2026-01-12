@@ -1,25 +1,19 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SearchController } from '../../src/providers/search-controller';
 import type { SearchAPIClient, SearchResult } from '../../src/providers/search-api-client';
+import { BraveSearchClient } from '../../src/providers/brave-search-client';
+import { GoogleSearchClient } from '../../src/providers/google-search-client';
 import { SnippetExtractor } from '../../src/providers/snippet-extractor';
 import { CitationFormatter } from '../../src/providers/citation-formatter';
 import { SettingsManager } from '../../src/storage/settings-manager';
 
 describe('SearchController', () => {
     let searchController: SearchController;
-    let mockSearchClient: SearchAPIClient;
     let mockSettingsManager: SettingsManager;
     let snippetExtractor: SnippetExtractor;
     let citationFormatter: CitationFormatter;
 
     beforeEach(() => {
-        // Create mock search client
-        mockSearchClient = {
-            search: vi.fn(),
-            isAvailable: vi.fn(),
-            getUsageStats: vi.fn(),
-        };
-
         // Create mock settings manager
         mockSettingsManager = {
             get: vi.fn(),
@@ -34,7 +28,6 @@ describe('SearchController', () => {
         citationFormatter = new CitationFormatter();
 
         searchController = new SearchController(
-            mockSearchClient,
             snippetExtractor,
             citationFormatter,
             mockSettingsManager
@@ -102,8 +95,14 @@ describe('SearchController', () => {
             expect(result.contextText).toBe('');
         });
 
-        it('should return search results when search is enabled', async () => {
-            vi.mocked(mockSettingsManager.get).mockResolvedValue(true);
+        it('should return search results when search is enabled with Brave provider', async () => {
+            // Mock settings for Brave provider
+            vi.mocked(mockSettingsManager.get).mockImplementation(async (key: string) => {
+                if (key === 'enableWebSearch') return true;
+                if (key === 'searchProvider') return 'brave';
+                if (key === 'searchApiKey') return 'test-brave-key';
+                return '';
+            });
 
             const mockResults: SearchResult[] = [
                 {
@@ -114,10 +113,19 @@ describe('SearchController', () => {
                 },
             ];
 
-            vi.mocked(mockSearchClient.search).mockResolvedValue({
-                results: mockResults,
-                totalResults: 1,
-                searchTime: 100,
+            // Mock fetch for Brave API
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    web: [
+                        {
+                            title: 'Test Result',
+                            url: 'https://example.com',
+                            description: 'This is a test snippet',
+                        },
+                    ],
+                }),
+                headers: new Headers(),
             });
 
             const result = await searchController.search('test query');
@@ -127,38 +135,91 @@ describe('SearchController', () => {
             expect(result.contextText).toContain('Web Search Results');
         });
 
-        it('should cache search results', async () => {
-            vi.mocked(mockSettingsManager.get).mockResolvedValue(true);
+        it('should return search results when search is enabled with Google provider', async () => {
+            // Mock settings for Google provider
+            vi.mocked(mockSettingsManager.get).mockImplementation(async (key: string) => {
+                if (key === 'enableWebSearch') return true;
+                if (key === 'searchProvider') return 'google';
+                if (key === 'googleSearchApiKey') return 'test-google-key';
+                if (key === 'googleSearchEngineId') return 'test-cx-id';
+                return '';
+            });
 
             const mockResults: SearchResult[] = [
                 {
-                    title: 'Test Result',
-                    url: 'https://example.com',
-                    snippet: 'This is a test snippet',
+                    title: 'Google Test Result',
+                    url: 'https://google-example.com',
+                    snippet: 'This is a Google test snippet',
                     relevanceScore: 0.9,
                 },
             ];
 
-            vi.mocked(mockSearchClient.search).mockResolvedValue({
-                results: mockResults,
-                totalResults: 1,
-                searchTime: 100,
+            // Mock fetch for Google API
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    items: [
+                        {
+                            title: 'Google Test Result',
+                            link: 'https://google-example.com',
+                            snippet: 'This is a Google test snippet',
+                        },
+                    ],
+                    searchInformation: {
+                        totalResults: '1',
+                        searchTime: 0.1,
+                    },
+                }),
             });
+
+            const result = await searchController.search('test query');
+
+            expect(result.sources).toHaveLength(1);
+            expect(result.sources[0].title).toBe('Google Test Result');
+            expect(result.contextText).toContain('Web Search Results');
+        });
+
+        it('should cache search results', async () => {
+            // Mock settings for Brave provider
+            vi.mocked(mockSettingsManager.get).mockImplementation(async (key: string) => {
+                if (key === 'enableWebSearch') return true;
+                if (key === 'searchProvider') return 'brave';
+                if (key === 'searchApiKey') return 'test-brave-key';
+                return '';
+            });
+
+            // Mock fetch for Brave API
+            const mockFetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    web: [
+                        {
+                            title: 'Test Result',
+                            url: 'https://example.com',
+                            description: 'This is a test snippet',
+                        },
+                    ],
+                }),
+                headers: new Headers(),
+            });
+            global.fetch = mockFetch;
 
             // First search
             await searchController.search('test query');
-            expect(mockSearchClient.search).toHaveBeenCalledTimes(1);
+            expect(mockFetch).toHaveBeenCalledTimes(1);
 
             // Second search with same query should use cache
             await searchController.search('test query');
-            expect(mockSearchClient.search).toHaveBeenCalledTimes(1); // Still 1, not 2
+            expect(mockFetch).toHaveBeenCalledTimes(1); // Still 1, not 2
         });
 
         it('should handle search errors gracefully', async () => {
-            vi.mocked(mockSettingsManager.get).mockResolvedValue(true);
-            vi.mocked(mockSearchClient.search).mockRejectedValue(
-                new Error('API key is not configured')
-            );
+            vi.mocked(mockSettingsManager.get).mockImplementation(async (key: string) => {
+                if (key === 'enableWebSearch') return true;
+                if (key === 'searchProvider') return 'brave';
+                if (key === 'searchApiKey') return '';
+                return '';
+            });
 
             const result = await searchController.search('test query');
 
@@ -203,21 +264,27 @@ describe('SearchController', () => {
 
     describe('cache management', () => {
         it('should clear cache', async () => {
-            vi.mocked(mockSettingsManager.get).mockResolvedValue(true);
+            // Mock settings for Brave provider
+            vi.mocked(mockSettingsManager.get).mockImplementation(async (key: string) => {
+                if (key === 'enableWebSearch') return true;
+                if (key === 'searchProvider') return 'brave';
+                if (key === 'searchApiKey') return 'test-brave-key';
+                return '';
+            });
 
-            const mockResults: SearchResult[] = [
-                {
-                    title: 'Test Result',
-                    url: 'https://example.com',
-                    snippet: 'This is a test snippet',
-                    relevanceScore: 0.9,
-                },
-            ];
-
-            vi.mocked(mockSearchClient.search).mockResolvedValue({
-                results: mockResults,
-                totalResults: 1,
-                searchTime: 100,
+            // Mock fetch for Brave API
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    web: [
+                        {
+                            title: 'Test Result',
+                            url: 'https://example.com',
+                            description: 'This is a test snippet',
+                        },
+                    ],
+                }),
+                headers: new Headers(),
             });
 
             // Add to cache
@@ -235,6 +302,184 @@ describe('SearchController', () => {
             expect(stats).toHaveProperty('size');
             expect(stats).toHaveProperty('maxSize');
             expect(stats.maxSize).toBe(10);
+        });
+    });
+
+    describe('provider selection', () => {
+        it('should use Brave provider when searchProvider is set to brave', async () => {
+            vi.mocked(mockSettingsManager.get).mockImplementation(async (key: string) => {
+                if (key === 'enableWebSearch') return true;
+                if (key === 'searchProvider') return 'brave';
+                if (key === 'searchApiKey') return 'test-brave-key';
+                return '';
+            });
+
+            // Mock fetch for Brave API
+            const mockFetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    web: [
+                        {
+                            title: 'Brave Result',
+                            url: 'https://brave-example.com',
+                            description: 'Brave search result',
+                        },
+                    ],
+                }),
+                headers: new Headers(),
+            });
+            global.fetch = mockFetch;
+
+            const result = await searchController.search('test query');
+
+            expect(result.sources).toHaveLength(1);
+            expect(result.sources[0].title).toBe('Brave Result');
+            // Verify Brave API was called
+            expect(mockFetch).toHaveBeenCalledWith(
+                expect.stringContaining('api.search.brave.com'),
+                expect.objectContaining({
+                    headers: expect.objectContaining({
+                        'X-Subscription-Token': 'test-brave-key',
+                    }),
+                })
+            );
+        });
+
+        it('should use Google provider when searchProvider is set to google', async () => {
+            vi.mocked(mockSettingsManager.get).mockImplementation(async (key: string) => {
+                if (key === 'enableWebSearch') return true;
+                if (key === 'searchProvider') return 'google';
+                if (key === 'googleSearchApiKey') return 'test-google-key';
+                if (key === 'googleSearchEngineId') return 'test-cx-id';
+                return '';
+            });
+
+            // Mock fetch for Google API
+            const mockFetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    items: [
+                        {
+                            title: 'Google Result',
+                            link: 'https://google-example.com',
+                            snippet: 'Google search result',
+                        },
+                    ],
+                    searchInformation: {
+                        totalResults: '1',
+                        searchTime: 0.1,
+                    },
+                }),
+            });
+            global.fetch = mockFetch;
+
+            const result = await searchController.search('test query');
+
+            expect(result.sources).toHaveLength(1);
+            expect(result.sources[0].title).toBe('Google Result');
+            // Verify Google API was called
+            expect(mockFetch).toHaveBeenCalledWith(
+                expect.stringContaining('googleapis.com/customsearch'),
+                expect.any(Object)
+            );
+        });
+
+        it('should switch providers when searchProvider setting changes', async () => {
+            // Start with Brave
+            vi.mocked(mockSettingsManager.get).mockImplementation(async (key: string) => {
+                if (key === 'enableWebSearch') return true;
+                if (key === 'searchProvider') return 'brave';
+                if (key === 'searchApiKey') return 'test-brave-key';
+                return '';
+            });
+
+            const mockFetchBrave = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    web: [
+                        {
+                            title: 'Brave Result',
+                            url: 'https://brave-example.com',
+                            description: 'Brave search result',
+                        },
+                    ],
+                }),
+                headers: new Headers(),
+            });
+            global.fetch = mockFetchBrave;
+
+            await searchController.search('test query 1');
+            expect(mockFetchBrave).toHaveBeenCalledWith(
+                expect.stringContaining('api.search.brave.com'),
+                expect.any(Object)
+            );
+
+            // Clear cache to force new search
+            searchController.clearCache();
+
+            // Switch to Google
+            vi.mocked(mockSettingsManager.get).mockImplementation(async (key: string) => {
+                if (key === 'enableWebSearch') return true;
+                if (key === 'searchProvider') return 'google';
+                if (key === 'googleSearchApiKey') return 'test-google-key';
+                if (key === 'googleSearchEngineId') return 'test-cx-id';
+                return '';
+            });
+
+            const mockFetchGoogle = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    items: [
+                        {
+                            title: 'Google Result',
+                            link: 'https://google-example.com',
+                            snippet: 'Google search result',
+                        },
+                    ],
+                    searchInformation: {
+                        totalResults: '1',
+                        searchTime: 0.1,
+                    },
+                }),
+            });
+            global.fetch = mockFetchGoogle;
+
+            await searchController.search('test query 2');
+            expect(mockFetchGoogle).toHaveBeenCalledWith(
+                expect.stringContaining('googleapis.com/customsearch'),
+                expect.any(Object)
+            );
+        });
+
+        it('should default to Brave provider when searchProvider is not set', async () => {
+            vi.mocked(mockSettingsManager.get).mockImplementation(async (key: string) => {
+                if (key === 'enableWebSearch') return true;
+                if (key === 'searchProvider') return 'brave'; // Default
+                if (key === 'searchApiKey') return 'test-brave-key';
+                return '';
+            });
+
+            const mockFetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    web: [
+                        {
+                            title: 'Brave Result',
+                            url: 'https://brave-example.com',
+                            description: 'Brave search result',
+                        },
+                    ],
+                }),
+                headers: new Headers(),
+            });
+            global.fetch = mockFetch;
+
+            await searchController.search('test query');
+
+            expect(mockFetch).toHaveBeenCalledWith(
+                expect.stringContaining('api.search.brave.com'),
+                expect.any(Object)
+            );
         });
     });
 });
