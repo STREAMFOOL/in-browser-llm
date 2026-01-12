@@ -2,7 +2,7 @@
 
 ## Overview
 
-This implementation plan adds web search capabilities to the Local AI Assistant. The approach implements a conditional search system that queries external APIs (starting with Brave Search), extracts relevant snippets, includes them in model context, and cites sources in responses. The feature is user-controlled via a toggle and maintains the assistant's privacy-first principles.
+This implementation plan adds web search capabilities to the Local AI Assistant. The approach implements a conditional search system that queries external APIs (Brave Search and Google Custom Search), extracts relevant snippets, includes them in model context, and cites sources in responses. The feature is user-controlled via a toggle and maintains the assistant's privacy-first principles.
 
 ## Tasks
 
@@ -26,6 +26,34 @@ This implementation plan adds web search capabilities to the Local AI Assistant.
     - Test error handling
     - Mock API responses
     - _Requirements: 1.1_
+
+- [ ] 1.5. Implement GoogleSearchClient
+  - [ ] 1.5.1 Create GoogleSearchClient class
+    - Implement SearchAPIClient interface
+    - Handle API authentication with key and cx parameters
+    - Parse Google Custom Search JSON responses
+    - Transform to common SearchResponse format
+    - _Requirements: 1.1, 1.7, 1.8_
+
+  - [ ] 1.5.2 Write unit tests for GoogleSearchClient
+    - Test request formatting with key and cx parameters
+    - Test response parsing from Google format
+    - Test error handling
+    - Mock Google API responses
+    - _Requirements: 1.1, 1.7, 1.8_
+
+- [ ] 1.6. Update SearchController for provider selection
+  - [ ] 1.6.1 Add provider selection logic
+    - Implement getSearchClient() method to return correct client
+    - Support switching between Brave and Google providers
+    - Load provider preference from settings
+    - _Requirements: 1.7_
+
+  - [ ] 1.6.2 Write unit tests for provider selection
+    - Test provider switching
+    - Test client instantiation for each provider
+    - Test fallback behavior
+    - _Requirements: 1.7_
 
 - [x] 2. Implement Snippet Extraction
   - [x] 2.1 Create SnippetExtractor
@@ -123,6 +151,19 @@ This implementation plan adds web search capabilities to the Local AI Assistant.
     - Display setup instructions when key is missing
     - _Requirements: 1.1_
 
+  - [ ] 5.7 Add provider selection UI
+    - Add dropdown/radio buttons to select search provider (Brave or Google)
+    - Show provider-specific configuration fields
+    - Display provider-specific setup instructions
+    - _Requirements: 1.7_
+
+  - [ ] 5.8 Add Google Custom Search configuration UI
+    - Add input field for Google API key
+    - Add input field for Search Engine ID (cx parameter)
+    - Store credentials securely in IndexedDB
+    - Display Google-specific setup instructions with links
+    - _Requirements: 1.8_
+
   - [x] 5.4 Write unit tests for search UI controls
     - Test toggle state changes
     - Test indicator visibility
@@ -155,7 +196,7 @@ This implementation plan adds web search capabilities to the Local AI Assistant.
     - **Property 3: Source Citation Presence**
     - **Validates: Requirements 1.3**
 
-- [ ] 7. Checkpoint - Ensure all tests pass
+- [x] 7. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
@@ -164,6 +205,8 @@ This implementation plan adds web search capabilities to the Local AI Assistant.
 - Each task references specific requirements for traceability
 - Property tests validate universal correctness properties across all inputs
 - Unit tests validate specific examples, edge cases, and error conditions
-- Initial implementation uses Brave Search API, but architecture supports other providers
+- Implementation supports both Brave Search and Google Custom Search APIs
+- Architecture supports adding additional providers in the future
 - Search is disabled by default to maintain privacy-first approach
-- API key is stored securely in IndexedDB, never in LocalStorage
+- API keys are stored securely in IndexedDB, never in LocalStorage
+- Google Custom Search requires two credentials: API key + Search Engine ID (cx)

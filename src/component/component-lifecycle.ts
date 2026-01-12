@@ -62,8 +62,8 @@ export class ComponentLifecycle {
         const opfsManager = new OPFSManager();
         this.clearDataOperation = new ClearDataOperation(this.storageManager, opfsManager);
 
-        // Initialize SearchController with empty API key (will be loaded from settings)
-        const searchClient = new BraveSearchClient('');
+        // Initialize SearchController with SettingsManager for dynamic API key loading
+        const searchClient = new BraveSearchClient(this.settingsManager);
         const snippetExtractor = new SnippetExtractor();
         const citationFormatter = new CitationFormatter();
         this.searchController = new SearchController(
@@ -429,21 +429,36 @@ export class ComponentLifecycle {
             let citationsText = '';
             let searchSources: any[] = [];
 
-            if (this.searchController && this.searchController.shouldSearch(content)) {
-                this.chatUI.showSearchIndicator();
-                try {
-                    const searchResult = await this.searchController.search(content);
-                    searchContext = searchResult.contextText;
-                    searchSources = searchResult.sources;
+            if (this.searchController) {
+                const shouldSearch = this.searchController.shouldSearch(content);
+                const isEnabled = await this.searchController.isSearchEnabled();
 
-                    // Format citations if we have search results
-                    if (searchSources.length > 0) {
-                        citationsText = '\n\n' + this.searchController.formatCitations(searchSources);
+                console.log('🔍 Search check:', {
+                    shouldSearch,
+                    isEnabled,
+                    query: content.substring(0, 100)
+                });
+
+                if (shouldSearch && isEnabled) {
+                    console.log('🔍 Web search triggered for query:', content);
+                    this.chatUI.showSearchIndicator();
+                    try {
+                        const searchResult = await this.searchController.search(content);
+                        searchContext = searchResult.contextText;
+                        searchSources = searchResult.sources;
+
+                        console.log(`✅ Search completed: ${searchSources.length} sources found`);
+                        if (searchSources.length > 0) {
+                            console.log('📚 Sources:', searchSources.map(s => s.url));
+                            citationsText = '\n\n' + this.searchController.formatCitations(searchSources);
+                        }
+                    } catch (error) {
+                        console.error('❌ Search failed, continuing without search context:', error);
+                    } finally {
+                        this.chatUI.hideSearchIndicator();
                     }
-                } catch (error) {
-                    console.error('Search failed, continuing without search context:', error);
-                } finally {
-                    this.chatUI.hideSearchIndicator();
+                } else if (shouldSearch && !isEnabled) {
+                    console.log('⚠️ Search would trigger but web search is disabled in settings');
                 }
             }
 
@@ -452,6 +467,7 @@ export class ComponentLifecycle {
             if (searchContext && this.searchController) {
                 const formattedContext = this.searchController.formatContextForPrompt(searchContext, 500);
                 promptWithContext = content + formattedContext;
+                console.log('📝 Injected search context into prompt');
             }
 
             let fullResponse = '';

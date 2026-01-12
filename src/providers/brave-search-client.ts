@@ -10,6 +10,7 @@ import type {
     SearchResult,
     APIUsageStats,
 } from './search-api-client';
+import type { SettingsManager } from '../storage/settings-manager';
 
 interface BraveSearchAPIResponse {
     web?: Array<{
@@ -21,7 +22,7 @@ interface BraveSearchAPIResponse {
 }
 
 export class BraveSearchClient implements SearchAPIClient {
-    private apiKey: string;
+    private settingsManager: SettingsManager;
     private baseURL = 'https://api.search.brave.com/res/v1/web/search';
     private usageStats: APIUsageStats = {
         requestsToday: 0,
@@ -29,12 +30,18 @@ export class BraveSearchClient implements SearchAPIClient {
         quotaRemaining: 0,
     };
 
-    constructor(apiKey: string) {
-        this.apiKey = apiKey;
+    constructor(settingsManager: SettingsManager) {
+        this.settingsManager = settingsManager;
+    }
+
+    private async getApiKey(): Promise<string> {
+        return await this.settingsManager.get('searchApiKey', '');
     }
 
     async search(query: string, options?: SearchOptions): Promise<SearchResponse> {
-        if (!this.apiKey) {
+        const apiKey = await this.getApiKey();
+
+        if (!apiKey) {
             throw new Error('Brave Search API key is not configured');
         }
 
@@ -60,7 +67,7 @@ export class BraveSearchClient implements SearchAPIClient {
             const response = await fetch(`${this.baseURL}?${params.toString()}`, {
                 method: 'GET',
                 headers: {
-                    'X-Subscription-Token': this.apiKey,
+                    'X-Subscription-Token': apiKey,
                     Accept: 'application/json',
                 },
             });
@@ -106,7 +113,9 @@ export class BraveSearchClient implements SearchAPIClient {
     }
 
     async isAvailable(): Promise<boolean> {
-        if (!this.apiKey) {
+        const apiKey = await this.getApiKey();
+
+        if (!apiKey) {
             return false;
         }
 
@@ -116,7 +125,7 @@ export class BraveSearchClient implements SearchAPIClient {
                 {
                     method: 'GET',
                     headers: {
-                        'X-Subscription-Token': this.apiKey,
+                        'X-Subscription-Token': apiKey,
                         Accept: 'application/json',
                     },
                 }

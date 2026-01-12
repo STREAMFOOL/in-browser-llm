@@ -1,12 +1,19 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BraveSearchClient } from '../../src/providers/brave-search-client';
+import type { SettingsManager } from '../../src/storage/settings-manager';
 
 describe('BraveSearchClient', () => {
     let client: BraveSearchClient;
+    let mockSettingsManager: SettingsManager;
     const testApiKey = 'test-api-key-123';
 
     beforeEach(() => {
-        client = new BraveSearchClient(testApiKey);
+        // Mock SettingsManager
+        mockSettingsManager = {
+            get: vi.fn().mockResolvedValue(testApiKey),
+        } as any;
+
+        client = new BraveSearchClient(mockSettingsManager);
         vi.clearAllMocks();
     });
 
@@ -130,7 +137,10 @@ describe('BraveSearchClient', () => {
         });
 
         it('should throw error when API key is missing', async () => {
-            const clientNoKey = new BraveSearchClient('');
+            const mockSettingsManagerNoKey = {
+                get: vi.fn().mockResolvedValue(''),
+            } as any;
+            const clientNoKey = new BraveSearchClient(mockSettingsManagerNoKey);
 
             await expect(clientNoKey.search('test')).rejects.toThrow(
                 'Brave Search API key is not configured'
@@ -178,7 +188,10 @@ describe('BraveSearchClient', () => {
 
     describe('isAvailable()', () => {
         it('should return false when API key is not configured', async () => {
-            const clientNoKey = new BraveSearchClient('');
+            const mockSettingsManagerNoKey = {
+                get: vi.fn().mockResolvedValue(''),
+            } as any;
+            const clientNoKey = new BraveSearchClient(mockSettingsManagerNoKey);
 
             const available = await clientNoKey.isAvailable();
 

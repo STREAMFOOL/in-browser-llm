@@ -31,6 +31,7 @@ graph TB
     
     subgraph "External Services"
         BraveAPI[Brave Search API]
+        GoogleAPI[Google Custom Search API]
         OtherAPIs[Other Search APIs]
     end
     
@@ -43,6 +44,7 @@ graph TB
     MessageHandler --> SearchController
     SearchController --> SearchClient
     SearchClient --> BraveAPI
+    SearchClient --> GoogleAPI
     SearchClient -.Future.-> OtherAPIs
     SearchController --> SnippetExtractor
     SearchController --> CitationFormatter
@@ -204,7 +206,73 @@ class BraveSearchClient implements SearchAPIClient {
 - Rate Limit: Varies by plan (typically 1 req/sec for free tier)
 - Response Format: JSON with web results, news, videos, etc.
 
-### 4. SnippetExtractor
+### 4. GoogleSearchClient (Implementation)
+
+**Purpose:** Concrete implementation of SearchAPIClient for Google Custom Search API.
+
+**Interface:**
+```typescript
+class GoogleSearchClient implements SearchAPIClient {
+  private apiKey: string;
+  private searchEngineId: string;
+  private baseURL = 'https://www.googleapis.com/customsearch/v1';
+  
+  constructor(apiKey: string, searchEngineId: string) {
+    this.apiKey = apiKey;
+    this.searchEngineId = searchEngineId;
+  }
+  
+  async search(query: string, options?: SearchOptions): Promise<SearchResponse> {
+    // Build request with query parameters
+    // Execute fetch with API key and cx parameters
+    // Parse and transform response
+  }
+  
+  async isAvailable(): Promise<boolean> {
+    // Verify API key and search engine ID are set
+    // Optionally ping API to check connectivity
+  }
+  
+  getUsageStats(): APIUsageStats {
+    // Return cached usage stats from last response
+  }
+}
+```
+
+**API Details:**
+- Endpoint: `GET https://www.googleapis.com/customsearch/v1`
+- Authentication: `key` query parameter
+- Required Parameters:
+  - `key`: API key
+  - `cx`: Search Engine ID (Programmable Search Engine identifier)
+  - `q`: Search query
+- Optional Parameters:
+  - `num`: Number of results (1-10, default 10)
+  - `start`: Starting index for results (pagination)
+  - `lr`: Language restriction (e.g., 'lang_en')
+  - `safe`: Safe search level ('off', 'medium', 'high')
+  - `dateRestrict`: Restrict by date (e.g., 'd[number]' for days, 'w[number]' for weeks)
+- Rate Limit: 100 queries/day free, $5 per 1000 queries up to 10k/day
+- Response Format: JSON following OpenSearch 1.1 specification
+- Response Structure:
+  - `items[]`: Array of search results
+    - `title`: Page title
+    - `link`: URL
+    - `snippet`: Text excerpt
+    - `displayLink`: Display URL (domain)
+  - `searchInformation`: Metadata about search
+    - `totalResults`: Total number of results
+    - `searchTime`: Time taken in seconds
+  - `queries`: Pagination information
+
+**Key Differences from Brave:**
+- Requires two credentials: API key + Search Engine ID
+- Free tier: 100 queries/day (vs Brave's varies by plan)
+- Uses OpenSearch 1.1 specification format
+- Supports more advanced search operators
+- Better integration with Google's knowledge graph
+
+### 5. SnippetExtractor
 
 **Purpose:** Processes search results to extract relevant text snippets for context injection.
 
@@ -236,7 +304,7 @@ interface ExtractedSnippet {
 - Deduplicates similar snippets from different sources
 - Limits total snippet length to ~500 tokens
 
-### 5. CitationFormatter
+### 6. CitationFormatter
 
 **Purpose:** Formats source citations for inclusion in model responses.
 
@@ -277,11 +345,17 @@ interface SearchSettings {
   enabled: boolean;
   provider: 'brave' | 'google' | 'bing';
   apiKey: string;
+  searchEngineId?: string;  // Required for Google Custom Search
   maxResults: number;
   freshness: 'day' | 'week' | 'month' | 'year' | null;
   safeSearch: boolean;
 }
 ```
+
+**Provider-Specific Requirements:**
+- **Brave Search**: Requires only `apiKey`
+- **Google Custom Search**: Requires both `apiKey` and `searchEngineId` (cx parameter)
+- **Bing** (future): Requires only `apiKey`
 
 ### Search Cache Schema
 
