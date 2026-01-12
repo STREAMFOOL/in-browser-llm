@@ -97,8 +97,22 @@ export class BrowserCompatibilityChecker {
 
         try {
             const estimate = await navigator.storage.estimate();
-            const availableBytes = (estimate.quota || 0) - (estimate.usage || 0);
+            const quota = estimate.quota || 0;
+            const usage = estimate.usage || 0;
+            const availableBytes = quota - usage;
             const availableGB = availableBytes / (1024 ** 3);
+
+            // Handle over-quota scenarios (common in Brave)
+            if (availableBytes < 0) {
+                const usagePercent = ((usage / quota) * 100).toFixed(1);
+                return {
+                    passed: false,
+                    available: availableGB,
+                    required: this.MIN_STORAGE_GB,
+                    message: `Storage quota exceeded: ${usagePercent}% used. Chrome typically provides more storage than other browsers. For the best experience with local AI models, we recommend using Chrome.`
+                };
+            }
+
             const passed = availableGB >= this.MIN_STORAGE_GB;
 
             return {

@@ -24,7 +24,26 @@ export interface ErrorContext {
 export class ErrorHandler {
 
     static handleError(error: unknown, category: ErrorCategory = ErrorCategory.UNKNOWN): ErrorContext {
-        const errorObj = error instanceof Error ? error : new Error(String(error));
+        let errorObj: Error;
+
+        try {
+            if (error instanceof Error) {
+                errorObj = error;
+            } else if (typeof error === 'string') {
+                errorObj = new Error(error);
+            } else if (error && typeof error === 'object') {
+                // Handle objects that might have problematic toString
+                const message = 'message' in error && typeof error.message === 'string'
+                    ? error.message
+                    : 'An unknown error occurred';
+                errorObj = new Error(message);
+            } else {
+                errorObj = new Error('An unknown error occurred');
+            }
+        } catch {
+            // Fallback if anything goes wrong during error conversion
+            errorObj = new Error('An unknown error occurred');
+        }
 
         // Log technical details to console
         console.error(`[${category}]`, errorObj);

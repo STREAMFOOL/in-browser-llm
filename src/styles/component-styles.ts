@@ -21,7 +21,6 @@ export function getComponentStyles() {
       }
 
       .provider-indicator {
-        margin-left: auto;
         display: flex;
         align-items: center;
         gap: 0.5rem;
@@ -52,6 +51,7 @@ export function getComponentStyles() {
       }
 
       .settings-button {
+        margin-left: auto;
         background: none;
         border: none;
         color: white;

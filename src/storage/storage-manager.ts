@@ -2,6 +2,7 @@
 
 import Dexie, { type Table } from 'dexie';
 import { OPFSManager } from './opfs-manager';
+import { notify } from '../ui/notification-api';
 
 // Data Models
 
@@ -107,6 +108,16 @@ class LocalAIDatabase extends Dexie {
             chunks: 'id, documentId, content',
             settings: 'key'
         });
+
+        // Version 2: Add notification log store
+        this.version(2).stores({
+            threads: 'id, updatedAt',
+            messages: 'id, threadId, timestamp',
+            documents: 'id, filename',
+            chunks: 'id, documentId, content',
+            settings: 'key',
+            notificationLog: 'id, type, loggedAt'
+        });
     }
 }
 
@@ -179,7 +190,60 @@ export class StorageManager {
                 }
             }
         } catch (error) {
-            console.error('Failed to check storage quota:', error);
+            // Try to notify, but fall back to console if notification system not available
+            try {
+                notify({
+                    type: 'error',
+                    title: 'Storage Quota Check Failed',
+                    message: `Unable to check storage quota: ${error instanceof Error ? error.message : String(error)}`
+                });
+            } catch {
+                console.error('Failed to check storage quota:', error);
+            }
+        }
+    }
+
+    private async checkQuotaBeforeOperation(operationName: string): Promise<boolean> {
+        try {
+            const estimate = await this.getStorageEstimate();
+
+            if (estimate.quota === 0) {
+                return true; // Storage API not available, proceed anyway
+            }
+
+            const usageRatio = estimate.usage / estimate.quota;
+
+            // Warn at 90%, block at 95%
+            if (usageRatio >= 0.95) {
+                notify({
+                    type: 'error',
+                    title: 'Storage Quota Exceeded',
+                    message: `Cannot ${operationName}: Storage is ${(usageRatio * 100).toFixed(1)}% full. Please clear some data.`,
+                    storageInfo: {
+                        required: 0,
+                        current: estimate.usage,
+                        quota: estimate.quota
+                    }
+                });
+                return false;
+            } else if (usageRatio >= 0.90) {
+                notify({
+                    type: 'warning',
+                    title: 'Storage Running Low',
+                    message: `Storage is ${(usageRatio * 100).toFixed(1)}% full. Consider clearing old conversations.`,
+                    storageInfo: {
+                        required: 0,
+                        current: estimate.usage,
+                        quota: estimate.quota
+                    }
+                });
+            }
+
+            return true;
+        } catch (error) {
+            // If quota check fails, proceed with operation but log error
+            console.error('Quota check failed:', error);
+            return true;
         }
     }
 
@@ -190,7 +254,15 @@ export class StorageManager {
         }
 
         if (!navigator.storage || !navigator.storage.persist) {
-            console.warn('Storage persistence API not available');
+            try {
+                notify({
+                    type: 'warning',
+                    title: 'Storage Persistence Unavailable',
+                    message: 'Your browser doesn\'t support persistent storage. Data may be cleared automatically.'
+                });
+            } catch {
+                console.warn('Storage persistence API not available');
+            }
             return false;
         }
 
@@ -199,7 +271,15 @@ export class StorageManager {
             this.persistenceRequested = true;
             return isPersisted;
         } catch (error) {
-            console.error('Failed to request storage persistence:', error);
+            try {
+                notify({
+                    type: 'error',
+                    title: 'Storage Persistence Request Failed',
+                    message: `Unable to request persistent storage: ${error instanceof Error ? error.message : String(error)}`
+                });
+            } catch {
+                console.error('Failed to request storage persistence:', error);
+            }
             return false;
         }
     }
@@ -244,7 +324,15 @@ export class StorageManager {
                 quota: estimate.quota || 0
             };
         } catch (error) {
-            console.error('Failed to get storage estimate:', error);
+            try {
+                notify({
+                    type: 'error',
+                    title: 'Storage Estimate Failed',
+                    message: `Unable to get storage estimate: ${error instanceof Error ? error.message : String(error)}`
+                });
+            } catch {
+                console.error('Failed to get storage estimate:', error);
+            }
             return { usage: 0, quota: 0 };
         }
     }
@@ -253,6 +341,12 @@ export class StorageManager {
 
 
     async saveMessage(threadId: string, message: Message): Promise<void> {
+        // Check quota before saving
+        const canProceed = await this.checkQuotaBeforeOperation('save message');
+        if (!canProceed) {
+            throw new Error('Storage quota exceeded');
+        }
+
         await this.db.messages.put(message);
 
         // Update thread's updatedAt and messageCount
@@ -407,7 +501,15 @@ export class StorageManager {
                 size += serialized.length;
             }
         } catch (error) {
-            console.error(`Failed to calculate size for store ${storeName}:`, error);
+            try {
+                notify({
+                    type: 'error',
+                    title: 'Store Size Calculation Failed',
+                    message: `Unable to calculate size for store ${storeName}: ${error instanceof Error ? error.message : String(error)}`
+                });
+            } catch {
+                console.error(`Failed to calculate size for store ${storeName}:`, error);
+            }
         }
 
         return size;
@@ -473,6 +575,12 @@ export class StorageManager {
 
 
     async saveAsset(assetId: string, data: Blob): Promise<void> {
+        // Check quota before saving asset
+        const canProceed = await this.checkQuotaBeforeOperation('save asset');
+        if (!canProceed) {
+            throw new Error('Storage quota exceeded');
+        }
+
         await this.opfs.saveAsset(assetId, data);
     }
 

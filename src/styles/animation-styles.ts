@@ -1,5 +1,5 @@
 export function getAnimationStyles() {
-    return `
+  return `
       /* Animations */
       @keyframes fadeIn {
         from {
@@ -36,6 +36,28 @@ export function getAnimationStyles() {
         }
         to {
           transform: rotate(360deg);
+        }
+      }
+
+      @keyframes slideInRight {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideOutRight {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(100%);
+          opacity: 0;
         }
       }
 

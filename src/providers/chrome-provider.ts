@@ -14,6 +14,7 @@ import {
     type AISession,
     type ModelAvailability
 } from './gemini-controller';
+import { notify } from '../ui/notification-api';
 
 
 export class ChromeProvider implements ModelProvider {
@@ -126,7 +127,11 @@ export class ChromeProvider implements ModelProvider {
             try {
                 await this.controller.destroySession(aiSession);
             } catch (error) {
-                console.warn(`Failed to destroy session ${sessionId}:`, error);
+                notify({
+                    type: 'warning',
+                    title: 'Session Cleanup Warning',
+                    message: `Failed to destroy session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`
+                });
             }
         }
         this.sessions.clear();

@@ -7,6 +7,7 @@ import { StorageManager } from '../storage/storage-manager';
 import { getMainStyles } from '../styles/index';
 import { ComponentCore } from './component-core';
 import { ComponentLifecycle } from './component-lifecycle';
+import { initializeNotificationSystem, notify, dismissNotification, clearAllNotifications } from '../ui/notification-api';
 
 export class LocalAIAssistant extends HTMLElement {
     private shadow: ShadowRoot;
@@ -22,6 +23,10 @@ export class LocalAIAssistant extends HTMLElement {
 
         // Create closed Shadow DOM for style isolation
         this.shadow = this.attachShadow({ mode: 'closed' });
+
+        // Initialize notification system with Shadow DOM
+        initializeNotificationSystem(this.shadow);
+
         this.geminiController = new GeminiController();
         this.storageManager = new StorageManager();
 
@@ -153,14 +158,12 @@ export class LocalAIAssistant extends HTMLElement {
             if (!canPersist) {
                 console.warn('Persistent storage verification failed. Data may not be reliably stored.');
 
-                // Display warning in chat UI only if persistence test fails
-                const warningMessage = this.core.createPersistenceWarningMessage();
-                setTimeout(() => {
-                    const chatUI = (this.lifecycle as any).chatUI;
-                    if (chatUI) {
-                        chatUI.addMessage(warningMessage);
-                    }
-                }, 100);
+                // Display warning notification if persistence test fails
+                notify({
+                    type: 'warning',
+                    title: 'Persistent Storage Not Available',
+                    message: 'Your browser denied persistent storage permission. Your conversations and settings may be cleared by the browser.'
+                });
             } else {
                 console.log('Persistent storage verified and working');
             }
@@ -175,10 +178,16 @@ export class LocalAIAssistant extends HTMLElement {
             if (!integrityReport.valid) {
                 console.warn('Data integrity issues detected:', integrityReport);
 
-                // Display warning in chat UI if there are errors
+                // Display notification for integrity errors
                 if (integrityReport.errors.length > 0) {
+                    notify({
+                        type: 'error',
+                        title: 'Data Integrity Issues Detected',
+                        message: `Found ${integrityReport.errors.length} data integrity error(s). Check the chat for details or clear data in settings.`
+                    });
+
+                    // Also display detailed error message in chat UI
                     const errorMessage = this.core.createIntegrityErrorMessage(integrityReport);
-                    // Wait a bit for chat UI to be ready
                     setTimeout(() => {
                         const chatContent = this.shadow.querySelector('.ai-assistant-content');
                         if (chatContent) {
@@ -218,3 +227,6 @@ export class LocalAIAssistant extends HTMLElement {
 if (!customElements.get('local-ai-assistant')) {
     customElements.define('local-ai-assistant', LocalAIAssistant);
 }
+
+// Export notification API for global access
+export { notify, dismissNotification, clearAllNotifications };

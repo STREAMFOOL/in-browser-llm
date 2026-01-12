@@ -17,6 +17,7 @@ import { SearchController } from '../providers/search-controller';
 import { SnippetExtractor } from '../providers/snippet-extractor';
 import { CitationFormatter } from '../providers/citation-formatter';
 import { SettingsManager } from '../storage/settings-manager';
+import { notify, disposeNotificationSystem } from '../ui/notification-api';
 
 export class ComponentLifecycle {
     private shadow: ShadowRoot;
@@ -120,7 +121,8 @@ export class ComponentLifecycle {
                 onProviderReady: (provider) => this.handleProviderReady(provider),
                 onSessionCreated: (session) => this.handleSessionCreated(session),
                 onHardwareProfileDetected: (profile) => this.handleHardwareProfileDetected(profile),
-                onFeaturesFiltered: (supported, unsupported) => this.handleFeaturesFiltered(supported, unsupported)
+                onFeaturesFiltered: (supported, unsupported) => this.handleFeaturesFiltered(supported, unsupported),
+                onProviderFailure: (chromeAvailability, webllmAvailability) => this.handleProviderFailure(chromeAvailability, webllmAvailability)
             },
             this.core.getMessageIdCounter()
         );
@@ -223,7 +225,11 @@ export class ComponentLifecycle {
                 this.chatUI.addMessage(switchMessage);
             }
         } catch (error) {
-            console.error('Failed to switch provider:', error);
+            notify({
+                type: 'error',
+                title: 'Provider Switch Failed',
+                message: `Unable to switch provider: ${error instanceof Error ? error.message : String(error)}`
+            });
             throw error;
         }
     }
@@ -246,7 +252,11 @@ export class ComponentLifecycle {
                 await this.settingsPanel.show();
             }
         } catch (error) {
-            console.error('Failed to switch WebLLM model:', error);
+            notify({
+                type: 'error',
+                title: 'Model Switch Failed',
+                message: `Unable to switch WebLLM model: ${error instanceof Error ? error.message : String(error)}`
+            });
             if (this.chatUI) {
                 const errorMessage = {
                     id: `error-${Date.now()}`,
@@ -285,7 +295,11 @@ export class ComponentLifecycle {
                     enabledFeatures: validConfig.enabledFeatures
                 });
             } catch (error) {
-                console.error('Failed to apply settings:', error);
+                notify({
+                    type: 'error',
+                    title: 'Settings Apply Failed',
+                    message: `Unable to apply settings: ${error instanceof Error ? error.message : String(error)}`
+                });
             }
         }
 
@@ -296,7 +310,11 @@ export class ComponentLifecycle {
             });
             await this.storageManager.saveSetting('enabledFeatures', validConfig.enabledFeatures);
         } catch (error) {
-            console.error('Failed to persist settings:', error);
+            notify({
+                type: 'error',
+                title: 'Settings Persist Failed',
+                message: `Unable to save settings: ${error instanceof Error ? error.message : String(error)}`
+            });
         }
     }
 
@@ -348,7 +366,11 @@ export class ComponentLifecycle {
             }
 
         } catch (error) {
-            console.error('Failed to clear data:', error);
+            notify({
+                type: 'error',
+                title: 'Clear Data Failed',
+                message: `Unable to clear data: ${error instanceof Error ? error.message : String(error)}`
+            });
 
             if (this.chatUI) {
                 const errorMessage = this.core.createDataClearErrorMessage(error);
@@ -472,6 +494,11 @@ export class ComponentLifecycle {
                         }
                     } catch (error) {
                         console.error('❌ Search failed, continuing without search context:', error);
+                        notify({
+                            type: 'warning',
+                            title: 'Search Failed',
+                            message: 'Web search failed. Continuing without search context.'
+                        });
                     } finally {
                         this.chatUI.hideSearchIndicator();
                     }
@@ -545,6 +572,9 @@ export class ComponentLifecycle {
                 const category = ErrorHandler.detectErrorCategory(error);
                 const errorContext = ErrorHandler.handleError(error, category);
                 const errorMessage = ErrorHandler.formatErrorMessage(errorContext);
+
+                // Show notification for streaming error
+                this.chatUI.showStreamingError(error instanceof Error ? error : new Error(String(error)));
 
                 this.chatUI.updateMessage(
                     assistantMessage.id,
@@ -628,19 +658,20 @@ export class ComponentLifecycle {
     }
 
     private handleQuotaWarning(usage: number, quota: number): void {
-        if (!this.chatUI) return;
-
         const usagePercent = ((usage / quota) * 100).toFixed(1);
         const usageGB = (usage / (1024 ** 3)).toFixed(2);
         const quotaGB = (quota / (1024 ** 3)).toFixed(2);
 
-        const warningMessage = this.core.createQuotaWarningMessage(
-            usagePercent,
-            usageGB,
-            quotaGB
-        );
-
-        this.chatUI.addMessage(warningMessage);
+        notify({
+            type: 'warning',
+            title: 'Storage Running Low',
+            message: `Your storage is ${usagePercent}% full (${usageGB} GB / ${quotaGB} GB). Consider clearing old conversations to free up space.`,
+            storageInfo: {
+                required: 0,
+                current: usage,
+                quota: quota
+            }
+        });
     }
 
     private async handleSearchToggle(enabled: boolean): Promise<void> {
@@ -673,7 +704,11 @@ export class ComponentLifecycle {
                 await this.storageManager.saveSetting('googleSearchEngineId', cx);
             };
         } catch (error) {
-            console.error('Failed to toggle web search:', error);
+            notify({
+                type: 'error',
+                title: 'Web Search Toggle Failed',
+                message: `Unable to toggle web search: ${error instanceof Error ? error.message : String(error)}`
+            });
             throw error;
         }
     }
@@ -708,9 +743,40 @@ export class ComponentLifecycle {
                 await this.storageManager.saveSetting('googleSearchEngineId', cx);
             };
         } catch (error) {
-            console.error('Failed to save search API key:', error);
+            notify({
+                type: 'error',
+                title: 'Search API Key Save Failed',
+                message: `Unable to save search API key: ${error instanceof Error ? error.message : String(error)}`
+            });
             throw error;
         }
+    }
+
+    private handleProviderFailure(
+        chromeAvailability?: any,
+        webllmAvailability?: { available: boolean; reason?: string }
+    ): void {
+        // Build detailed error message
+        let message = 'Neither Chrome AI nor WebLLM could be initialized.\n\n';
+
+        if (chromeAvailability?.reason) {
+            message += `Chrome AI: ${chromeAvailability.errorMessage || chromeAvailability.reason}\n`;
+        } else {
+            message += 'Chrome AI: Not available\n';
+        }
+
+        if (webllmAvailability?.reason) {
+            message += `WebLLM: ${webllmAvailability.reason}`;
+        } else {
+            message += 'WebLLM: Not available';
+        }
+
+        notify({
+            type: 'error',
+            title: 'No AI Provider Available',
+            message: message,
+            duration: 10000 // Show for 10 seconds since this is critical
+        });
     }
 
     async dispose(): Promise<void> {
@@ -726,5 +792,8 @@ export class ComponentLifecycle {
         if (this.threadManager) {
             this.threadManager.dispose();
         }
+
+        // Dispose notification system
+        await disposeNotificationSystem();
     }
 }

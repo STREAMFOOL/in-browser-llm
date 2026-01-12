@@ -11,11 +11,13 @@ afterEach(() => {
 // Clean up IndexedDB after each test
 afterEach(async () => {
     try {
+        // Wait a bit for any pending operations to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
         await Dexie.delete('LocalAIAssistant');
     } catch (e) {
         // Ignore errors
     }
-});
+}, 20000); // Increase timeout to 20 seconds for IndexedDB cleanup
 
 // Mock window.ai if not available (for testing environments)
 if (typeof window !== 'undefined' && !(window as any).ai) {

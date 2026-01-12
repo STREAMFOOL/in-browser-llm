@@ -2,6 +2,7 @@
 
 import { MarkdownRenderer } from './markdown-renderer';
 import { SearchIndicator } from './search-indicator';
+import { notify } from './notification-api';
 
 export interface Message {
     id: string;
@@ -136,13 +137,21 @@ export class ChatUI {
             this.callbacks.onCancelStream();
         }
 
-        this.callbacks.onSendMessage(content);
-        this.inputField.value = '';
-        this.inputField.style.height = 'auto';
-        this.inputField.focus();
+        try {
+            this.callbacks.onSendMessage(content);
+            this.inputField.value = '';
+            this.inputField.style.height = 'auto';
+            this.inputField.focus();
 
-        // Reset scroll tracking when user sends a message
-        this.forceScrollToBottom();
+            // Reset scroll tracking when user sends a message
+            this.forceScrollToBottom();
+        } catch (error) {
+            notify({
+                type: 'error',
+                title: 'Message Send Failed',
+                message: `Unable to send message: ${error instanceof Error ? error.message : String(error)}`
+            });
+        }
     }
 
 
@@ -315,5 +324,41 @@ export class ChatUI {
             return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' +
                 date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
+    }
+
+    /**
+     * Show error notification for message send failures
+     */
+    showSendError(error: Error | string): void {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        notify({
+            type: 'error',
+            title: 'Message Send Failed',
+            message: `Unable to send message: ${errorMessage}. Please try again.`
+        });
+    }
+
+    /**
+     * Show error notification for streaming errors
+     */
+    showStreamingError(error: Error | string): void {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        notify({
+            type: 'error',
+            title: 'Streaming Error',
+            message: `Message streaming interrupted: ${errorMessage}. The response may be incomplete.`
+        });
+    }
+
+    /**
+     * Show error notification for general chat errors
+     */
+    showChatError(title: string, error: Error | string): void {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        notify({
+            type: 'error',
+            title,
+            message: errorMessage
+        });
     }
 }

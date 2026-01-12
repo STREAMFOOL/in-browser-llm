@@ -1,12 +1,16 @@
 import { HardwareDiagnostics, type HardwareProfile, type Feature } from '../utils/hardware-diagnostics';
 import type { ProviderInfo } from '../providers/model-provider';
 import type { SettingsConfig, SettingsCallbacks } from './settings-ui';
+import { NotificationLogger } from './notification-logger';
+import type { NotificationType } from './notification-types';
 
 export class SettingsSections {
     private container: HTMLElement;
     private callbacks: SettingsCallbacks;
     private hardwareProfile: HardwareProfile | null;
     private currentConfig: SettingsConfig;
+    private notificationLogger: NotificationLogger;
+    private currentFilter: NotificationType | 'all' = 'all';
 
     constructor(
         container: HTMLElement,
@@ -18,6 +22,7 @@ export class SettingsSections {
         this.callbacks = callbacks;
         this.hardwareProfile = hardwareProfile;
         this.currentConfig = currentConfig;
+        this.notificationLogger = new NotificationLogger();
     }
 
     updateConfig(config: SettingsConfig): void {
@@ -1258,5 +1263,197 @@ export class SettingsSections {
         const i = Math.floor(Math.log(bytes) / Math.log(k));
 
         return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    async renderNotificationLogSection(): Promise<void> {
+        const section = document.createElement('div');
+        section.className = 'settings-section';
+
+        const title = document.createElement('div');
+        title.className = 'settings-section-title';
+        title.textContent = 'Notification Log';
+
+        // Filter dropdown
+        const filterContainer = document.createElement('div');
+        filterContainer.className = 'input-container';
+        filterContainer.style.marginBottom = '16px';
+
+        const filterLabel = document.createElement('label');
+        filterLabel.className = 'input-label';
+        filterLabel.textContent = 'Filter by Type';
+
+        const filterSelect = document.createElement('select');
+        filterSelect.className = 'input-select';
+        filterSelect.innerHTML = `
+            <option value="all">All Notifications</option>
+            <option value="error">Errors Only</option>
+            <option value="warning">Warnings Only</option>
+            <option value="info">Info Only</option>
+        `;
+        filterSelect.value = this.currentFilter;
+
+        filterSelect.addEventListener('change', async () => {
+            this.currentFilter = filterSelect.value as NotificationType | 'all';
+            await this.updateNotificationLogDisplay(logContainer);
+        });
+
+        filterContainer.appendChild(filterLabel);
+        filterContainer.appendChild(filterSelect);
+
+        // Clear log button
+        const clearButton = document.createElement('button');
+        clearButton.className = 'action-button secondary';
+        clearButton.textContent = '🗑️ Clear Log';
+        clearButton.style.marginBottom = '16px';
+        clearButton.addEventListener('click', async () => {
+            if (confirm('Are you sure you want to clear the notification log? This action cannot be undone.')) {
+                await this.notificationLogger.clear();
+                await this.updateNotificationLogDisplay(logContainer);
+            }
+        });
+
+        // Log container
+        const logContainer = document.createElement('div');
+        logContainer.className = 'notification-log-container';
+        logContainer.style.cssText = `
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.02);
+        `;
+
+        section.appendChild(title);
+        section.appendChild(filterContainer);
+        section.appendChild(clearButton);
+        section.appendChild(logContainer);
+
+        this.container.appendChild(section);
+
+        // Load and display notifications
+        await this.updateNotificationLogDisplay(logContainer);
+    }
+
+    private async updateNotificationLogDisplay(container: HTMLElement): Promise<void> {
+        container.innerHTML = '<div style="padding: 16px; color: #666;">Loading notifications...</div>';
+
+        try {
+            const notifications = this.currentFilter === 'all'
+                ? await this.notificationLogger.getAll()
+                : await this.notificationLogger.getByType(this.currentFilter as NotificationType);
+
+            if (notifications.length === 0) {
+                container.innerHTML = `
+                    <div style="padding: 32px; text-align: center; color: #999;">
+                        <div style="font-size: 48px; margin-bottom: 8px;">📭</div>
+                        <div>No notifications to display</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+
+            for (const notification of notifications) {
+                const item = this.createNotificationLogItem(notification);
+                container.appendChild(item);
+            }
+        } catch (error) {
+            container.innerHTML = '<div style="padding: 16px; color: #d32f2f;">Failed to load notifications</div>';
+            console.error('Failed to load notification log:', error);
+        }
+    }
+
+    private createNotificationLogItem(notification: any): HTMLElement {
+        const item = document.createElement('div');
+        item.style.cssText = `
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            transition: background-color 0.2s;
+        `;
+        item.addEventListener('mouseenter', () => {
+            item.style.backgroundColor = 'rgba(0, 0, 0, 0.03)';
+        });
+        item.addEventListener('mouseleave', () => {
+            item.style.backgroundColor = 'transparent';
+        });
+
+        const header = document.createElement('div');
+        header.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        `;
+
+        const typeIcon = this.getNotificationTypeIcon(notification.type);
+        const iconSpan = document.createElement('span');
+        iconSpan.style.fontSize = '16px';
+        iconSpan.textContent = typeIcon;
+
+        const title = document.createElement('span');
+        title.style.cssText = `
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        `;
+        title.textContent = notification.title;
+
+        const timestamp = document.createElement('span');
+        timestamp.style.cssText = `
+            font-size: 12px;
+            color: #999;
+        `;
+        timestamp.textContent = this.formatRelativeTime(notification.loggedAt);
+
+        header.appendChild(iconSpan);
+        header.appendChild(title);
+        header.appendChild(timestamp);
+
+        const message = document.createElement('div');
+        message.style.cssText = `
+            font-size: 14px;
+            color: #666;
+            margin-left: 24px;
+            line-height: 1.4;
+        `;
+        message.textContent = notification.message;
+
+        item.appendChild(header);
+        item.appendChild(message);
+
+        return item;
+    }
+
+    private getNotificationTypeIcon(type: NotificationType): string {
+        const icons = {
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️',
+        };
+        return icons[type] || 'ℹ️';
+    }
+
+    private formatRelativeTime(timestamp: number): string {
+        const now = Date.now();
+        const diff = now - timestamp;
+
+        const seconds = Math.floor(diff / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        if (seconds < 60) {
+            return 'just now';
+        } else if (minutes < 60) {
+            return `${minutes}m ago`;
+        } else if (hours < 24) {
+            return `${hours}h ago`;
+        } else if (days < 7) {
+            return `${days}d ago`;
+        } else {
+            const date = new Date(timestamp);
+            return date.toLocaleDateString();
+        }
     }
 }

@@ -10,6 +10,7 @@ import type {
 } from './model-provider';
 import { generateSessionId } from './model-provider';
 import { StorageManager } from '../storage/storage-manager';
+import { notify } from '../ui/notification-api';
 
 
 export type APIBackend = 'openai' | 'anthropic' | 'ollama';
@@ -267,6 +268,11 @@ export class APIProvider implements ModelProvider {
 
         if (!response.ok) {
             const errorText = await response.text();
+            notify({
+                type: 'error',
+                title: 'OpenAI API Error',
+                message: `Request failed (${response.status}): ${errorText}. Check your API key and quota.`
+            });
             throw new Error(`OpenAI API error: ${response.status} ${errorText}`);
         }
 
@@ -345,6 +351,11 @@ export class APIProvider implements ModelProvider {
 
         if (!response.ok) {
             const errorText = await response.text();
+            notify({
+                type: 'error',
+                title: 'Anthropic API Error',
+                message: `Request failed (${response.status}): ${errorText}. Check your API key and quota.`
+            });
             throw new Error(`Anthropic API error: ${response.status} ${errorText}`);
         }
 
@@ -413,6 +424,11 @@ export class APIProvider implements ModelProvider {
 
         if (!response.ok) {
             const errorText = await response.text();
+            notify({
+                type: 'error',
+                title: 'Ollama API Error',
+                message: `Request failed (${response.status}): ${errorText}. Make sure Ollama is running locally.`
+            });
             throw new Error(`Ollama API error: ${response.status} ${errorText}`);
         }
 

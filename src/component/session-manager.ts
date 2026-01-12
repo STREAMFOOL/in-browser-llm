@@ -17,6 +17,7 @@ export interface SessionManagerCallbacks {
     onSessionCreated: (session: ChatSession) => void;
     onHardwareProfileDetected: (profile: HardwareProfile) => void;
     onFeaturesFiltered: (supported: Feature[], unsupported: Feature[]) => void;
+    onProviderFailure?: (chromeAvailability?: DetailedAvailability, webllmAvailability?: { available: boolean; reason?: string }) => void;
 }
 
 export class SessionManager {
@@ -196,10 +197,16 @@ export class SessionManager {
 
             if (!webllmAvailability.available) {
                 fallbackSteps[1] = { id: 'webllm', label: 'WebLLM not available', status: 'failed', error: webllmAvailability.reason };
+
+                // Clear the initialization message and show toast notification instead
                 this.callbacks.onUpdateInitMessage(
                     initMessageId,
-                    this.renderFallbackStatus(fallbackSteps, 'failed', chromeAvailability)
+                    '👋 Hello! I\'m your local AI assistant. How can I help you today?'
                 );
+
+                // Trigger notification for provider failure
+                this.callbacks.onProviderFailure?.(chromeAvailability, webllmAvailability);
+
                 console.warn('WebLLM unavailable. Reason:', webllmAvailability.reason);
                 return;
             }
@@ -271,10 +278,18 @@ export class SessionManager {
                 status: 'failed',
                 error: error instanceof Error ? error.message : 'Unknown error'
             };
+
+            // Clear the initialization message and show toast notification instead
             this.callbacks.onUpdateInitMessage(
                 initMessageId,
-                this.renderFallbackStatus(fallbackSteps, 'failed', chromeAvailability)
+                '👋 Hello! I\'m your local AI assistant. How can I help you today?'
             );
+
+            // Trigger notification for provider failure
+            this.callbacks.onProviderFailure?.(chromeAvailability, {
+                available: false,
+                reason: error instanceof Error ? error.message : 'Unknown error'
+            });
         }
     }
 

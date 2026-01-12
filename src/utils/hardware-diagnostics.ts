@@ -35,7 +35,7 @@ export class HardwareDiagnostics {
             minRAM: 4,
             minVRAM: 0,
             minCPUCores: 2,
-            minStorage: 2,
+            minStorage: 0, // Text chat should always be available
             requiresWebGPU: false
         },
         'image-generation': {
@@ -173,8 +173,22 @@ export class HardwareDiagnostics {
             }
 
             const estimate = await navigator.storage.estimate();
-            const availableBytes = (estimate.quota || 0) - (estimate.usage || 0);
-            return availableBytes / (1024 ** 3); // Convert to GB
+            const quota = estimate.quota || 0;
+            const usage = estimate.usage || 0;
+            const availableBytes = quota - usage;
+            const availableGB = availableBytes / (1024 ** 3);
+
+            // Log warning if storage is over quota (can happen in Brave)
+            if (availableBytes < 0) {
+                const usagePercent = ((usage / quota) * 100).toFixed(1);
+                console.warn(`Storage quota warning: ${usagePercent}% used (${usage} / ${quota} bytes)`);
+
+                // Return 0 instead of negative value to prevent feature disabling
+                // Text chat should work even with limited storage
+                return 0;
+            }
+
+            return availableGB;
         } catch (error) {
             console.error('Failed to detect storage:', error);
             return 0;

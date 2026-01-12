@@ -11,6 +11,7 @@ import type {
     DownloadProgress
 } from './model-provider';
 import { generateSessionId } from './model-provider';
+import { notify } from '../ui/notification-api';
 
 
 export interface WebLLMModelInfo {
@@ -183,7 +184,13 @@ export class WebLLMProvider implements ModelProvider {
             this.initialized = true;
         } catch (error) {
             this.progress = null;
-            throw new Error(`Failed to initialize WebLLM: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            notify({
+                type: 'error',
+                title: 'WebLLM Initialization Failed',
+                message: `Failed to initialize WebLLM: ${errorMessage}. Try selecting a smaller model or check your GPU memory.`
+            });
+            throw new Error(`Failed to initialize WebLLM: ${errorMessage}`);
         }
     }
 

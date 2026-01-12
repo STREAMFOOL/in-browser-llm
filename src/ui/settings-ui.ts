@@ -51,6 +51,7 @@ export class SettingsUI {
         this.sections.renderWebLLMModelSection(activeProviderName);
         this.sections.renderApiConfigSection(activeProviderName);
         this.sections.renderSearchSection();
+        await this.sections.renderNotificationLogSection();
         this.sections.renderDataManagementSection();
     }
 
