@@ -1,4 +1,5 @@
 import type { ModelType } from './inference-worker-manager';
+import { ModelLoader, type ModelMetadata, type LoadProgress } from './model-loader';
 
 interface WorkerState {
   modelType?: ModelType;
@@ -6,11 +7,15 @@ interface WorkerState {
   gpuDevice?: GPUDevice;
   isInitialized: boolean;
   isProcessing: boolean;
+  modelLoader?: ModelLoader;
+  visionModelWeights?: ArrayBuffer;
+  visionModelLoaded: boolean;
 }
 
 const state: WorkerState = {
   isInitialized: false,
-  isProcessing: false
+  isProcessing: false,
+  visionModelLoaded: false
 };
 
 self.onmessage = async (event: MessageEvent) => {
@@ -46,6 +51,10 @@ async function handleInitialize(modelType: ModelType): Promise<void> {
 
     // Initialize WebGPU context
     await initializeWebGPU();
+
+    // Initialize model loader
+    state.modelLoader = new ModelLoader();
+    await state.modelLoader.initialize();
 
     state.isInitialized = true;
 
@@ -188,8 +197,7 @@ async function executeModelInference(task: any): Promise<any> {
     case 'speech-tts':
       return await executeSpeechTTS(task);
     case 'vision':
-      // Placeholder for vision model
-      return await executePlaceholderInference(task);
+      return await executeVisionInference(task);
     default:
       throw new Error(`Unknown model type: ${state.modelType}`);
   }
@@ -423,8 +431,151 @@ function writeString(view: DataView, offset: number, string: string): void {
   }
 }
 
+async function executeVisionInference(task: any): Promise<any> {
+  const { input, parameters } = task;
+
+  // Validate input is image data
+  if (!(input instanceof ArrayBuffer)) {
+    throw new Error('Vision model requires image data as ArrayBuffer');
+  }
+
+  const { taskType = 'caption' } = parameters;
+
+  // Report starting
+  self.postMessage({
+    type: 'progress',
+    payload: {
+      phase: 'starting',
+      percentage: 0,
+      message: 'Starting image analysis...'
+    }
+  });
+
+  // Load Florence-2 model if not already loaded
+  if (!state.visionModelLoaded) {
+    await loadVisionModel();
+  }
+
+  // Report processing
+  self.postMessage({
+    type: 'progress',
+    payload: {
+      phase: 'processing',
+      percentage: 50,
+      message: `Analyzing image (task: ${taskType})...`
+    }
+  });
+
+  // Execute vision pipeline
+  const result = await executeVisionPipeline(input, taskType);
+
+  self.postMessage({
+    type: 'progress',
+    payload: {
+      phase: 'complete',
+      percentage: 100,
+      message: 'Image analysis complete'
+    }
+  });
+
+  return result;
+}
+
+async function loadVisionModel(): Promise<void> {
+  if (!state.modelLoader) {
+    throw new Error('Model loader not initialized');
+  }
+
+  // Define Florence-2 Base model metadata
+  const modelMetadata: ModelMetadata = {
+    modelId: 'florence-2-base',
+    modelType: 'vision',
+    version: '1.0',
+    sizeBytes: 232 * 1024 * 1024, // 232MB
+    url: 'https://placeholder.com/florence-2-base.bin' // Placeholder URL
+  };
+
+  // Load model with progress reporting
+  state.visionModelWeights = await state.modelLoader.loadModel(
+    modelMetadata,
+    (progress: LoadProgress) => {
+      self.postMessage({
+        type: 'progress',
+        payload: {
+          phase: 'loading',
+          percentage: progress.percentage,
+          message: progress.message
+        }
+      });
+    }
+  );
+
+  state.visionModelLoaded = true;
+
+  self.postMessage({
+    type: 'progress',
+    payload: {
+      phase: 'loading',
+      percentage: 100,
+      message: 'Florence-2 model loaded successfully'
+    }
+  });
+}
+
+async function executeVisionPipeline(imageData: ArrayBuffer, taskType: string): Promise<any> {
+  // Validate we have model weights
+  if (!state.visionModelWeights) {
+    throw new Error('Vision model weights not loaded');
+  }
+
+  // Simulate vision processing
+  // In production, this would execute actual Florence-2 inference
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  // Generate result based on task type
+  let result: any;
+  switch (taskType) {
+    case 'caption':
+      result = {
+        caption: '[Placeholder caption - Florence-2 not yet integrated. This would be a detailed description of the image.]'
+      };
+      break;
+    case 'detailed-caption':
+      result = {
+        caption: '[Placeholder detailed caption - Florence-2 not yet integrated. This would be a comprehensive description including objects, actions, and scene context.]'
+      };
+      break;
+    case 'object-detection':
+      // Generate placeholder bounding boxes
+      result = {
+        objects: [
+          {
+            label: 'placeholder_object_1',
+            confidence: 0.95,
+            boundingBox: { x: 100, y: 100, width: 200, height: 200 }
+          },
+          {
+            label: 'placeholder_object_2',
+            confidence: 0.87,
+            boundingBox: { x: 350, y: 150, width: 150, height: 180 }
+          }
+        ]
+      };
+      break;
+    case 'ocr':
+      result = {
+        text: '[Placeholder OCR text - Florence-2 not yet integrated. This would be extracted text from the image.]'
+      };
+      break;
+    default:
+      throw new Error(`Unknown vision task type: ${taskType}`);
+  }
+
+  return result;
+}
+
 async function executePlaceholderInference(_task: any): Promise<any> {
-  // Placeholder for vision model
+  // Placeholder for future model types
   self.postMessage({
     type: 'progress',
     payload: {
