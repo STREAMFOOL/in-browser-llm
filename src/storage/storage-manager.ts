@@ -66,6 +66,7 @@ export interface Chunk {
     content: string;
     startOffset: number;
     endOffset: number;
+    keywords?: string[];
 }
 
 export interface Setting {
@@ -423,6 +424,11 @@ export class StorageManager {
     async deleteDocument(documentId: string): Promise<void> {
         await this.db.chunks.where('documentId').equals(documentId).delete();
         await this.db.documents.delete(documentId);
+    }
+
+
+    async listDocuments(): Promise<Document[]> {
+        return await this.db.documents.toArray();
     }
 
     // Settings Operations

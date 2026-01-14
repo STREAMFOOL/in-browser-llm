@@ -136,34 +136,34 @@ The implementation uses TypeScript with Web Workers for non-blocking inference, 
     - Test error handling
     - _Requirements: 3.1, 3.2, 3.4, 3.6_
 
-- [ ] 6. Checkpoint - Speech Features Complete
+- [x] 6. Checkpoint - Speech Features Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Document Ingestion and RAG
-  - [ ] 7.1 Implement RAGProcessor
+- [x] 7. Document Ingestion and RAG
+  - [x] 7.1 Implement RAGProcessor
     - Read text files via File API
     - Chunk documents with overlap
     - Store chunks in IndexedDB
     - _Requirements: 4.1, 4.2, 4.6_
 
-  - [ ] 7.2 Implement document chunking algorithm
+  - [x] 7.2 Implement document chunking algorithm
     - Split into 512-token segments
     - Add 50-token overlap between chunks
     - Extract keywords for search
     - _Requirements: 4.2_
 
-  - [ ] 7.3 Implement retrieval mechanism
+  - [x] 7.3 Implement retrieval mechanism
     - Implement keyword-based search
     - Rank chunks by relevance
     - Return top 3 most relevant chunks
     - _Requirements: 4.3_
 
-  - [ ] 7.4 Implement context injection
+  - [x] 7.4 Implement context injection
     - Include retrieved chunks in prompt
     - Add source citations to responses
     - _Requirements: 4.4, 4.5_
 
-  - [ ] 7.5 Create document upload UI
+  - [x] 7.5 Create document upload UI
     - Add file upload button
     - Display uploaded documents list
     - Show document metadata
