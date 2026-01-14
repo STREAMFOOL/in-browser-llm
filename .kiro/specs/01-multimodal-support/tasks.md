@@ -42,7 +42,7 @@ The implementation uses TypeScript with Web Workers for non-blocking inference, 
 - [x] 2. Checkpoint - Worker Infrastructure Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 3. Image Generation Implementation
+- [x] 3. Image Generation Implementation
   - [x] 3.1 Create ImageGenerationWorker
     - Set up worker message handling
     - Initialize WebGPU context
@@ -89,33 +89,33 @@ The implementation uses TypeScript with Web Workers for non-blocking inference, 
 - [x] 4. Checkpoint - Image Generation Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Speech Input and Output
-  - [ ] 5.1 Create SpeechWorker
+- [x] 5. Speech Input and Output
+  - [x] 5.1 Create SpeechWorker
     - Set up worker message handling
     - Initialize WebGPU context
     - _Requirements: 3.2, 3.5_
 
-  - [ ] 5.2 Implement ASR with Whisper
+  - [x] 5.2 Implement ASR with Whisper
     - Integrate Whisper model
     - Load model weights from cache or download
     - Process audio input
     - Generate transcription
     - _Requirements: 3.2_
 
-  - [ ] 5.3 Implement audio capture UI
+  - [x] 5.3 Implement audio capture UI
     - Add voice input button
     - Capture audio via MediaDevices API
     - Display recording indicator
     - Insert transcription into input field
     - _Requirements: 3.1, 3.3_
 
-  - [ ] 5.4 Implement TTS with Kokoro
+  - [x] 5.4 Implement TTS with Kokoro
     - Integrate Kokoro-82M model
     - Load model weights from cache or download
     - Generate speech from text
     - _Requirements: 3.4, 3.5_
 
-  - [ ] 5.5 Implement audio playback
+  - [x] 5.5 Implement audio playback
     - Play generated audio through browser
     - Display playback controls
     - _Requirements: 3.6_

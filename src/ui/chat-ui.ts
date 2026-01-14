@@ -3,6 +3,9 @@
 import { MarkdownRenderer } from './markdown-renderer';
 import { SearchIndicator } from './search-indicator';
 import { notify } from './notification-api';
+import { VoiceInputUI, type VoiceInputCallbacks } from './voice-input-ui';
+import { AudioPlaybackUI } from './audio-playback-ui';
+import { InferenceWorkerManager } from '../core/inference-worker-manager';
 
 export interface Message {
     id: string;
@@ -24,23 +27,31 @@ export class ChatUI {
     private sendButton: HTMLButtonElement;
     private loadingIndicator: HTMLElement;
     private searchIndicator: SearchIndicator;
+    private voiceInputUI: VoiceInputUI | null = null;
+    private audioPlaybackUI: AudioPlaybackUI | null = null;
     private privacyWarning: HTMLElement | null = null;
     private inputOverlay: HTMLElement | null = null;
     private callbacks: ChatUICallbacks;
     private isStreaming: boolean = false;
     private userHasScrolledUp: boolean = false;
     private isInputEnabled: boolean = true;
+    private voiceOutputEnabled: boolean = false;
 
-    constructor(container: HTMLElement, callbacks: ChatUICallbacks) {
+    constructor(container: HTMLElement, callbacks: ChatUICallbacks, workerManager?: InferenceWorkerManager) {
         this.container = container;
         this.callbacks = callbacks;
 
         this.messageList = this.createMessageList();
-        const inputContainer = this.createInputContainer();
+        const inputContainer = this.createInputContainer(workerManager);
         this.inputField = inputContainer.querySelector('textarea') as HTMLTextAreaElement;
-        this.sendButton = inputContainer.querySelector('button') as HTMLButtonElement;
+        this.sendButton = inputContainer.querySelector('button[aria-label="Send message"]') as HTMLButtonElement;
         this.loadingIndicator = this.createLoadingIndicator();
         this.searchIndicator = new SearchIndicator(this.messageList);
+
+        // Initialize audio playback UI if worker manager is provided
+        if (workerManager) {
+            this.audioPlaybackUI = new AudioPlaybackUI(this.messageList, workerManager);
+        }
 
         this.container.appendChild(this.messageList);
         this.container.appendChild(this.loadingIndicator);
@@ -65,24 +76,51 @@ export class ChatUI {
         return list;
     }
 
-    private createInputContainer(): HTMLElement {
+    private createInputContainer(workerManager?: InferenceWorkerManager): HTMLElement {
         const container = document.createElement('div');
         container.className = 'input-container';
         container.style.position = 'relative';
 
+        const inputWrapper = document.createElement('div');
+        inputWrapper.className = 'flex items-center gap-2';
+
         const textarea = document.createElement('textarea');
-        textarea.className = 'message-input';
+        textarea.className = 'message-input flex-1';
         textarea.placeholder = 'Type your message here. Enter adds new line, cmd+enter submits';
         textarea.rows = 1;
         textarea.setAttribute('aria-label', 'Message input');
+
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'flex items-center gap-2';
+
+        // Add voice input button if worker manager is provided
+        if (workerManager) {
+            const voiceInputCallbacks: VoiceInputCallbacks = {
+                onTranscription: (text: string) => {
+                    // Insert transcription into input field
+                    const currentValue = textarea.value;
+                    textarea.value = currentValue ? `${currentValue} ${text}` : text;
+                    textarea.focus();
+
+                    // Trigger auto-resize
+                    textarea.style.height = 'auto';
+                    textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+                }
+            };
+
+            this.voiceInputUI = new VoiceInputUI(buttonContainer, voiceInputCallbacks, workerManager);
+        }
 
         const button = document.createElement('button');
         button.className = 'send-button';
         button.textContent = 'Send';
         button.setAttribute('aria-label', 'Send message');
 
-        container.appendChild(textarea);
-        container.appendChild(button);
+        buttonContainer.appendChild(button);
+
+        inputWrapper.appendChild(textarea);
+        inputWrapper.appendChild(buttonContainer);
+        container.appendChild(inputWrapper);
 
         return container;
     }
@@ -457,5 +495,52 @@ export class ChatUI {
      */
     isInputCurrentlyEnabled(): boolean {
         return this.isInputEnabled;
+    }
+
+    /**
+     * Clean up resources
+     */
+    cleanup(): void {
+        if (this.voiceInputUI) {
+            this.voiceInputUI.cleanup();
+        }
+        if (this.audioPlaybackUI) {
+            this.audioPlaybackUI.cleanupWorker();
+        }
+    }
+
+    /**
+     * Enable voice output for assistant responses
+     */
+    enableVoiceOutput(): void {
+        this.voiceOutputEnabled = true;
+    }
+
+    /**
+     * Disable voice output for assistant responses
+     */
+    disableVoiceOutput(): void {
+        this.voiceOutputEnabled = false;
+        if (this.audioPlaybackUI) {
+            this.audioPlaybackUI.cleanup();
+        }
+    }
+
+    /**
+     * Check if voice output is enabled
+     */
+    isVoiceOutputEnabled(): boolean {
+        return this.voiceOutputEnabled;
+    }
+
+    /**
+     * Play text as speech (for assistant responses)
+     */
+    async playTextAsSpeech(text: string): Promise<void> {
+        if (!this.voiceOutputEnabled || !this.audioPlaybackUI) {
+            return;
+        }
+
+        await this.audioPlaybackUI.playText(text);
     }
 }

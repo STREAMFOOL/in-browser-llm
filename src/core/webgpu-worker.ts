@@ -183,10 +183,12 @@ async function executeModelInference(task: any): Promise<any> {
   switch (state.modelType) {
     case 'image-generation':
       return await executeImageGeneration(task);
-    case 'vision':
     case 'speech-asr':
+      return await executeSpeechASR(task);
     case 'speech-tts':
-      // Placeholder for other model types
+      return await executeSpeechTTS(task);
+    case 'vision':
+      // Placeholder for vision model
       return await executePlaceholderInference(task);
     default:
       throw new Error(`Unknown model type: ${state.modelType}`);
@@ -273,8 +275,156 @@ async function executeImageGeneration(task: any): Promise<any> {
   return blob;
 }
 
+async function executeSpeechASR(task: any): Promise<any> {
+  const { input, parameters } = task;
+
+  // Validate input is audio data
+  if (!(input instanceof ArrayBuffer)) {
+    throw new Error('ASR requires audio data as ArrayBuffer');
+  }
+
+  const { language = 'auto' } = parameters;
+
+  // Report starting
+  self.postMessage({
+    type: 'progress',
+    payload: {
+      phase: 'starting',
+      percentage: 0,
+      message: 'Starting transcription...'
+    }
+  });
+
+  // Report processing
+  self.postMessage({
+    type: 'progress',
+    payload: {
+      phase: 'processing',
+      percentage: 50,
+      message: `Processing audio (language: ${language})...`
+    }
+  });
+
+  // Simulate ASR processing
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  // Generate placeholder transcription
+  const audioLengthSeconds = Math.floor(input.byteLength / (16000 * 2));
+  const transcription = `[Placeholder transcription - Whisper not yet integrated. Audio length: ~${audioLengthSeconds}s, Language: ${language}]`;
+
+  self.postMessage({
+    type: 'progress',
+    payload: {
+      phase: 'complete',
+      percentage: 100,
+      message: 'Transcription complete'
+    }
+  });
+
+  return transcription;
+}
+
+async function executeSpeechTTS(task: any): Promise<any> {
+  const { input, parameters } = task;
+
+  // Validate input is text
+  if (typeof input !== 'string') {
+    throw new Error('TTS requires text input');
+  }
+
+  if (!input.trim()) {
+    throw new Error('Text cannot be empty');
+  }
+
+  const { voice = 'default' } = parameters;
+
+  // Report starting
+  self.postMessage({
+    type: 'progress',
+    payload: {
+      phase: 'starting',
+      percentage: 0,
+      message: 'Starting speech synthesis...'
+    }
+  });
+
+  // Report processing
+  self.postMessage({
+    type: 'progress',
+    payload: {
+      phase: 'processing',
+      percentage: 50,
+      message: `Generating speech (voice: ${voice})...`
+    }
+  });
+
+  // Simulate TTS processing
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  // Generate placeholder audio
+  const audioBlob = await generatePlaceholderAudio(input);
+
+  self.postMessage({
+    type: 'progress',
+    payload: {
+      phase: 'complete',
+      percentage: 100,
+      message: 'Speech synthesis complete'
+    }
+  });
+
+  return audioBlob;
+}
+
+function generatePlaceholderAudio(text: string): Promise<Blob> {
+  // Generate a simple beep sound as placeholder
+  const sampleRate = 16000;
+  const duration = Math.min(text.length * 0.05, 10);
+  const numSamples = Math.floor(sampleRate * duration);
+
+  // Create WAV file
+  const wavBuffer = createWavBuffer(numSamples, sampleRate);
+
+  return Promise.resolve(new Blob([wavBuffer], { type: 'audio/wav' }));
+}
+
+function createWavBuffer(numSamples: number, sampleRate: number): ArrayBuffer {
+  const buffer = new ArrayBuffer(44 + numSamples * 2);
+  const view = new DataView(buffer);
+
+  // WAV header
+  writeString(view, 0, 'RIFF');
+  view.setUint32(4, 36 + numSamples * 2, true);
+  writeString(view, 8, 'WAVE');
+  writeString(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeString(view, 36, 'data');
+  view.setUint32(40, numSamples * 2, true);
+
+  // Generate simple tone (440 Hz beep)
+  const frequency = 440;
+  for (let i = 0; i < numSamples; i++) {
+    const sample = Math.sin(2 * Math.PI * frequency * i / sampleRate) * 0.3;
+    view.setInt16(44 + i * 2, sample * 32767, true);
+  }
+
+  return buffer;
+}
+
+function writeString(view: DataView, offset: number, string: string): void {
+  for (let i = 0; i < string.length; i++) {
+    view.setUint8(offset + i, string.charCodeAt(i));
+  }
+}
+
 async function executePlaceholderInference(_task: any): Promise<any> {
-  // Placeholder for other model types (vision, speech-asr, speech-tts)
+  // Placeholder for vision model
   self.postMessage({
     type: 'progress',
     payload: {
