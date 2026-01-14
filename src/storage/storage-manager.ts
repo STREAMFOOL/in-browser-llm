@@ -211,6 +211,9 @@ export class StorageManager {
         }
     }
 
+    // Reserved for future quota checking before operations
+    // Currently unused but kept for potential future use
+    // @ts-ignore - Method reserved for future use
     private async checkQuotaBeforeOperation(operationName: string): Promise<boolean> {
         try {
             const estimate = await this.getStorageEstimate();

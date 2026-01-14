@@ -179,9 +179,102 @@ async function handleInference(task: any): Promise<void> {
 }
 
 async function executeModelInference(task: any): Promise<any> {
-  // Placeholder implementation
-  // Actual model-specific inference will be implemented in subsequent tasks
+  // Route to model-specific inference based on model type
+  switch (state.modelType) {
+    case 'image-generation':
+      return await executeImageGeneration(task);
+    case 'vision':
+    case 'speech-asr':
+    case 'speech-tts':
+      // Placeholder for other model types
+      return await executePlaceholderInference(task);
+    default:
+      throw new Error(`Unknown model type: ${state.modelType}`);
+  }
+}
 
+async function executeImageGeneration(task: any): Promise<any> {
+  const { input, parameters } = task;
+
+  // Validate input is a prompt string
+  if (typeof input !== 'string') {
+    throw new Error('Image generation requires a text prompt');
+  }
+
+  const {
+    steps = 20
+  } = parameters;
+  // seed, negativePrompt and guidanceScale will be used when actual SD model is integrated
+  const seed = parameters.seed || Math.floor(Math.random() * 1000000);
+
+  // Report starting
+  self.postMessage({
+    type: 'progress',
+    payload: {
+      phase: 'starting',
+      percentage: 0,
+      message: 'Starting image generation...'
+    }
+  });
+
+  // Simulate diffusion steps with progress reporting
+  for (let step = 1; step <= steps; step++) {
+    const percentage = Math.floor((step / steps) * 100);
+
+    self.postMessage({
+      type: 'progress',
+      payload: {
+        phase: 'diffusion',
+        percentage,
+        message: `Diffusion step ${step}/${steps}`
+      }
+    });
+
+    // Simulate processing time
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+
+  // Create placeholder image (512x512)
+  const canvas = new OffscreenCanvas(512, 512);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('Failed to get canvas context');
+  }
+
+  // Fill with gradient
+  const gradient = ctx.createLinearGradient(0, 0, 512, 512);
+  gradient.addColorStop(0, '#667eea');
+  gradient.addColorStop(1, '#764ba2');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Add prompt text
+  ctx.fillStyle = 'white';
+  ctx.font = '20px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`Prompt: ${input.substring(0, 30)}...`, 256, 240);
+
+  // Add seed info
+  ctx.font = '14px sans-serif';
+  ctx.fillText(`Seed: ${seed}`, 256, 270);
+
+  // Convert to blob
+  const blob = await canvas.convertToBlob({ type: 'image/png' });
+
+  self.postMessage({
+    type: 'progress',
+    payload: {
+      phase: 'complete',
+      percentage: 100,
+      message: 'Image generation complete'
+    }
+  });
+
+  return blob;
+}
+
+async function executePlaceholderInference(_task: any): Promise<any> {
+  // Placeholder for other model types (vision, speech-asr, speech-tts)
   self.postMessage({
     type: 'progress',
     payload: {
@@ -191,7 +284,6 @@ async function executeModelInference(task: any): Promise<any> {
     }
   });
 
-  // Simulate some processing time
   await new Promise(resolve => setTimeout(resolve, 100));
 
   self.postMessage({
