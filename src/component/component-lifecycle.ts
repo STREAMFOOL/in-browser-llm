@@ -193,6 +193,8 @@ export class ComponentLifecycle {
             });
         }
 
+        this.updateChatInputState();
+
         // Start storage quota monitoring (check every minute)
         this.storageManager.startQuotaMonitoring(60000);
     }
@@ -224,12 +226,15 @@ export class ComponentLifecycle {
                 const switchMessage = this.core.createProviderSwitchMessage(provider.description);
                 this.chatUI.addMessage(switchMessage);
             }
+
+            this.updateChatInputState();
         } catch (error) {
             notify({
                 type: 'error',
                 title: 'Provider Switch Failed',
                 message: `Unable to switch provider: ${error instanceof Error ? error.message : String(error)}`
             });
+            this.updateChatInputState();
             throw error;
         }
     }
@@ -286,6 +291,8 @@ export class ComponentLifecycle {
         if (this.settingsPanel) {
             this.settingsPanel.updateSettings(validConfig);
         }
+
+        this.updateChatInputState();
 
         if (this.sessionManager) {
             try {
@@ -393,6 +400,7 @@ export class ComponentLifecycle {
 
     private handleProviderReady(provider: ModelProvider): void {
         this.core.updateProviderIndicator(provider);
+        this.updateChatInputState();
     }
 
     private handleSessionCreated(session: ChatSession): void {
@@ -407,6 +415,22 @@ export class ComponentLifecycle {
         this.currentSettings.enabledFeatures = supported;
         if (this.settingsPanel) {
             this.settingsPanel.updateSettings(this.currentSettings);
+        }
+        this.updateChatInputState();
+    }
+
+    private updateChatInputState(): void {
+        if (!this.chatUI) return;
+
+        const isTextChatEnabled = this.currentSettings.enabledFeatures.includes('text-chat');
+        const hasActiveProvider = this.sessionManager?.getActiveProvider() !== null;
+
+        if (!isTextChatEnabled) {
+            this.chatUI.disableInput('feature-disabled');
+        } else if (!hasActiveProvider) {
+            this.chatUI.disableInput('error', '⚠️ No AI provider available. Check Settings to configure a provider.');
+        } else {
+            this.chatUI.enableInput();
         }
     }
 
@@ -775,8 +799,10 @@ export class ComponentLifecycle {
             type: 'error',
             title: 'No AI Provider Available',
             message: message,
-            duration: 10000 // Show for 10 seconds since this is critical
+            duration: 10000
         });
+
+        this.updateChatInputState();
     }
 
     async dispose(): Promise<void> {

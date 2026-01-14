@@ -25,9 +25,11 @@ export class ChatUI {
     private loadingIndicator: HTMLElement;
     private searchIndicator: SearchIndicator;
     private privacyWarning: HTMLElement | null = null;
+    private inputOverlay: HTMLElement | null = null;
     private callbacks: ChatUICallbacks;
     private isStreaming: boolean = false;
     private userHasScrolledUp: boolean = false;
+    private isInputEnabled: boolean = true;
 
     constructor(container: HTMLElement, callbacks: ChatUICallbacks) {
         this.container = container;
@@ -66,6 +68,7 @@ export class ChatUI {
     private createInputContainer(): HTMLElement {
         const container = document.createElement('div');
         container.className = 'input-container';
+        container.style.position = 'relative';
 
         const textarea = document.createElement('textarea');
         textarea.className = 'message-input';
@@ -129,6 +132,8 @@ export class ChatUI {
     }
 
     private handleSend(): void {
+        if (!this.isInputEnabled) return;
+
         const content = this.inputField.value.trim();
         if (!content) return;
 
@@ -360,5 +365,97 @@ export class ChatUI {
             title,
             message: errorMessage
         });
+    }
+
+    /**
+     * Disable input with an overlay message
+     */
+    disableInput(reason: 'feature-disabled' | 'error', customMessage?: string): void {
+        this.isInputEnabled = false;
+        this.inputField.disabled = true;
+        this.sendButton.disabled = true;
+
+        // Apply disabled styling
+        this.inputField.style.opacity = '0.5';
+        this.inputField.style.cursor = 'not-allowed';
+        this.sendButton.style.opacity = '0.5';
+        this.sendButton.style.cursor = 'not-allowed';
+
+        // Create overlay if it doesn't exist
+        if (!this.inputOverlay) {
+            this.inputOverlay = document.createElement('div');
+            this.inputOverlay.className = 'input-overlay';
+            this.inputOverlay.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(2px);
+                border-radius: 0.5rem;
+                z-index: 10;
+                pointer-events: none;
+            `;
+
+            const inputContainer = this.inputField.parentElement;
+            if (inputContainer) {
+                inputContainer.appendChild(this.inputOverlay);
+            }
+        }
+
+        // Set overlay message
+        const message = customMessage || (reason === 'feature-disabled'
+            ? '💬 Text chat is disabled. Enable it in Settings to start chatting.'
+            : '⚠️ Chat is temporarily unavailable due to an error.');
+
+        const messageEl = document.createElement('div');
+        messageEl.className = 'overlay-message';
+        messageEl.style.cssText = `
+            padding: 0.75rem 1rem;
+            background: ${reason === 'feature-disabled' ? '#eff6ff' : '#fef2f2'};
+            border: 1px solid ${reason === 'feature-disabled' ? '#bfdbfe' : '#fecaca'};
+            border-radius: 0.5rem;
+            color: ${reason === 'feature-disabled' ? '#1e40af' : '#991b1b'};
+            font-size: 0.875rem;
+            text-align: center;
+            max-width: 90%;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        `;
+        messageEl.textContent = message;
+
+        this.inputOverlay.innerHTML = '';
+        this.inputOverlay.appendChild(messageEl);
+        this.inputOverlay.style.display = 'flex';
+    }
+
+    /**
+     * Enable input and remove overlay
+     */
+    enableInput(): void {
+        this.isInputEnabled = true;
+        this.inputField.disabled = false;
+        this.sendButton.disabled = false;
+
+        // Remove disabled styling
+        this.inputField.style.opacity = '1';
+        this.inputField.style.cursor = 'text';
+        this.sendButton.style.opacity = '1';
+        this.sendButton.style.cursor = 'pointer';
+
+        // Hide overlay
+        if (this.inputOverlay) {
+            this.inputOverlay.style.display = 'none';
+        }
+    }
+
+    /**
+     * Check if input is currently enabled
+     */
+    isInputCurrentlyEnabled(): boolean {
+        return this.isInputEnabled;
     }
 }
