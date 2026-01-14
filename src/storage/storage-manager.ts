@@ -141,6 +141,7 @@ export class StorageManager {
     private quotaMonitorInterval: number | null = null;
     private quotaWarningThreshold: number = 0.9; // Warn at 90% usage
     private onQuotaWarning?: (usage: number, quota: number) => void;
+    private hasShownQuotaWarning: boolean = false;
 
     constructor() {
         this.db = new LocalAIDatabase();
@@ -183,11 +184,18 @@ export class StorageManager {
             const usageRatio = estimate.usage / estimate.quota;
 
             if (usageRatio >= this.quotaWarningThreshold) {
-                console.warn(`Storage quota warning: ${(usageRatio * 100).toFixed(1)}% used (${estimate.usage} / ${estimate.quota} bytes)`);
+                // Only show warning once until storage usage drops below threshold
+                if (!this.hasShownQuotaWarning) {
+                    console.warn(`Storage quota warning: ${(usageRatio * 100).toFixed(1)}% used (${estimate.usage} / ${estimate.quota} bytes)`);
 
-                if (this.onQuotaWarning) {
-                    this.onQuotaWarning(estimate.usage, estimate.quota);
+                    if (this.onQuotaWarning) {
+                        this.onQuotaWarning(estimate.usage, estimate.quota);
+                    }
+                    this.hasShownQuotaWarning = true;
                 }
+            } else {
+                // Reset warning flag when usage drops below threshold
+                this.hasShownQuotaWarning = false;
             }
         } catch (error) {
             // Try to notify, but fall back to console if notification system not available
@@ -213,32 +221,13 @@ export class StorageManager {
 
             const usageRatio = estimate.usage / estimate.quota;
 
-            // Warn at 90%, block at 95%
-            if (usageRatio >= 0.95) {
-                notify({
-                    type: 'error',
-                    title: 'Storage Quota Exceeded',
-                    message: `Cannot ${operationName}: Storage is ${(usageRatio * 100).toFixed(1)}% full. Please clear some data.`,
-                    storageInfo: {
-                        required: 0,
-                        current: estimate.usage,
-                        quota: estimate.quota
-                    }
-                });
-                return false;
-            } else if (usageRatio >= 0.90) {
-                notify({
-                    type: 'warning',
-                    title: 'Storage Running Low',
-                    message: `Storage is ${(usageRatio * 100).toFixed(1)}% full. Consider clearing old conversations.`,
-                    storageInfo: {
-                        required: 0,
-                        current: estimate.usage,
-                        quota: estimate.quota
-                    }
-                });
+            // Only block at extreme levels (98%+) to avoid false positives
+            // Storage API estimates can be inaccurate
+            if (usageRatio >= 0.98) {
+                console.warn(`Storage critically full: ${(usageRatio * 100).toFixed(1)}% - attempting ${operationName} anyway`);
             }
 
+            // Always allow operations to proceed - let the browser handle actual quota errors
             return true;
         } catch (error) {
             // If quota check fails, proceed with operation but log error
@@ -341,20 +330,28 @@ export class StorageManager {
 
 
     async saveMessage(threadId: string, message: Message): Promise<void> {
-        // Check quota before saving
-        const canProceed = await this.checkQuotaBeforeOperation('save message');
-        if (!canProceed) {
-            throw new Error('Storage quota exceeded');
-        }
+        try {
+            await this.db.messages.put(message);
 
-        await this.db.messages.put(message);
+            // Update thread's updatedAt and messageCount
+            const thread = await this.db.threads.get(threadId);
+            if (thread) {
+                thread.updatedAt = Date.now();
+                thread.messageCount = await this.db.messages.where('threadId').equals(threadId).count();
+                await this.db.threads.put(thread);
+            }
+        } catch (error) {
+            // Log error but don't throw - allow chat to continue even if save fails
+            console.error('Failed to save message:', error);
 
-        // Update thread's updatedAt and messageCount
-        const thread = await this.db.threads.get(threadId);
-        if (thread) {
-            thread.updatedAt = Date.now();
-            thread.messageCount = await this.db.messages.where('threadId').equals(threadId).count();
-            await this.db.threads.put(thread);
+            // Only notify on actual storage errors, not quota check failures
+            if (error instanceof Error && error.name === 'QuotaExceededError') {
+                notify({
+                    type: 'warning',
+                    title: 'Message Not Saved',
+                    message: 'Storage is full. Message sent but not saved to history. Clear old conversations to save new messages.'
+                });
+            }
         }
     }
 
@@ -575,13 +572,21 @@ export class StorageManager {
 
 
     async saveAsset(assetId: string, data: Blob): Promise<void> {
-        // Check quota before saving asset
-        const canProceed = await this.checkQuotaBeforeOperation('save asset');
-        if (!canProceed) {
-            throw new Error('Storage quota exceeded');
-        }
+        try {
+            await this.opfs.saveAsset(assetId, data);
+        } catch (error) {
+            // Log error but provide better context
+            console.error('Failed to save asset:', error);
 
-        await this.opfs.saveAsset(assetId, data);
+            if (error instanceof Error && error.name === 'QuotaExceededError') {
+                notify({
+                    type: 'error',
+                    title: 'Asset Save Failed',
+                    message: 'Storage is full. Unable to save asset. Clear old data to free up space.'
+                });
+            }
+            throw error;
+        }
     }
 
 

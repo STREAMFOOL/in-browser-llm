@@ -40,75 +40,132 @@ if (typeof window !== 'undefined' && !(window as any).ai) {
 }
 
 // Mock Worker for testing environments
-if (typeof Worker === 'undefined') {
-    class MockWorker {
-        private listeners: Map<string, Set<(event: any) => void>> = new Map();
+class MockWorker {
+    private listeners: Map<string, Set<(event: any) => void>> = new Map();
+    onmessage: ((event: MessageEvent) => void) | null = null;
+    onerror: ((event: ErrorEvent) => void) | null = null;
 
-        constructor(scriptURL: string | URL) {
-            // Simulate worker initialization
-            setTimeout(() => {
-                this.postMessage({ type: 'webgpu-ready', limits: {} });
-            }, 0);
-        }
+    constructor(scriptURL: string | URL) {
+        // Worker is created but not initialized yet
+    }
 
-        postMessage(message: any) {
-            // Simulate async message processing
-            setTimeout(() => {
-                const { type, task } = message;
+    postMessage(message: any) {
+        // Simulate async message processing
+        setTimeout(() => {
+            const { type, modelType, task } = message;
 
-                if (type === 'inference') {
-                    // Simulate progress updates
-                    this.dispatchEvent({ data: { type: 'progress', data: { progress: 0 } } });
+            if (type === 'initialize') {
+                // Respond with initialized message
+                this.dispatchEvent({
+                    data: {
+                        type: 'initialized',
+                        payload: {
+                            modelType,
+                            gpuInfo: {
+                                adapter: 'available',
+                                device: 'available'
+                            }
+                        }
+                    }
+                });
+            } else if (type === 'inference') {
+                // Simulate progress updates
+                this.dispatchEvent({
+                    data: {
+                        type: 'progress',
+                        payload: {
+                            phase: 'starting',
+                            percentage: 0,
+                            message: 'Starting inference'
+                        }
+                    }
+                });
 
-                    setTimeout(() => {
-                        this.dispatchEvent({ data: { type: 'progress', data: { progress: 50 } } });
-                    }, 10);
+                setTimeout(() => {
+                    this.dispatchEvent({
+                        data: {
+                            type: 'progress',
+                            payload: {
+                                phase: 'processing',
+                                percentage: 50,
+                                message: 'Processing'
+                            }
+                        }
+                    });
+                }, 5);
 
-                    setTimeout(() => {
-                        this.dispatchEvent({ data: { type: 'progress', data: { progress: 100 } } });
-                    }, 20);
+                setTimeout(() => {
+                    this.dispatchEvent({
+                        data: {
+                            type: 'progress',
+                            payload: {
+                                phase: 'complete',
+                                percentage: 100,
+                                message: 'Complete'
+                            }
+                        }
+                    });
+                }, 10);
 
-                    setTimeout(() => {
-                        this.dispatchEvent({
-                            data: {
-                                type: 'result',
-                                data: {
-                                    type: task.type,
-                                    output: 'Mock inference result',
-                                    metadata: { modelType: task.type }
+                setTimeout(() => {
+                    this.dispatchEvent({
+                        data: {
+                            type: 'result',
+                            payload: {
+                                output: 'Mock inference result',
+                                metadata: {
+                                    modelType: task?.type || 'unknown'
                                 }
                             }
-                        });
-                    }, 30);
-                }
-            }, 0);
-        }
-
-        addEventListener(type: string, listener: (event: any) => void) {
-            if (!this.listeners.has(type)) {
-                this.listeners.set(type, new Set());
+                        }
+                    });
+                }, 15);
+            } else if (type === 'cancel') {
+                // Respond with cancelled message
+                this.dispatchEvent({
+                    data: {
+                        type: 'cancelled',
+                        payload: {
+                            message: 'Inference cancelled'
+                        }
+                    }
+                });
             }
-            this.listeners.get(type)!.add(listener);
-        }
+        }, 0);
+    }
 
-        removeEventListener(type: string, listener: (event: any) => void) {
-            const listeners = this.listeners.get(type);
-            if (listeners) {
-                listeners.delete(listener);
-            }
+    addEventListener(type: string, listener: (event: any) => void) {
+        if (!this.listeners.has(type)) {
+            this.listeners.set(type, new Set());
         }
+        this.listeners.get(type)!.add(listener);
+    }
 
-        private dispatchEvent(event: any) {
-            const listeners = this.listeners.get('message');
-            if (listeners) {
-                listeners.forEach(listener => listener(event));
-            }
-        }
-
-        terminate() {
-            this.listeners.clear();
+    removeEventListener(type: string, listener: (event: any) => void) {
+        const listeners = this.listeners.get(type);
+        if (listeners) {
+            listeners.delete(listener);
         }
     }
 
-    (global as any).Worker = MockWorker;
+    private dispatchEvent(event: any) {
+        // Call onmessage if set
+        if (this.onmessage) {
+            this.onmessage(event as MessageEvent);
+        }
+
+        // Call all registered listeners
+        const listeners = this.listeners.get('message');
+        if (listeners) {
+            listeners.forEach(listener => listener(event));
+        }
+    }
+
+    terminate() {
+        this.listeners.clear();
+        this.onmessage = null;
+        this.onerror = null;
+    }
 }
+
+(global as any).Worker = MockWorker;
