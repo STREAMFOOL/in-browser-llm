@@ -189,7 +189,7 @@ export class VoiceInputUI {
                 this.callbacks.onTranscription(transcription);
 
                 notify({
-                    type: 'success',
+                    type: 'info',
                     title: 'Transcription Complete',
                     message: 'Your speech has been converted to text.'
                 });

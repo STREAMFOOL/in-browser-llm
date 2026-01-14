@@ -18,6 +18,9 @@ import { SnippetExtractor } from '../providers/snippet-extractor';
 import { CitationFormatter } from '../providers/citation-formatter';
 import { SettingsManager } from '../storage/settings-manager';
 import { notify, disposeNotificationSystem } from '../ui/notification-api';
+import { InferenceWorkerManager } from '../core/inference-worker-manager';
+import { RAGProcessor } from '../core/rag-processor';
+import { VisionContextManager } from '../core/vision-context-manager';
 
 export class ComponentLifecycle {
     private shadow: ShadowRoot;
@@ -40,6 +43,12 @@ export class ComponentLifecycle {
         enabledFeatures: ['text-chat']
     };
 
+    // Multimodal infrastructure
+    private workerManager: InferenceWorkerManager;
+    private opfsManager: OPFSManager;
+    private _ragProcessor: RAGProcessor;
+    private _visionContextManager: VisionContextManager;
+
     constructor(
         shadow: ShadowRoot,
         core: ComponentCore,
@@ -58,9 +67,16 @@ export class ComponentLifecycle {
         // Initialize SettingsManager for search
         this.settingsManager = new SettingsManager(storageManager);
 
+        // Initialize multimodal infrastructure
+        this.workerManager = new InferenceWorkerManager();
+        this.opfsManager = new OPFSManager();
+        // RAG and Vision managers initialized but not yet wired to UI
+        // Will be connected in future tasks
+        this._ragProcessor = new RAGProcessor(storageManager);
+        this._visionContextManager = new VisionContextManager(this.opfsManager, this.workerManager);
+
         // Initialize ClearDataOperation
-        const opfsManager = new OPFSManager();
-        this.clearDataOperation = new ClearDataOperation(this.storageManager, opfsManager);
+        this.clearDataOperation = new ClearDataOperation(this.storageManager, this.opfsManager);
 
         // Initialize SearchController with SettingsManager for dynamic API key loading
         const snippetExtractor = new SnippetExtractor();
@@ -132,7 +148,7 @@ export class ComponentLifecycle {
         this.chatUI = new ChatUI(container, {
             onSendMessage: (message) => this.handleSendMessage(message),
             onCancelStream: () => this.handleCancelStream()
-        });
+        }, this.workerManager); // Pass worker manager for voice input
     }
 
     initializeSettingsPanel(): SettingsPanel {
@@ -149,6 +165,9 @@ export class ComponentLifecycle {
                 },
                 onClearData: async () => {
                     await this.clearAllData();
+                },
+                onClearModelCache: async () => {
+                    await this.clearModelCache();
                 },
                 onResetApplication: async () => {
                     await this.resetApplication();
@@ -383,6 +402,26 @@ export class ComponentLifecycle {
                 const errorMessage = this.core.createDataClearErrorMessage(error);
                 this.chatUI.addMessage(errorMessage);
             }
+        }
+    }
+
+    private async clearModelCache(): Promise<void> {
+        try {
+            console.log('Clearing model cache...');
+            await this.clearDataOperation.clearModelCache();
+
+            notify({
+                type: 'info',
+                title: 'Model Cache Cleared',
+                message: 'All cached model weights have been removed. Models will be re-downloaded when needed.'
+            });
+        } catch (error) {
+            notify({
+                type: 'error',
+                title: 'Clear Model Cache Failed',
+                message: `Unable to clear model cache: ${error instanceof Error ? error.message : String(error)}`
+            });
+            throw error;
         }
     }
 
@@ -817,6 +856,11 @@ export class ComponentLifecycle {
 
         if (this.threadManager) {
             this.threadManager.dispose();
+        }
+
+        // Clean up multimodal resources
+        if (this.workerManager) {
+            await this.workerManager.cleanup();
         }
 
         // Dispose notification system

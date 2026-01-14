@@ -81,11 +81,8 @@ export class ChatUI {
         container.className = 'input-container';
         container.style.position = 'relative';
 
-        const inputWrapper = document.createElement('div');
-        inputWrapper.className = 'flex items-center gap-2';
-
         const textarea = document.createElement('textarea');
-        textarea.className = 'message-input flex-1';
+        textarea.className = 'message-input';
         textarea.placeholder = 'Type your message here. Enter adds new line, cmd+enter submits';
         textarea.rows = 1;
         textarea.setAttribute('aria-label', 'Message input');
@@ -118,9 +115,8 @@ export class ChatUI {
 
         buttonContainer.appendChild(button);
 
-        inputWrapper.appendChild(textarea);
-        inputWrapper.appendChild(buttonContainer);
-        container.appendChild(inputWrapper);
+        container.appendChild(textarea);
+        container.appendChild(buttonContainer);
 
         return container;
     }

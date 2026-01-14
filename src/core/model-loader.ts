@@ -23,6 +23,8 @@ const STORE_NAME = 'modelWeights';
 
 export class ModelLoader {
     private db: IDBDatabase | null = null;
+    private static readonly MAX_CACHE_SIZE_GB = 10; // Maximum 10GB for model cache
+    private static readonly CACHE_EVICTION_THRESHOLD = 0.9; // Evict when 90% full
 
     async initialize(): Promise<void> {
         return new Promise((resolve, reject) => {
@@ -168,7 +170,7 @@ export class ModelLoader {
         });
     }
 
-    async listCachedModels(): Promise<string[]> {
+    async listCachedModels(): Promise<Array<{ modelId: string; modelType: string; sizeBytes: number; lastUsed: number }>> {
         if (!this.db) {
             await this.initialize();
         }
@@ -176,11 +178,62 @@ export class ModelLoader {
         return new Promise((resolve, reject) => {
             const transaction = this.db!.transaction([STORE_NAME], 'readonly');
             const store = transaction.objectStore(STORE_NAME);
-            const request = store.getAllKeys();
+            const request = store.getAll();
 
-            request.onsuccess = () => resolve(request.result as string[]);
+            request.onsuccess = () => {
+                const entries = request.result;
+                resolve(entries.map(entry => ({
+                    modelId: entry.modelId,
+                    modelType: entry.modelType,
+                    sizeBytes: entry.sizeBytes,
+                    lastUsed: entry.lastUsed
+                })));
+            };
+
             request.onerror = () => reject(new Error('Failed to list cached models'));
         });
+    }
+
+    async evictLeastRecentlyUsed(): Promise<void> {
+        if (!this.db) {
+            await this.initialize();
+        }
+
+        const models = await this.listCachedModels();
+        if (models.length === 0) {
+            return;
+        }
+
+        // Sort by lastUsed (oldest first)
+        models.sort((a, b) => a.lastUsed - b.lastUsed);
+
+        // Remove the oldest model
+        const oldestModel = models[0];
+        await this.removeFromCache(oldestModel.modelId);
+
+        console.log(`Evicted model ${oldestModel.modelId} (last used: ${new Date(oldestModel.lastUsed).toISOString()})`);
+    }
+
+    async enforceQuota(): Promise<void> {
+        const currentSize = await this.getCacheSize();
+        const maxSizeBytes = ModelLoader.MAX_CACHE_SIZE_GB * 1024 * 1024 * 1024;
+
+        if (currentSize > maxSizeBytes * ModelLoader.CACHE_EVICTION_THRESHOLD) {
+            console.log(`Model cache size (${this.formatBytes(currentSize)}) exceeds threshold. Evicting least recently used models...`);
+
+            // Keep evicting until we're below threshold
+            while ((await this.getCacheSize()) > maxSizeBytes * 0.7) {
+                const models = await this.listCachedModels();
+                if (models.length === 0) {
+                    break;
+                }
+                await this.evictLeastRecentlyUsed();
+            }
+        }
+    }
+
+    async clearModelCache(): Promise<void> {
+        await this.clearCache();
     }
 
     private async getFromCache(modelId: string): Promise<any | null> {
@@ -203,6 +256,9 @@ export class ModelLoader {
             throw new Error('Database not initialized');
         }
 
+        // Enforce quota before saving
+        await this.enforceQuota();
+
         return new Promise((resolve, reject) => {
             const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
@@ -210,6 +266,21 @@ export class ModelLoader {
 
             request.onsuccess = () => resolve();
             request.onerror = () => reject(new Error('Failed to save to cache'));
+        });
+    }
+
+    private async removeFromCache(modelId: string): Promise<void> {
+        if (!this.db) {
+            return;
+        }
+
+        return new Promise((resolve, reject) => {
+            const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.delete(modelId);
+
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(new Error('Failed to remove from cache'));
         });
     }
 

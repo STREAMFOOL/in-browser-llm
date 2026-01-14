@@ -10,6 +10,7 @@ export interface SettingsPanelCallbacks {
     onProviderSwitch: (providerName: string) => Promise<void>;
     onSettingsChange: (config: SettingsConfig) => void;
     onClearData: () => Promise<void>;
+    onClearModelCache?: () => Promise<void>;
     onResetApplication: () => Promise<void>;
     onApiConfigChange?: (backend: string, modelId: string, apiKey: string, endpoint: string) => Promise<void>;
     onWebLLMModelChange?: (modelId: string) => Promise<void>;
@@ -116,6 +117,7 @@ export class SettingsPanel {
                             await this.callbacks.onClearData();
                             this.hide();
                         },
+                        onClearModelCache: this.callbacks.onClearModelCache,
                         onResetApplication: async () => {
                             await this.callbacks.onResetApplication();
                         },

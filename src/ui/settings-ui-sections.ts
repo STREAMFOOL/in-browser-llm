@@ -263,14 +263,21 @@ export class SettingsSections {
 
         const title = document.createElement('div');
         title.className = 'settings-section-title';
-        title.textContent = 'Features';
+        title.textContent = 'Multimodal Features';
+
+        const description = document.createElement('div');
+        description.className = 'text-sm text-gray-600 mb-4';
+        description.textContent = 'Enable or disable multimodal capabilities based on your hardware. All processing happens locally on your device.';
 
         const features: Array<{ feature: Feature; label: string; description: string }> = [
             { feature: 'text-chat', label: 'Text Chat', description: 'Basic conversational AI' },
-            { feature: 'image-generation', label: 'Image Generation', description: 'Generate images from text (requires 4GB+ VRAM)' },
-            { feature: 'vision', label: 'Image Understanding', description: 'Analyze and describe images (requires 2GB+ VRAM)' },
-            { feature: 'speech', label: 'Speech Input/Output', description: 'Voice interaction (requires 1GB+ VRAM)' },
+            { feature: 'image-generation', label: 'Image Generation', description: 'Generate images from text prompts using Stable Diffusion (requires 4GB+ VRAM)' },
+            { feature: 'vision', label: 'Image Understanding', description: 'Analyze and describe images using Florence-2 vision model (requires 2GB+ VRAM)' },
+            { feature: 'speech', label: 'Speech Input/Output', description: 'Voice interaction with Whisper ASR and Kokoro TTS (requires 1GB+ VRAM)' },
         ];
+
+        section.appendChild(title);
+        section.appendChild(description);
 
         for (const { feature, label, description } of features) {
             const canSupport = HardwareDiagnostics.canSupport(feature, this.hardwareProfile);
@@ -296,7 +303,6 @@ export class SettingsSections {
             section.appendChild(toggle);
         }
 
-        section.insertBefore(title, section.firstChild);
         this.container.appendChild(section);
     }
 
@@ -998,6 +1004,34 @@ export class SettingsSections {
         dataSizeContainer.appendChild(dataSizeTitle);
         dataSizeContainer.appendChild(dataSizeContent);
 
+        // Clear model cache button
+        const clearCacheButton = document.createElement('button');
+        clearCacheButton.className = 'action-button secondary';
+        clearCacheButton.textContent = '🗄️ Clear Model Cache';
+        clearCacheButton.style.marginTop = '16px';
+        clearCacheButton.addEventListener('click', async () => {
+            if (confirm('Are you sure you want to clear the model cache? Models will need to be re-downloaded when used again.')) {
+                clearCacheButton.disabled = true;
+                clearCacheButton.textContent = 'Clearing...';
+                try {
+                    if (this.callbacks.onClearModelCache) {
+                        await this.callbacks.onClearModelCache();
+                        alert('✅ Model cache cleared successfully!');
+                        await this.updateDataSizeDisplay();
+                    }
+                } catch (error) {
+                    alert('❌ Failed to clear model cache: ' + (error instanceof Error ? error.message : 'Unknown error'));
+                } finally {
+                    clearCacheButton.disabled = false;
+                    clearCacheButton.textContent = '🗄️ Clear Model Cache';
+                }
+            }
+        });
+
+        const clearCacheDescription = document.createElement('div');
+        clearCacheDescription.className = 'action-description';
+        clearCacheDescription.textContent = 'Remove cached AI model weights. Models will be re-downloaded when needed. This can free up several gigabytes of storage.';
+
         // Clear data button
         const clearButton = document.createElement('button');
         clearButton.className = 'action-button secondary';
@@ -1026,6 +1060,9 @@ export class SettingsSections {
 
         section.appendChild(title);
         section.appendChild(dataSizeContainer);
+        section.appendChild(clearCacheDescription);
+        section.appendChild(clearCacheButton);
+        section.appendChild(document.createElement('br'));
         section.appendChild(clearDescription);
         section.appendChild(clearButton);
         section.appendChild(document.createElement('br'));

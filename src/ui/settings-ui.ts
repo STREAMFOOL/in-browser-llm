@@ -13,6 +13,7 @@ export interface SettingsCallbacks {
     onSettingsChange: (config: SettingsConfig) => void;
     onClearData: () => Promise<void>;
     onResetApplication: () => Promise<void>;
+    onClearModelCache?: () => Promise<void>;
     onApiConfigChange?: (backend: string, modelId: string, apiKey: string, endpoint: string) => Promise<void>;
     onWebLLMModelChange?: (modelId: string) => Promise<void>;
     onSearchToggle?: (enabled: boolean) => Promise<void>;

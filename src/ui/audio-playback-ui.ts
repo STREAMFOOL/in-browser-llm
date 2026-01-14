@@ -83,7 +83,7 @@ export class AudioPlaybackUI {
             await this.playAudioBlob(audioBlob);
 
             notify({
-                type: 'success',
+                type: 'info',
                 title: 'Speech Generated',
                 message: 'Playing audio...'
             });

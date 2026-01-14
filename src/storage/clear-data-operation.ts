@@ -1,5 +1,6 @@
 import { StorageManager } from './storage-manager';
 import { OPFSManager } from './opfs-manager';
+import { ModelLoader } from '../core/model-loader';
 
 export interface ClearResult {
     success: boolean;
@@ -19,10 +20,12 @@ export interface DataSize {
 export class ClearDataOperation {
     private storageManager: StorageManager;
     private opfsManager: OPFSManager;
+    private modelLoader: ModelLoader;
 
     constructor(storageManager: StorageManager, opfsManager: OPFSManager) {
         this.storageManager = storageManager;
         this.opfsManager = opfsManager;
+        this.modelLoader = new ModelLoader();
     }
 
     async clearAll(): Promise<ClearResult> {
@@ -93,8 +96,7 @@ export class ClearDataOperation {
     }
 
     async clearModelCache(): Promise<void> {
-        // Model cache would be stored in a separate store if implemented
-        // For now, this is a no-op as model weights are not stored in IndexedDB
+        await this.modelLoader.clearModelCache();
     }
 
     async getDataSize(): Promise<DataSize> {
@@ -104,12 +106,13 @@ export class ClearDataOperation {
         const messagesSize = await this.storageManager.getStoreSize('messages');
         const settingsSize = await this.storageManager.getStoreSize('settings');
         const assetsSize = await this.opfsManager.getTotalSize();
+        const modelCacheSize = await this.modelLoader.getCacheSize();
 
         return {
             conversations: threadsSize + messagesSize,
             settings: settingsSize,
             assets: assetsSize,
-            modelCache: 0,
+            modelCache: modelCacheSize,
             total: estimate.usage,
         };
     }
