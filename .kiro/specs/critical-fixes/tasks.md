@@ -8,38 +8,38 @@ The implementation uses TypeScript with existing project patterns. All fixes mai
 
 ## Tasks
 
-- [-] 1. Fix Cross-Browser Hardware Detection
-  - [ ] 1.1 Update RAM detection to return null when unavailable
+- [x] 1. Fix Cross-Browser Hardware Detection
+  - [x] 1.1 Update RAM detection to return null when unavailable
     - Modify `detectCapabilities()` to return `null` instead of defaulting to 4GB
     - Add `ramDetectionMethod` field to track how RAM was detected
     - Update `canSupport()` to treat `null` RAM as "unknown" not "insufficient"
     - _Requirements: 1.1_
 
-  - [ ] 1.2 Fix storage detection for Brave/Firefox
+  - [x] 1.2 Fix storage detection for Brave/Firefox
     - Handle restricted quota APIs that return 0 or negative values
     - Add `storageDetectionMethod` field to track detection approach
     - Ensure text-chat is never disabled due to storage issues
     - _Requirements: 1.2, 1.3_
 
-  - [ ] 1.3 Add browser detection to hardware diagnostics
+  - [x] 1.3 Add browser detection to hardware diagnostics
     - Detect browser name (Chrome, Brave, Firefox, Edge, Safari)
     - Include browser name in all diagnostic logs
     - _Requirements: 1.4_
 
-  - [ ] 1.4 Add detailed logging for hardware checks
+  - [x] 1.4 Add detailed logging for hardware checks
     - Log each hardware check with result, method, and browser
     - Log feature gate decisions during initialization
     - _Requirements: 1.4, 1.5, 5.5_
 
-  - [ ] 1.5 Write property test for hardware graceful degradation
+  - [x] 1.5 Write property test for hardware graceful degradation
     - **Property 1: Hardware Detection Graceful Degradation**
     - **Validates: Requirements 1.1, 1.3**
 
-  - [ ] 1.6 Write property test for storage non-blocking
+  - [x] 1.6 Write property test for storage non-blocking
     - **Property 2: Storage Detection Non-Blocking**
     - **Validates: Requirements 1.2, 1.3**
 
-- [ ] 2. Checkpoint - Hardware Detection Complete
+- [x] 2. Checkpoint - Hardware Detection Complete
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 3. Fix Default Feature Settings

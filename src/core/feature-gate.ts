@@ -2,6 +2,7 @@
 // Determines which multimodal features can be enabled based on VRAM, RAM, etc.
 
 import { HardwareDiagnostics, type HardwareProfile, type Feature } from '../utils/hardware-diagnostics';
+import { HardwareDiagnosticsLogger } from '../utils/hardware-diagnostics-logger';
 
 export interface FeatureGateResult {
     enabled: boolean;
@@ -23,6 +24,13 @@ export class FeatureGate {
 
         this.hardwareProfile = await HardwareDiagnostics.detectCapabilities();
         this.initialized = true;
+
+        // Log feature gate decisions during initialization
+        const features: Feature[] = ['text-chat', 'image-generation', 'vision', 'speech', 'video'];
+        for (const feature of features) {
+            const result = await this.canEnableFeature(feature);
+            HardwareDiagnosticsLogger.logFeatureGateDecision(feature, result.enabled, result.reason);
+        }
     }
 
     async canEnableFeature(feature: Feature): Promise<FeatureGateResult> {
@@ -44,10 +52,13 @@ export class FeatureGate {
             // Determine specific reason for failure
             let reason = 'Hardware requirements not met';
 
-            if (this.hardwareProfile.gpuVRAM < requirements.minVRAM) {
-                reason = `Insufficient VRAM: ${this.hardwareProfile.gpuVRAM.toFixed(1)} GB available, ${requirements.minVRAM} GB required`;
+            // Handle null RAM case
+            if (this.hardwareProfile.ram === null) {
+                reason = 'RAM detection unavailable - cannot verify requirements';
             } else if (this.hardwareProfile.ram < requirements.minRAM) {
                 reason = `Insufficient RAM: ${this.hardwareProfile.ram} GB available, ${requirements.minRAM} GB required`;
+            } else if (this.hardwareProfile.gpuVRAM < requirements.minVRAM) {
+                reason = `Insufficient VRAM: ${this.hardwareProfile.gpuVRAM.toFixed(1)} GB available, ${requirements.minVRAM} GB required`;
             } else if (!this.hardwareProfile.webGPUSupported && requirements.requiresWebGPU) {
                 reason = 'WebGPU not supported in this browser';
             } else if (this.hardwareProfile.storageAvailable < requirements.minStorage) {

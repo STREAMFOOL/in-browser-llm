@@ -1,12 +1,16 @@
-
+import { HardwareDiagnosticsLogger } from './hardware-diagnostics-logger';
 
 export interface HardwareProfile {
-    ram: number;              // GB
+    ram: number | null;       // GB, null if unknown
+    ramDetectionMethod: 'deviceMemory' | 'performance' | 'manual' | 'unknown';
+    ramActual?: number;       // User-specified actual RAM if different from detected
     cpuCores: number;
-    storageAvailable: number; // GB
+    storageAvailable: number; // GB, 0 means unknown not "no storage"
+    storageDetectionMethod: 'estimate' | 'fallback' | 'unknown';
     gpuVRAM: number;          // GB (estimated)
     webGPUSupported: boolean;
     gpuPerformanceScore: number; // 0-100
+    browserName: string;      // Chrome, Brave, Firefox, Edge, Safari
     timestamp: number;        // When profile was created
 }
 
@@ -68,38 +72,113 @@ export class HardwareDiagnostics {
         }
     };
 
+    private static detectBrowserName(): string {
+        const userAgent = navigator.userAgent;
+
+        // Check for Brave first (it contains Chrome but is Brave)
+        if ((navigator as any).brave !== undefined) {
+            return 'Brave';
+        }
+
+        // Check for Edge
+        if (userAgent.includes('Edg/')) {
+            return 'Edge';
+        }
+
+        // Check for Chrome
+        if (userAgent.includes('Chrome/')) {
+            return 'Chrome';
+        }
+
+        // Check for Firefox
+        if (userAgent.includes('Firefox/')) {
+            return 'Firefox';
+        }
+
+        // Check for Safari
+        if (userAgent.includes('Safari/') && !userAgent.includes('Chrome/')) {
+            return 'Safari';
+        }
+
+        return 'Unknown';
+    }
+
 
     static async detectCapabilities(): Promise<HardwareProfile> {
+        console.log('[Hardware Detection] Starting capability detection...');
+
         // Check cache first
         const cached = this.getCachedProfile();
         if (cached) {
+            console.log('[Hardware Detection] Using cached profile from:', new Date(cached.timestamp).toISOString());
+            console.log('[Hardware Detection] Cached storage:', cached.storageAvailable, 'GB');
+            console.log('[Hardware Detection] To force re-detection, run: localStorage.removeItem("hardware-profile-cache")');
             return cached;
         }
 
-        // Detect RAM (Requirement 6.1)
-        const ram = (navigator as any).deviceMemory || 4; // Default to 4GB if unavailable
+        console.log('[Hardware Detection] No cache found, running fresh detection...');
+
+        // Detect browser name first for logging
+        const browserName = this.detectBrowserName();
+        console.log('[Hardware Detection] Browser:', browserName);
+
+        // Detect RAM (Requirement 1.1)
+        let ram: number | null = null;
+        let ramDetectionMethod: 'deviceMemory' | 'performance' | 'manual' | 'unknown' = 'unknown';
+        if ((navigator as any).deviceMemory) {
+            ram = (navigator as any).deviceMemory;
+            ramDetectionMethod = 'deviceMemory';
+            console.log(`[RAM Detection] navigator.deviceMemory reports ${ram} GB`);
+            if (ram !== null && ram >= 8) {
+                console.warn(`[RAM Detection] ⚠️ API is capped at 8GB. Actual RAM may be higher (16GB, 32GB, etc.)`);
+                console.warn(`[RAM Detection] This is a browser privacy limitation, not a bug.`);
+            }
+        } else {
+            console.log(`[RAM Detection] navigator.deviceMemory not available in this browser`);
+        }
+
+        // Check for manual override
+        const manualRAM = this.getManualRAMOverride();
+        if (manualRAM !== null) {
+            console.log(`[RAM Detection] ✓ Using manual override: ${manualRAM} GB (detected: ${ram ?? 'unknown'} GB)`);
+            ramDetectionMethod = 'manual';
+        }
+
+        HardwareDiagnosticsLogger.logHardwareCheck('RAM Detection', ram ?? 'unknown', ramDetectionMethod, browserName);
 
         // Detect CPU cores (Requirement 6.2)
         const cpuCores = navigator.hardwareConcurrency || 2; // Default to 2 cores
+        HardwareDiagnosticsLogger.logHardwareCheck('CPU Cores', cpuCores, 'hardwareConcurrency', browserName);
 
         // Detect available storage (Requirement 6.3)
-        const storageAvailable = await this.detectStorage();
+        const { storageAvailable, storageDetectionMethod } = await this.detectStorage();
+        HardwareDiagnosticsLogger.logHardwareCheck('Storage Available', `${storageAvailable.toFixed(1)} GB`, storageDetectionMethod, browserName);
 
         // Detect GPU VRAM and WebGPU support (Requirement 6.4)
         const { gpuVRAM, webGPUSupported } = await this.detectGPU();
+        HardwareDiagnosticsLogger.logHardwareCheck('GPU VRAM', `${gpuVRAM.toFixed(1)} GB`, 'WebGPU adapter', browserName);
+        HardwareDiagnosticsLogger.logHardwareCheck('WebGPU Support', webGPUSupported, 'navigator.gpu', browserName);
 
         // Benchmark GPU performance
         const gpuPerformanceScore = webGPUSupported ? await this.benchmarkGPU() : 0;
+        HardwareDiagnosticsLogger.logHardwareCheck('GPU Performance Score', gpuPerformanceScore, 'compute benchmark', browserName);
 
         const profile: HardwareProfile = {
-            ram,
+            ram: manualRAM !== null ? manualRAM : ram,
+            ramDetectionMethod,
+            ramActual: manualRAM !== null ? manualRAM : undefined,
             cpuCores,
             storageAvailable,
+            storageDetectionMethod,
             gpuVRAM,
             webGPUSupported,
             gpuPerformanceScore,
+            browserName,
             timestamp: Date.now()
         };
+
+        // Log complete profile
+        HardwareDiagnosticsLogger.logHardwareProfile(profile);
 
         // Cache the profile
         this.cacheProfile(profile);
@@ -111,8 +190,9 @@ export class HardwareDiagnostics {
     static canSupport(feature: Feature, profile: HardwareProfile): boolean {
         const requirements = this.FEATURE_REQUIREMENTS[feature];
 
-        // Check all requirements
-        if (profile.ram < requirements.minRAM) return false;
+        // Treat null RAM as "unknown" - don't disable features based on unknown RAM
+        // Only check RAM if it was successfully detected
+        if (profile.ram !== null && profile.ram < requirements.minRAM) return false;
         if (profile.gpuVRAM < requirements.minVRAM) return false;
         if (profile.cpuCores < requirements.minCPUCores) return false;
         if (profile.storageAvailable < requirements.minStorage) return false;
@@ -142,10 +222,12 @@ export class HardwareDiagnostics {
 
         // Determine max context length based on RAM
         let maxContextLength = 2048;
-        if (profile.ram >= 16) {
-            maxContextLength = 8192;
-        } else if (profile.ram >= 8) {
-            maxContextLength = 4096;
+        if (profile.ram !== null) {
+            if (profile.ram >= 16) {
+                maxContextLength = 8192;
+            } else if (profile.ram >= 8) {
+                maxContextLength = 4096;
+            }
         }
 
         return {
@@ -161,38 +243,77 @@ export class HardwareDiagnostics {
     }
 
 
-    private static async detectStorage(): Promise<number> {
-        if (!navigator.storage || !navigator.storage.estimate) {
-            return 0;
+    private static async detectStorage(): Promise<{ storageAvailable: number; storageDetectionMethod: 'estimate' | 'fallback' | 'unknown' }> {
+        // Try navigator.storage.estimate first
+        if (navigator.storage && navigator.storage.estimate) {
+            try {
+                // Request persistent storage to potentially increase quota
+                if (navigator.storage.persist) {
+                    await navigator.storage.persist();
+                }
+
+                const estimate = await navigator.storage.estimate();
+                const quota = estimate.quota || 0;
+                const usage = estimate.usage || 0;
+                const availableBytes = quota - usage;
+                const availableGB = availableBytes / (1024 ** 3);
+
+                // Log the raw values for debugging
+                console.log(`[Storage Detection] quota=${quota} bytes (${(quota / (1024 ** 3)).toFixed(2)} GB)`);
+                console.log(`[Storage Detection] usage=${usage} bytes (${(usage / (1024 ** 3)).toFixed(2)} GB)`);
+                console.log(`[Storage Detection] available=${availableBytes} bytes (${availableGB.toFixed(2)} GB)`);
+
+                // If we got valid quota data, use it
+                if (quota > 0 && availableBytes >= 0) {
+                    return { storageAvailable: availableGB, storageDetectionMethod: 'estimate' };
+                }
+
+                // If quota is 0 but usage > 0, storage is working but quota API is restricted
+                if (quota === 0 && usage > 0) {
+                    console.log(`[Storage Detection] Quota API restricted but storage is working (usage=${usage})`);
+                    // Estimate based on usage - if we're using storage, we have at least that much
+                    const estimatedGB = Math.max(10, (usage / (1024 ** 3)) * 2); // Assume at least 2x current usage
+                    return { storageAvailable: estimatedGB, storageDetectionMethod: 'fallback' };
+                }
+
+                // Handle negative available space (usage > quota)
+                // This happens in Brave where quota API returns unrealistic values
+                if (availableBytes < 0) {
+                    console.warn(`[Storage Detection] Usage (${(usage / (1024 ** 3)).toFixed(2)} GB) exceeds quota (${(quota / (1024 ** 3)).toFixed(2)} GB)`);
+                    console.warn(`[Storage Detection] This is a Brave browser issue - quota API is unreliable`);
+                    // Storage is clearly working (we're using it!), estimate based on actual usage
+                    const usageGB = usage / (1024 ** 3);
+                    const estimatedGB = Math.max(50, usageGB * 2); // Assume at least 2x current usage available
+                    console.log(`[Storage Detection] Estimating ${estimatedGB.toFixed(2)} GB available based on usage`);
+                    return { storageAvailable: estimatedGB, storageDetectionMethod: 'fallback' };
+                }
+
+                // Quota is 0 and usage is 0 - try IndexedDB fallback
+                console.log(`[Storage Detection] Quota API returned 0, trying IndexedDB fallback`);
+            } catch (error) {
+                console.error('[Storage Detection] navigator.storage.estimate failed:', error);
+            }
         }
 
+        // Fallback: Try to estimate from IndexedDB databases
         try {
-            // Request persistent storage to potentially increase quota
-            if (navigator.storage.persist) {
-                await navigator.storage.persist();
+            if (typeof indexedDB !== 'undefined' && indexedDB.databases) {
+                const databases = await indexedDB.databases();
+                console.log(`[Storage Detection] Found ${databases.length} IndexedDB databases`);
+
+                if (databases.length > 0) {
+                    // If we have databases, storage is working
+                    // Estimate a reasonable amount based on typical browser quotas
+                    console.log(`[Storage Detection] IndexedDB is working, estimating 50GB available`);
+                    return { storageAvailable: 50, storageDetectionMethod: 'fallback' };
+                }
             }
-
-            const estimate = await navigator.storage.estimate();
-            const quota = estimate.quota || 0;
-            const usage = estimate.usage || 0;
-            const availableBytes = quota - usage;
-            const availableGB = availableBytes / (1024 ** 3);
-
-            // Log warning if storage is over quota (can happen in Brave)
-            if (availableBytes < 0) {
-                const usagePercent = ((usage / quota) * 100).toFixed(1);
-                console.warn(`Storage quota warning: ${usagePercent}% used (${usage} / ${quota} bytes)`);
-
-                // Return 0 instead of negative value to prevent feature disabling
-                // Text chat should work even with limited storage
-                return 0;
-            }
-
-            return availableGB;
         } catch (error) {
-            console.error('Failed to detect storage:', error);
-            return 0;
+            console.error('[Storage Detection] IndexedDB fallback failed:', error);
         }
+
+        console.warn('[Storage Detection] All detection methods failed, returning 0');
+        return { storageAvailable: 0, storageDetectionMethod: 'unknown' };
     }
 
 
@@ -356,10 +477,46 @@ export class HardwareDiagnostics {
 
 
     static clearCache(): void {
+        console.log('[Hardware Detection] Clearing hardware profile cache...');
         try {
             localStorage.removeItem(this.CACHE_KEY);
+            console.log('[Hardware Detection] ✓ Cache cleared successfully');
         } catch (error) {
-            console.error('Failed to clear cache:', error);
+            console.error('[Hardware Detection] ✗ Failed to clear cache:', error);
         }
+    }
+
+    static async forceRefresh(): Promise<HardwareProfile> {
+        console.log('[Hardware Detection] Force refresh requested - clearing cache and re-detecting...');
+        this.clearCache();
+        return await this.detectCapabilities();
+    }
+
+    static setManualRAMOverride(ramGB: number | null): void {
+        const key = 'hardware-manual-ram-override';
+        if (ramGB === null) {
+            localStorage.removeItem(key);
+            console.log('[Hardware Detection] ✓ Manual RAM override removed');
+        } else {
+            localStorage.setItem(key, ramGB.toString());
+            console.log(`[Hardware Detection] ✓ Manual RAM override set to ${ramGB} GB`);
+        }
+        this.clearCache(); // Clear cache to force re-detection
+    }
+
+    private static getManualRAMOverride(): number | null {
+        const key = 'hardware-manual-ram-override';
+        try {
+            const value = localStorage.getItem(key);
+            if (value) {
+                const ram = parseFloat(value);
+                if (!isNaN(ram) && ram > 0) {
+                    return ram;
+                }
+            }
+        } catch (error) {
+            console.error('[Hardware Detection] Failed to read manual RAM override:', error);
+        }
+        return null;
     }
 }
