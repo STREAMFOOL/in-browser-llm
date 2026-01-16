@@ -1,11 +1,15 @@
 import type { StorageManager } from './storage-manager';
+import type { HardwareProfile } from '../utils/hardware-diagnostics';
+import { DefaultsCalculator } from './defaults-calculator';
 
 // Settings Interface
 
 export interface Settings {
     temperature: number;
     topK: number;
+    enableTextChat: boolean;
     enableImageGeneration: boolean;
+    enableVision: boolean;
     enableSpeech: boolean;
     enableWebSearch: boolean;
     searchApiKey: string;
@@ -21,7 +25,9 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
     temperature: 0.7,
     topK: 40,
+    enableTextChat: true,
     enableImageGeneration: false,
+    enableVision: false,
     enableSpeech: false,
     enableWebSearch: false,
     searchApiKey: '',
@@ -42,9 +48,56 @@ export class SettingsManager {
     private storageManager: StorageManager;
     private changeListeners: ChangeListener[] = [];
     private cache: Map<string, any> = new Map();
+    private static readonly SETTINGS_VERSION_KEY = '__settings_version__';
+    private static readonly CURRENT_VERSION = 2;
 
     constructor(storageManager: StorageManager) {
         this.storageManager = storageManager;
+    }
+
+    /**
+     * Initialize settings and handle migration if needed
+     */
+    async initialize(hardwareProfile?: HardwareProfile): Promise<void> {
+        const storedVersion = await this.storageManager.loadSetting(SettingsManager.SETTINGS_VERSION_KEY);
+
+        if (storedVersion === undefined) {
+            // First run - save current version
+            await this.storageManager.saveSetting(SettingsManager.SETTINGS_VERSION_KEY, SettingsManager.CURRENT_VERSION);
+        } else if (storedVersion < SettingsManager.CURRENT_VERSION) {
+            // Migration needed
+            await this.migrateSettings(storedVersion, SettingsManager.CURRENT_VERSION);
+            await this.storageManager.saveSetting(SettingsManager.SETTINGS_VERSION_KEY, SettingsManager.CURRENT_VERSION);
+        }
+
+        // Apply hardware-based defaults if first run and hardware profile available
+        if (hardwareProfile) {
+            await DefaultsCalculator.applyDefaultsIfNeeded(
+                hardwareProfile,
+                (key) => this.storageManager.loadSetting(key),
+                (key, value) => this.storageManager.saveSetting(key, value)
+            );
+        }
+    }
+
+    /**
+     * Migrate settings from old version to new version
+     */
+    private async migrateSettings(fromVersion: number, toVersion: number): Promise<void> {
+        console.log(`Migrating settings from version ${fromVersion} to ${toVersion}`);
+
+        if (fromVersion < 2) {
+            // Version 1 -> 2: Add enableTextChat and enableVision
+            const enableTextChat = await this.storageManager.loadSetting('enableTextChat');
+            if (enableTextChat === undefined) {
+                await this.storageManager.saveSetting('enableTextChat', true);
+            }
+
+            const enableVision = await this.storageManager.loadSetting('enableVision');
+            if (enableVision === undefined) {
+                await this.storageManager.saveSetting('enableVision', false);
+            }
+        }
     }
 
     /**

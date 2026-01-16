@@ -204,6 +204,22 @@ export class ComponentLifecycle {
     }
 
     async initializeSession(): Promise<void> {
+        // Get hardware profile for defaults calculation
+        const hardwareProfile = this.sessionManager ? this.sessionManager.getHardwareProfile() : null;
+
+        // Initialize settings manager and load persisted settings
+        await this.settingsManager.initialize(hardwareProfile || undefined);
+
+        // Load all settings from storage
+        const storedSettings = await this.settingsManager.getAll();
+
+        // Update current settings with stored values
+        this.currentSettings = {
+            temperature: storedSettings.temperature,
+            topK: storedSettings.topK,
+            enabledFeatures: this.buildEnabledFeatures(storedSettings)
+        };
+
         if (this.sessionManager) {
             await this.sessionManager.initialize({
                 temperature: this.currentSettings.temperature,
@@ -216,6 +232,25 @@ export class ComponentLifecycle {
 
         // Start storage quota monitoring (check every minute)
         this.storageManager.startQuotaMonitoring(60000);
+    }
+
+    private buildEnabledFeatures(settings: any): Feature[] {
+        const features: Feature[] = [];
+
+        if (settings.enableTextChat !== false) {
+            features.push('text-chat');
+        }
+        if (settings.enableImageGeneration) {
+            features.push('image-generation');
+        }
+        if (settings.enableVision) {
+            features.push('vision');
+        }
+        if (settings.enableSpeech) {
+            features.push('speech');
+        }
+
+        return features;
     }
 
     toggleSettings(): void {
@@ -329,12 +364,16 @@ export class ComponentLifecycle {
             }
         }
 
+        // Persist all settings to IndexedDB
         try {
-            await this.storageManager.saveSetting('modelParameters', {
-                temperature: validConfig.temperature,
-                topK: validConfig.topK
-            });
-            await this.storageManager.saveSetting('enabledFeatures', validConfig.enabledFeatures);
+            await this.settingsManager.set('temperature', validConfig.temperature);
+            await this.settingsManager.set('topK', validConfig.topK);
+
+            // Save individual feature flags
+            await this.settingsManager.set('enableTextChat', validConfig.enabledFeatures.includes('text-chat'));
+            await this.settingsManager.set('enableImageGeneration', validConfig.enabledFeatures.includes('image-generation'));
+            await this.settingsManager.set('enableVision', validConfig.enabledFeatures.includes('vision'));
+            await this.settingsManager.set('enableSpeech', validConfig.enabledFeatures.includes('speech'));
         } catch (error) {
             notify({
                 type: 'error',

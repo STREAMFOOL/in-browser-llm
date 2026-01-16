@@ -42,37 +42,37 @@ The implementation uses TypeScript with existing project patterns. All fixes mai
 - [x] 2. Checkpoint - Hardware Detection Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 3. Fix Default Feature Settings
-  - [ ] 3.1 Update default settings calculation
+- [-] 3. Fix Default Feature Settings
+  - [x] 3.1 Update default settings calculation
     - Enable text chat by default (always)
     - Enable image generation by default when hardware supports it
     - Enable vision by default when hardware supports it
     - _Requirements: 6.1, 6.2, 6.3_
 
-  - [ ] 3.2 Implement settings persistence
+  - [x] 3.2 Implement settings persistence
     - Save all settings to IndexedDB on change
     - Restore settings on page load
     - Handle migration from old settings format
     - _Requirements: 6.4, 6.5_
 
-  - [ ] 3.3 Add hardware-based defaults calculator
+  - [x] 3.3 Add hardware-based defaults calculator
     - Calculate defaults based on hardware profile
     - Only apply defaults on first run (respect user changes)
     - Store hardware profile hash to detect changes
     - _Requirements: 6.2, 6.3, 6.6_
 
-  - [ ] 3.4 Write property test for settings round-trip
+  - [x] 3.4 Write property test for settings round-trip
     - **Property 7: Settings Persistence Round-Trip**
     - **Validates: Requirements 6.4**
 
-  - [ ] 3.5 Write property test for hardware-based defaults
+  - [x] 3.5 Write property test for hardware-based defaults
     - **Property 8: Hardware-Based Default Enablement**
     - **Validates: Requirements 6.2, 6.3**
 
-- [ ] 4. Checkpoint - Default Settings Complete
+- [x] 4. Checkpoint - Default Settings Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Implement Whisper ASR Integration
+- [-] 5. Implement Whisper ASR Integration
   - [ ] 5.1 Add @xenova/transformers dependency
     - Install transformers.js package
     - Configure for WebGPU acceleration
